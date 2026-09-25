@@ -915,6 +915,32 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     "adjacent expansion reaches the neighboring column");
   check(!adjacentDamage.some((event) => event.targetActorIds[0] === "e_distant"),
     "adjacent expansion leaves a non-neighbor in the same row untouched");
+
+  // The additional amount is locked before RP is paid. Warden has one RP, so
+  // recomputing this value after the one-point cost would incorrectly produce 0.
+  const rpScaledBundle = makeBundle();
+  rpScaledBundle.reactiveSkills.expand_adjacent.rule.costs = [
+    { type: "spend_reaction_points", amount: 1 },
+  ];
+  rpScaledBundle.reactiveSkills.expand_adjacent.rule.effects[0].amount = {
+    type: "actor_stat_scaled",
+    subject: "self",
+    stat: "reaction_points",
+  };
+  const rpScaledResult = simulateBattle(
+    makeBattle([
+      enemy("e_primary", "front_center", 8),
+      enemy("e_adjacent", "front_left"),
+    ], ["expand_adjacent"]),
+    rpScaledBundle,
+  );
+  const rpScaledPacket = of(rpScaledResult, "damage_proposed").find(
+    (event) => event.sourceActorId === "a_warden"
+      && event.skillId === "strike"
+      && event.targetActorIds[0] === "e_adjacent",
+  );
+  check(rpScaledPacket, "an RP-scaled fragment survives the RP payment that powers it");
+  equal(rpScaledPacket.values.amount, 1, "the fragment uses the pre-payment RP snapshot");
 }
 
 {
