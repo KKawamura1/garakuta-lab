@@ -509,6 +509,26 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     reach: "unrestricted",
     tags: ["attack", "fixture"],
   }];
+  bundle.enemyReactiveSkills.after_target_selected = {
+    id: "after_target_selected",
+    displayName: "After Target Selected (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "after_target_selected_rule",
+      listenTo: "target_selected",
+      timing: "after",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "attack_start_fixture", value: true }],
+      costs: [],
+      effects: [{
+        type: "add_status",
+        target: { scope: "self", filters: [{ type: "alive" }], take: 1 },
+        statusId: "exposed",
+        stacks: 1,
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
   bundle.enemyReactiveSkills.start_focus = {
     id: "start_focus",
     displayName: "Start Focus (fixture)",
@@ -534,7 +554,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     id: "start_focus_enemy",
     displayName: "Start Focus Enemy (fixture)",
     baseReactionPoints: 1,
-    reactiveSkillIds: ["start_focus"],
+    reactiveSkillIds: ["after_target_selected", "start_focus"],
   };
   const battle = {
     schemaVersion: CORE_BATTLE.schemaVersion,
@@ -557,8 +577,17 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   };
 
   const result = simulateBattle(battle, bundle);
+  const selected = of(result, "target_selected").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
   const started = of(result, "action_started").find(
     (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const prepared = of(result, "status_added").find(
+    (event) => event.sourceActorId === "e_start_focus"
+      && event.parentEventId === selected?.id
+      && event.targetActorIds[0] === "e_start_focus"
+      && event.values.statusId === "exposed",
   );
   const spent = of(result, "resource_spent").find(
     (event) => event.sourceActorId === "e_start_focus" && event.ruleId === "start_focus_rule",
@@ -573,14 +602,53 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_start_focus",
   );
 
-  check(started && spent && focused && proposed && taken, "the attack-start response and attack resolve");
-  check(started.sequence < spent.sequence, "the response follows action_started");
+  check(started && selected && prepared && spent && focused && proposed && taken,
+    "target-selection after-reactions settle before the attack-start response and attack");
+  check(selected.sequence < prepared.sequence && prepared.sequence < started.sequence
+    && started.sequence < spent.sequence,
+  "target-selection after-reactions finish before action_started interrupts");
   check(spent.sequence < focused.sequence && focused.sequence < proposed.sequence,
     "RP payment and response status resolve before the main damage proposal");
   equal(proposed.values.amount, 1, "the ActionPlan reads the status added at attack start");
   equal(taken.values.amount, 2, "the status's ordinary damage interrupt still applies");
   check(!result.actors.find((actor) => actor.instanceId === "a_warden").statuses
     .some((status) => status.statusId === "focused"), "the attack consumes the prepared status");
+
+  // A target-selection after-reaction can defeat the attacker. The main action
+  // must cancel before AP payment or the later action_started window.
+  const lethalBundle = structuredClone(bundle);
+  lethalBundle.enemyReactiveSkills.after_target_selected.rule.effects = [{
+    type: "deal_damage",
+    target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+    amount: { type: "constant", value: 2 },
+    reach: "unrestricted",
+    tags: ["attack", "fixture"],
+  }];
+  const lethalBattle = structuredClone(battle);
+  lethalBattle.battleId = "target_selected_after_reaction_defeats_actor";
+  lethalBattle.allies[0].hp = 1;
+  const lethalResult = simulateBattle(lethalBattle, lethalBundle);
+  const targetSelectionHit = of(lethalResult, "damage_taken").find(
+    (event) => event.sourceActorId === "e_start_focus"
+      && event.targetActorIds[0] === "a_warden",
+  );
+  const targetSelectionDefeat = of(lethalResult, "actor_defeated").find(
+    (event) => event.targetActorIds[0] === "a_warden",
+  );
+  const canceledBeforeStart = of(lethalResult, "action_canceled").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  check(targetSelectionHit && targetSelectionDefeat && canceledBeforeStart,
+    "a defeated attacker is canceled after target-selection after-reactions");
+  check(targetSelectionHit.sequence < targetSelectionDefeat.sequence
+    && targetSelectionDefeat.sequence < canceledBeforeStart.sequence,
+  "target-selection damage resolves before action cancellation");
+  check(!of(lethalResult, "action_started").some(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  ), "a defeated attacker does not enter the attack-start window");
+  check(!of(lethalResult, "action_cost_paid").some(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  ), "AP is not paid when the attacker is defeated before action_started");
 }
 
 {
