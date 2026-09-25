@@ -409,7 +409,12 @@ function validateEffect(bag, path, effect, ctx) {
       return;
     }
     if (PENDING_AMOUNT_EFFECT_TYPES.includes(effect.type) && PENDING_ACTION_EFFECT_TYPES.includes(effect.type)) {
-      if (!INTERRUPTIBLE_EVENT_TYPES.includes(ctx.listenTo)) {
+      // These effects can use either an action-target frame or an amount frame.
+      // General interruptibility also includes action_started, which has no
+      // mutable pending frame, so check the two frame-bearing event families.
+      const hasPendingActionFrame = PENDING_ACTION_EVENT_TYPES.includes(ctx.listenTo);
+      const hasPendingAmountFrame = PENDING_AMOUNT_EVENT_TYPES.includes(ctx.listenTo);
+      if (!hasPendingActionFrame && !hasPendingAmountFrame) {
         bag.add(path, "no_pending_frame", `${effect.type} needs a pending frame`);
         return;
       }

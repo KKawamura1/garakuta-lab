@@ -247,9 +247,13 @@ function emit(state, spec, pendingFrame = null, { enqueueAfter = true } = {}) {
     closeRecoveryWindows(state, spec.type === "action_started" ? "next_action" : "phase_boundary");
   }
   const event = pushEvent(state, spec);
-  // §11.5 — the interrupt window for this event closes before the caller sees
-  // the pending frame again, so every interrupt for it runs here and now.
-  if (pendingFrame) dispatchRules(state, event, "interrupt", pendingFrame);
+  // §11.5 — pending-frame interrupts close before the caller sees the frame
+  // again. action_started also opens its attack-start interrupt window here,
+  // after final targets/AP are fixed but before the skill's effects run. That
+  // event deliberately has no mutable pending-action frame.
+  if (pendingFrame || event.type === "action_started") {
+    dispatchRules(state, event, "interrupt", pendingFrame);
+  }
   if (state.chain && enqueueAfter && !NON_LISTENABLE_EVENT_TYPES.includes(event.type)) {
     state.chain.afterQueue.push(event.id);
   }
@@ -1165,7 +1169,11 @@ function performAction(state, actor, choice) {
       },
       frame,
     );
+    // Finish target-selection after-reactions before checking the final target or
+    // paying AP. The attack-start interrupt is the next reaction window.
+    drainAfterQueue(state);
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
+    if (!actor.alive) return cancelAction(state, actor, skill, frame, "rule");
 
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
     const finalTargets = frame.targetActorIds
@@ -1194,6 +1202,13 @@ function performAction(state, actor, choice) {
       tags: skill.tags,
       values: { targetCount: frame.targetActorIds.length },
     });
+
+    // Settle the attack-start responses and their after-reactions before the
+    // primary effect sequence can freeze its ActionPlan. The AP cost and final
+    // target are already fixed; if a counter defeats the actor, cancel the
+    // primary action without refunding that cost or choosing another target.
+    drainAfterQueue(state);
+    if (!actor.alive) return cancelAction(state, actor, skill, frame, "rule");
 
     bumpHistory(actor, "active_actions", 1);
     recordTargeted(actor, frame.targetActorIds[0]);
