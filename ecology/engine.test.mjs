@@ -303,14 +303,14 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 
 {
   // A reactive damage sequence gets its own target count, not the number of
-  // actors targeted by the event that triggered it.
+  // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);
-  bundle.reactiveSkills.counter_on_action_start = {
-    id: "counter_on_action_start",
-    displayName: "Counter on Action Start (fixture)",
+  bundle.reactiveSkills.counter_on_target_selection = {
+    id: "counter_on_target_selection",
+    displayName: "Counter on Target Selection (fixture)",
     rule: {
-      id: "counter_on_action_start_rule",
-      listenTo: "action_started",
+      id: "counter_on_target_selection_rule",
+      listenTo: "target_selected",
       timing: "interrupt",
       priority: 100,
       predicates: [{
@@ -341,23 +341,23 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     ally.tactics = [{ activeSkillId: "bulwark", useWhen: [] }];
     ally.reactiveSkillIds = [];
   }
-  battle.allies[0].reactiveSkillIds = ["counter_on_action_start"];
+  battle.allies[0].reactiveSkillIds = ["counter_on_target_selection"];
 
   const enemySkillId = bundle.enemyActors.husk.tactics[0].activeSkillId;
   bundle.enemyActiveSkills[enemySkillId].targetQuery = {
     scope: "enemies",
     filters: [{ type: "alive" }],
     sort: ["position_asc"],
-    take: 2,
+    take: "all",
   };
 
   const result = simulateBattle(battle, bundle);
-  const enemyAction = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
+  const enemyAction = of(result, "target_selected").find((event) => event.sourceActorId === "e_husk");
   const counterDamage = of(result, "damage_proposed").find((event) => (
-    event.ruleId === "counter_on_action_start_rule"
+    event.ruleId === "counter_on_target_selection_rule"
   ));
   check(enemyAction, "the enemy action starts");
-  equal(enemyAction.targetActorIds.length, 2, "the triggering action targets two allies");
+  check(enemyAction.targetActorIds.length > 1, "the triggering action selects multiple allies");
   check(counterDamage, "the reactive rule deals damage to the event source");
   equal(counterDamage.values.actionTargetCount, 1, "the reactive plan has one base target");
   equal(counterDamage.values.baseTargetCount, 1);
