@@ -302,6 +302,68 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // A reactive damage sequence gets its own target count, not the number of
+  // actors targeted by the event that triggered it.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.reactiveSkills.counter_on_action_start = {
+    id: "counter_on_action_start",
+    displayName: "Counter on Action Start (fixture)",
+    rule: {
+      id: "counter_on_action_start_rule",
+      listenTo: "action_started",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [{
+        type: "target_exists",
+        query: {
+          scope: "enemies",
+          filters: [{ type: "is_event_source" }, { type: "alive" }],
+          take: 1,
+        },
+      }],
+      costs: [],
+      effects: [{
+        type: "deal_damage",
+        target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+        amount: { type: "constant", value: 1 },
+        tags: ["counter", "fixture"],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+    tags: ["reaction", "fixture"],
+  };
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "action_plan_rule_target_count";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  for (const ally of battle.allies) {
+    ally.tactics = [{ activeSkillId: "bulwark", useWhen: [] }];
+    ally.reactiveSkillIds = [];
+  }
+  battle.allies[0].reactiveSkillIds = ["counter_on_action_start"];
+
+  const enemySkillId = bundle.enemyActors.husk.tactics[0].activeSkillId;
+  bundle.enemyActiveSkills[enemySkillId].targetQuery = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_asc"],
+    take: 2,
+  };
+
+  const result = simulateBattle(battle, bundle);
+  const enemyAction = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
+  const counterDamage = of(result, "damage_proposed").find((event) => (
+    event.ruleId === "counter_on_action_start_rule"
+  ));
+  check(enemyAction, "the enemy action starts");
+  equal(enemyAction.targetActorIds.length, 2, "the triggering action targets two allies");
+  check(counterDamage, "the reactive rule deals damage to the event source");
+  equal(counterDamage.values.actionTargetCount, 1, "the reactive plan has one base target");
+  equal(counterDamage.values.baseTargetCount, 1);
+}
+
+{
   // §12.1 — excess is max(0, proposed - absorbed - hpBefore).
   const result = run(BROKEN_EQUIPMENT_BATTLE);
   const excess = first(result, "excess_damage");
