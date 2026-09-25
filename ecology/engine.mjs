@@ -967,9 +967,10 @@ function hasPotentialPreTargetMovement(state, ctx, skill) {
   const rt = makeRuntime(state);
   return allRuleEntries(state).some((entry) => {
     const rule = entry.rule;
+    const swapEffects = rule.effects.filter((effect) => effect.type === "swap_positions");
     if (
       rule.listenTo !== "action_declared"
-      || !rule.effects.some((effect) => effect.type === "swap_positions")
+      || swapEffects.length === 0
       || !ruleSourceIntact(state, entry)
     ) return false;
 
@@ -989,8 +990,23 @@ function hasPotentialPreTargetMovement(state, ctx, skill) {
       skillId: undefined,
       equipmentInstanceId: entry.equipmentInstanceId,
     };
-    return evaluatePredicates(state, ruleCtx, rule.predicates)
-      && canPayCosts(rt, ruleCtx, rule.costs);
+    if (!evaluatePredicates(state, ruleCtx, rule.predicates)
+      || !canPayCosts(rt, ruleCtx, rule.costs)) return false;
+
+    // An eligible rule is not a movement response if the actual selectors
+    // cannot produce two living actors on the same side. Match the effect's
+    // first-target semantics so an unusable swap cannot consume RP on a
+    // pre-target action that still has no reachable target.
+    return swapEffects.some((effect) => {
+      const first = resolveTargets(state, ruleCtx, effect.target)[0];
+      const second = resolveTargets(state, ruleCtx, effect.otherTarget)[0];
+      return first
+        && second
+        && first.instanceId !== second.instanceId
+        && first.side === second.side
+        && first.alive
+        && second.alive;
+    });
   });
 }
 
