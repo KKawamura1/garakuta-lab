@@ -178,6 +178,9 @@ export const PENDING_AMOUNT_EVENT_TYPES = freeze([
 ]);
 export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   ...PENDING_ACTION_EVENT_TYPES,
+  // action_started opens an attack-start reaction window after targets and AP
+  // are fixed. It does not carry a mutable pending-action frame.
+  "action_started",
   ...PENDING_AMOUNT_EVENT_TYPES,
 ]);
 

@@ -498,6 +498,203 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // Attack-start interrupts run after target/AP fixation and before the main
+  // effect list can freeze its ActionPlan.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.strike.tags = [...bundle.activeSkills.strike.tags, "attack_start_fixture"];
+  bundle.activeSkills.strike.effects = [{
+    type: "deal_damage",
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+    amount: { type: "status_stacks_scaled", subject: "self", statusId: "focused" },
+    reach: "unrestricted",
+    tags: ["attack", "fixture"],
+  }];
+  bundle.enemyReactiveSkills.start_focus = {
+    id: "start_focus",
+    displayName: "Start Focus (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "start_focus_rule",
+      listenTo: "action_started",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "attack_start_fixture", value: true }],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [{
+        type: "add_status",
+        target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+        statusId: "focused",
+        stacks: 1,
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyActors.start_focus_enemy = {
+    ...structuredClone(bundle.enemyActors.still_husk),
+    id: "start_focus_enemy",
+    displayName: "Start Focus Enemy (fixture)",
+    baseReactionPoints: 1,
+    reactiveSkillIds: ["start_focus"],
+  };
+  const battle = {
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "attack_start_reaction_precedes_action_plan",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "strike", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [{
+      instanceId: "e_start_focus",
+      enemyActorId: "start_focus_enemy",
+      position: "front_left",
+    }],
+  };
+
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const spent = of(result, "resource_spent").find(
+    (event) => event.sourceActorId === "e_start_focus" && event.ruleId === "start_focus_rule",
+  );
+  const focused = of(result, "status_added").find(
+    (event) => event.targetActorIds[0] === "a_warden" && event.values.statusId === "focused",
+  );
+  const proposed = of(result, "damage_proposed").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const taken = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_start_focus",
+  );
+
+  check(started && spent && focused && proposed && taken, "the attack-start response and attack resolve");
+  check(started.sequence < spent.sequence, "the response follows action_started");
+  check(spent.sequence < focused.sequence && focused.sequence < proposed.sequence,
+    "RP payment and response status resolve before the main damage proposal");
+  equal(proposed.values.amount, 1, "the ActionPlan reads the status added at attack start");
+  equal(taken.values.amount, 2, "the status's ordinary damage interrupt still applies");
+  check(!result.actors.find((actor) => actor.instanceId === "a_warden").statuses
+    .some((status) => status.statusId === "focused"), "the attack consumes the prepared status");
+}
+
+{
+  // A failed higher-priority cost leaves the same actor's window open. The
+  // successful counter defeats the attacker, so the fixed primary target takes
+  // no damage and the already-paid AP is not refunded.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.strike.tags = [...bundle.activeSkills.strike.tags, "attack_start_ko_fixture"];
+  bundle.activeSkills.strike.effects[0] = {
+    ...bundle.activeSkills.strike.effects[0],
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+    amount: { type: "constant", value: 4 },
+    reach: "unrestricted",
+  };
+  const startRule = (id, costs, effects) => ({
+    id,
+    displayName: id,
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: `${id}_rule`,
+      listenTo: "action_started",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "attack_start_ko_fixture", value: true }],
+      costs,
+      effects,
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  });
+  bundle.enemyReactiveSkills.start_counter_too_costly = startRule(
+    "start_counter_too_costly",
+    [{ type: "spend_reaction_points", amount: 2 }],
+    [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 }],
+  );
+  bundle.enemyReactiveSkills.start_counter = startRule(
+    "start_counter",
+    [{ type: "spend_reaction_points", amount: 1 }],
+    [{
+      type: "deal_damage",
+      target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "constant", value: 2 },
+      reach: "unrestricted",
+      tags: ["attack", "counter", "fixture"],
+    }],
+  );
+  bundle.enemyActors.start_counter_enemy = {
+    ...structuredClone(bundle.enemyActors.still_husk),
+    id: "start_counter_enemy",
+    displayName: "Start Counter Enemy (fixture)",
+    baseReactionPoints: 1,
+    reactiveSkillIds: ["start_counter_too_costly", "start_counter"],
+  };
+  const battle = {
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "attack_start_counter_defeats_attacker",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      hp: 1,
+      tactics: [{ activeSkillId: "strike", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [{
+      instanceId: "e_start_counter",
+      enemyActorId: "start_counter_enemy",
+      position: "front_left",
+    }],
+  };
+
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const counterPayment = of(result, "resource_spent").find(
+    (event) => event.sourceActorId === "e_start_counter" && event.ruleId === "start_counter_rule",
+  );
+  const failedPayment = of(result, "resource_spent").find(
+    (event) => event.sourceActorId === "e_start_counter"
+      && event.ruleId === "start_counter_too_costly_rule",
+  );
+  const counterHit = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "e_start_counter" && event.targetActorIds[0] === "a_warden",
+  );
+  const defeated = of(result, "actor_defeated").find(
+    (event) => event.targetActorIds[0] === "a_warden",
+  );
+  const canceled = of(result, "action_canceled").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+
+  check(started && counterPayment && counterHit && defeated && canceled,
+    "the attack-start counter defeats the acting ally and cancels the main action");
+  check(!failedPayment, "the unaffordable priority candidate spends no RP");
+  check(started.sequence < counterPayment.sequence && counterPayment.sequence < counterHit.sequence,
+    "the successful fallback counter resolves inside the attack-start window");
+  check(counterHit.sequence < defeated.sequence && defeated.sequence < canceled.sequence,
+    "the main action is canceled after the counter defeats its source");
+  equal(canceled.targetActorIds[0], "e_start_counter", "the already selected target stays fixed");
+  equal(canceled.values.reason, "rule", "the response is recorded as a reaction cancellation");
+  check(
+    !of(result, "damage_proposed").some(
+      (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+    ),
+    "the primary strike has no damage event after its actor is defeated",
+  );
+  equal(result.actors.find((actor) => actor.instanceId === "a_warden").actionPoints, 0,
+    "action points paid before the attack-start window are not refunded");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);
