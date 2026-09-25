@@ -499,17 +499,24 @@ function dispatchRules(state, event, timing, pendingFrame) {
       ownerId: entry.owner ? entry.owner.instanceId : "~region",
     });
   }
+  // An unsuccessful candidate leaves its owner's priority window open. The
+  // first reactive that actually fires closes only that owner's window.
+  const firedReactiveGroups = new Set();
   for (const candidate of orderRuleCandidates(candidates)) {
-    fireRule(state, event, candidate, pendingFrame);
+    const groupKey = reactiveGroupKey(candidate);
+    if (groupKey !== null && firedReactiveGroups.has(groupKey)) continue;
+    if (fireRule(state, event, candidate, pendingFrame) && groupKey !== null) {
+      firedReactiveGroups.add(groupKey);
+    }
   }
 }
 
 function fireRule(state, event, entry, pendingFrame) {
   // §5.7 — everything is re-checked immediately before firing, because an
   // earlier reaction in this same window may have removed the reason to fire.
-  if (!ruleSourceIntact(state, entry)) return;
-  if (!ruleAvailable(state, entry)) return;
-  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return;
+  if (!ruleSourceIntact(state, entry)) return false;
+  if (!ruleAvailable(state, entry)) return false;
+  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return false;
 
   const rt = makeRuntime(state);
   const ctx = {
@@ -523,8 +530,8 @@ function fireRule(state, event, entry, pendingFrame) {
     skillId: undefined,
     equipmentInstanceId: entry.equipmentInstanceId,
   };
-  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return;
-  if (!canPayCosts(rt, ctx, entry.rule.costs)) return;
+  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return false;
+  if (!canPayCosts(rt, ctx, entry.rule.costs)) return false;
 
   const key = firingKey(entry);
   state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
@@ -548,6 +555,7 @@ function fireRule(state, event, entry, pendingFrame) {
     state.parentEventId = previousParent;
     state.ruleStack.pop();
   }
+  return true;
 }
 
 // -------------------------------------------------------------- battle (§11)
