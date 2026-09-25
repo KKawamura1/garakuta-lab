@@ -248,6 +248,7 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 防壁で吸い切った攻撃は `damage_proposed` → `barrier_damaged` / `barrier_broken` →
 `damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
+`engine.mjs` は `action_declared` のinterruptと、その結果生じた `actor_moved` などのafter反応を処理し終えてから、技能の `targetQuery` を現隊列で解決します。現在のmelee射程では候補がなくても、射程制限なしでは同じqueryに生存対象がある行動は宣言可能にし、移動後にも対象がなければ `action_canceled` にします。移動後の候補は `target_selected` に渡し、その反応・redirectを終えて対象とAP支払いを再確認してから `action_started` を出します。したがってActionPlanが初撃前に作られる時点では、移動・対象反応後の状態と最終対象が使われます。
 `effects.mjs` の `applyEffects` は、効果列の最初の `deal_damage` の直前に ActionPlan を作ります。
 その列に残る直接ダメージ効果ごとに基礎対象、`targetPattern` 展開後の受け手、hit枠、基礎威力を
 まとめて固定し、予定受け手は行動全体で重複を除いて数えます。各 `damage_proposed` /
