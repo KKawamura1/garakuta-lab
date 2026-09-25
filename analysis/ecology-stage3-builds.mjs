@@ -351,9 +351,10 @@ const BUILDS = Object.freeze([
   Object.freeze({
     id: "tempo",
     displayName: "順番を作る",
-    // R26 — 溜め突きとAP移譲の突出を落とした結果、第7戦の時間切れになった。
-    // それでも第6戦の関門までは勝ち切り、準備を急かして完成させる固有の事件列は残る。
-    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
+    // Stage 2g — 各damage instance後の反応を次hitの前に解決するようになった。
+    // 順番構成は第6戦まで勝ち、第7戦は8Rで全滅する（旧計測は時間切れ）。
+    // 取得計画とcontent数値は動かしておらず、hit内のafter反応境界変更をthroughへ記録する。
+    through: Object.freeze({ reaches: 6, ends: "wipe" }),
     question: "遅い一撃に、どうやって手番を通すか",
     engine: Object.freeze({
       source: "行動権と準備（resource_gained / preparation_*）",

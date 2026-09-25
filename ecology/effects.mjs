@@ -454,6 +454,9 @@ function dealDamage(rt, ctx, effect) {
       actionPlan,
       effectPlan,
     );
+    // Each damage instance is its own reaction boundary: defense-break and
+    // other after rules settle before the next planned recipient/hit starts.
+    rt.settleAfterReactions();
   }
 }
 
