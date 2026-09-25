@@ -462,6 +462,19 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(started.targetActorIds[0], "e_shifter", "the attack starts against the final redirected target");
   equal(hit.targetActorIds[0], "e_shifter", "damage follows the resolved target through ActionPlan");
   check(started.sequence < hit.sequence, "ActionPlan damage is created after target reactions finish");
+
+  const noMovementBundle = structuredClone(bundle);
+  noMovementBundle.enemyActors.target_shifter.reactiveSkillIds = [
+    "cover_after_move",
+    "mark_front_mover",
+  ];
+  const withoutMovementWindow = simulateBattle(battle, noMovementBundle);
+  check(
+    !of(withoutMovementWindow, "action_declared").some(
+      (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+    ),
+    "an out-of-reach target alone does not trigger a phantom action declaration",
+  );
 }
 
 {
