@@ -251,14 +251,16 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 `engine.mjs` は `action_declared` のinterruptと、その結果生じた `actor_moved` などのafter反応を処理し終えてから、技能の `targetQuery` を現隊列で解決します。現在のmelee射程では候補がなくても、同じqueryに射程外の生存対象があり、かつ `action_declared` に応答する位置交換ruleが述語・支払い条件を満たす行動に限って宣言を保留し、移動後にも対象がなければ `action_canceled` にします。移動後の候補は `target_selected` に渡します。そのinterruptと後反応を処理し終えた後で、最終対象・行動者の生存・AP支払いを再確認してから `action_started` を出します。したがってActionPlanが初撃前に作られる時点では、移動・対象反応後の状態と最終対象が使われます。
 `action_started` では、対象とAPを確定した後に攻撃開始時のinterruptを処理します。pending action frameは渡さないため、この窓から対象変更や行動取消しはできません。反応とその後反応が終わってから技能効果を開始し、反応で行動者が倒れた場合は支払い済みAPを戻さず `action_canceled` として本体の効果列を止めます。ActionPlanはこの窓の後、最初の直接ダメージ直前に作られます。
 単体の直接攻撃で行動者が生存している場合は、攻撃開始反応とその後反応の後に `action_targets_expanding` を記録します。この窓はpending action frameを受け取り、`add_action_damage` だけを許します。各人物の優先列では条件・RP・副対象を満たす最初の反応だけがRPを払い、後続候補は発火しません。副対象は最終的な主対象と重なる場合に除外されます。
+直接damageを含む行動は、追加hitを決める `action_hits_expanding` もActionPlan固定前に記録します。この窓の `add_action_hit` は、合計8hit以内かつ追加量が正になる候補だけを適格とし、候補ごとのhit数・威力・由来をRP支払い前にsnapshotします。不成立候補は支払わずにその人物の優先列を開いたままにします。
 `effects.mjs` の `applyEffects` は、効果列の最初の `deal_damage` の直前に ActionPlan を作ります。
-その列に残る直接ダメージ効果ごとに基礎対象、`targetPattern` 展開後の受け手、hit枠、基礎威力を
+その列に残る直接ダメージ効果ごとに基礎対象、`targetPattern` 展開後の受け手、基礎hit枠、追加hit枠、基礎威力を
 まとめて固定し、予定受け手は行動全体で重複を除いて数えます。各 `damage_proposed` /
-`damage_skipped` は共通の `actionPlanId` と効果index、行動対象数、基礎hit数、基礎対象数、
+`damage_skipped` は共通の `actionPlanId` と効果index、行動対象数、元の基礎hit数、計画hit数、基礎対象数、
 予定対象数を持ちます。行動本体の行動対象数には選択済みの対象を使い、ルール効果では引き金イベントの
 対象を流用せず、その効果列の最初の直接ダメージの基礎対象を使います。hit前に対象が消えた
 `damage_skipped` には、事前に決めた基礎威力も `plannedAmount` として記録します。
-途中撃破や後続効果の状態変更で、計画済みhitの対象・基礎威力を選び直しません。pending damageへの
+途中撃破や後続効果の状態変更で、計画済みhitの対象・威力を選び直しません。追加hitは最初の直接ダメージ効果の各基礎対象へ割り当て、
+対象が倒れた後の枠は `damage_skipped` に残します。pending damageへの
 イベント反応は従来どおり各hitで計画後に処理します。試映も実戦と同じ `simulateBattle` を呼び、
 replayも同じイベント列を読みます。
 副対象の追加damage片も同じActionPlanへ固定し、主効果列を解決した後に標準のdamage処理で適用します。

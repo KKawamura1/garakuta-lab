@@ -310,7 +310,7 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 {
   let thrown = null;
   try {
-    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 10 });
+    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 12 });
   } catch (error) {
     thrown = error;
   }

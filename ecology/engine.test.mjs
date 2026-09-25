@@ -944,6 +944,121 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // Added-hit candidates run before damage planning. An over-cap first
+  // candidate leaves priority open, while the next candidate snapshots its
+  // amount before paying RP. Each recipient keeps its own fixed hit slots.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.characters.warden.baseReactionPoints = 2;
+  bundle.activeSkills.strike.targetQuery = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_asc"],
+    take: "all",
+  };
+  bundle.activeSkills.strike.effects = [{
+    type: "deal_damage",
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: "all" },
+    amount: { type: "constant", value: 4 },
+    reach: "unrestricted",
+    tags: ["attack", "additional_hit_fixture"],
+  }];
+  const addedHitRule = (id, priority, hitCount, amount) => ({
+    id,
+    displayName: `${id} (fixture)`,
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: `${id}_rule`,
+      listenTo: "action_hits_expanding",
+      timing: "interrupt",
+      priority,
+      predicates: [],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [{
+        type: "add_action_hit",
+        hitCount,
+        amount,
+        tags: ["additional_hit_fixture"],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  });
+  bundle.reactiveSkills.over_cap_hit = addedHitRule(
+    "over_cap_hit",
+    200,
+    8,
+    { type: "constant", value: 9 },
+  );
+  bundle.reactiveSkills.add_hit = addedHitRule(
+    "add_hit",
+    100,
+    1,
+    { type: "actor_stat_scaled", subject: "self", stat: "reaction_points" },
+  );
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "action_plan_additional_hit";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [structuredClone(CORE_BATTLE.allies[0])];
+  battle.allies[0].tactics = [{ activeSkillId: "strike", useWhen: [] }];
+  battle.allies[0].reactiveSkillIds = ["over_cap_hit", "add_hit"];
+  battle.allies[0].equipment = [];
+  battle.enemies = [
+    { instanceId: "e_first", enemyActorId: "husk", position: "front_left", hp: 4 },
+    { instanceId: "e_second", enemyActorId: "husk", position: "front_center", hp: 10 },
+  ];
+
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const expanding = of(result, "action_hits_expanding").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const payment = of(result, "resource_spent").find(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "add_hit_rule",
+  );
+  const proposed = of(result, "damage_proposed").filter(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const skipped = of(result, "damage_skipped").find(
+    (event) => event.sourceActorId === "a_warden"
+      && event.ruleId === "add_hit_rule"
+      && event.targetActorIds[0] === "e_first",
+  );
+
+  check(started && expanding && payment, "the selected action opens its added-hit window");
+  check(started.sequence < expanding.sequence && expanding.sequence < payment.sequence,
+    "added-hit responses follow attack-start responses and precede payment and damage");
+  equal(expanding.values.baseHitCount, 1, "the window preserves the action's original hit count");
+  check(!of(result, "resource_spent").some(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "over_cap_hit_rule",
+  ), "an over-cap candidate spends no RP and leaves priority open");
+  equal(payment.values.before, 2, "the successful candidate starts with two RP");
+  equal(payment.values.after, 1, "the successful candidate spends one RP");
+
+  const secondTargetHits = proposed.filter((event) => event.targetActorIds[0] === "e_second");
+  equal(secondTargetHits.length, 2, "the surviving recipient gets one base hit and one added hit");
+  equal(secondTargetHits[0].values.hitIndex, 0);
+  equal(secondTargetHits[1].values.hitIndex, 1);
+  check(secondTargetHits.every((event) => event.values.hitCount === 2
+    && event.values.baseHitCount === 1
+    && event.values.plannedHitCount === 2),
+  "damage events distinguish the fixed base count from the augmented plan");
+  equal(secondTargetHits[0].values.amount, 4, "the original hit keeps its planned amount");
+  equal(secondTargetHits[1].values.amount, 2,
+    "the added hit uses reaction points from before RP payment");
+  equal(secondTargetHits[0].values.actionPlanId, secondTargetHits[1].values.actionPlanId,
+    "base and added hits share one ActionPlan");
+  check(skipped, "the defeated recipient's planned added hit remains an explicit skipped hit");
+  equal(skipped.values.plannedAmount, 2);
+  equal(skipped.values.hitCount, 2);
+  check(!proposed.some((event) => event.targetActorIds[0] === "e_first"
+    && event.ruleId === "add_hit_rule"),
+  "a defeated recipient's added hit is not redistributed to a survivor");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);

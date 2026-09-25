@@ -11,8 +11,10 @@
 
 import {
   ACTION_MODES,
+  ACTION_HIT_EXPANSION_EVENT_TYPES,
   ACTION_TARGET_EXPANSION_EVENT_TYPES,
   ACTION_TARGET_EXPANSION_PATTERNS,
+  PREPLAN_INTERRUPT_EVENT_TYPES,
   ACTOR_STATS,
   PASSIVE_STAT_BONUSES,
   REACHES,
@@ -444,6 +446,24 @@ function validateEffect(bag, path, effect, ctx) {
     return;
   }
 
+  if (effect.type === "add_action_hit") {
+    if (ctx.timing !== "interrupt") {
+      bag.add(path, "interrupt_only_effect", 'add_action_hit requires timing: "interrupt"');
+      return;
+    }
+    if (!ACTION_HIT_EXPANSION_EVENT_TYPES.includes(ctx.listenTo)) {
+      bag.add(path, "no_action_hit_expansion_frame", "add_action_hit needs action_hits_expanding");
+      return;
+    }
+    requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+    validateValue(bag, `${path}.amount`, effect.amount, ctx);
+    if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+    if (effect.guardPierceBps !== undefined) {
+      requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
+    }
+    return;
+  }
+
   // §11.4 — the three pending-frame effects only exist inside an interrupt rule,
   // and only for an event that actually carries the frame they need.
   if (INTERRUPT_ONLY_EFFECT_TYPES.includes(effect.type)) {
@@ -620,6 +640,13 @@ function validateRule(bag, path, rule, ctx) {
         `interrupt rules may only listen to: ${INTERRUPTIBLE_EVENT_TYPES.join(", ")}`,
       );
     }
+    if (rule.timing === "after" && PREPLAN_INTERRUPT_EVENT_TYPES.includes(rule.listenTo)) {
+      bag.add(
+        `${path}.timing`,
+        "preplan_event_interrupt_only",
+        `${rule.listenTo} is a pre-plan interrupt window and cannot be listened to after resolution`,
+      );
+    }
   }
 
   requireCount(bag, `${path}.priority`, rule.priority, { min: LIMITS.minPriority, max: LIMITS.maxPriority });
@@ -635,6 +662,14 @@ function validateRule(bag, path, rule, ctx) {
     && rule.effects.some((effect) => effect?.type === "add_action_damage")
     && rule.effects.length !== 1) {
     bag.add(`${path}.effects`, "action_damage_addition_must_stand_alone", "add_action_damage must be the rule's only effect");
+  }
+  if (Array.isArray(rule.effects) && rule.effects.filter((effect) => effect?.type === "add_action_hit").length > 1) {
+    bag.add(`${path}.effects`, "multiple_action_hit_additions", "one rule may add only one hit sequence");
+  }
+  if (Array.isArray(rule.effects)
+    && rule.effects.some((effect) => effect?.type === "add_action_hit")
+    && rule.effects.length !== 1) {
+    bag.add(`${path}.effects`, "action_hit_addition_must_stand_alone", "add_action_hit must be the rule's only effect");
   }
 
   if (!isPlainObject(rule.limit)) {

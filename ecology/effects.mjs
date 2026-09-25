@@ -10,6 +10,7 @@
 // runs the interrupt window for it before returning.
 
 import {
+  ACTION_HIT_EXPANSION_EVENT_TYPES,
   COLUMNS,
   POSITION_COLUMN,
   POSITION_ROW,
@@ -171,6 +172,7 @@ export function applyEffect(rt, ctx, effect) {
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
+    case "add_action_hit": return addActionHit(rt, ctx);
     case "add_action_damage": return addActionDamage(rt, ctx);
     default:
       // §4.1 — an unimplemented effect throws instead of silently doing nothing.
@@ -205,22 +207,50 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
       if (chain) chain.lastResolvedTargets = [...plannedRecipientIds];
 
       const baseHitCount = effect.hitCount ?? 1;
-      const hitSlots = Object.freeze(Array.from({ length: baseHitCount }, (_, hitIndex) => (
-        plannedRecipientIds.map((targetActorId) => Object.freeze({ targetActorId, hitIndex }))
-      )).flat());
       const baseAmount = afterRearFalloff(
         afterSkillLevel(evaluateValue(state, ctx, effect.amount), ctx),
         ctx,
         effect,
       );
+      const hitSlots = Array.from({ length: baseHitCount }, (_, hitIndex) => (
+        plannedRecipientIds.map((targetActorId) => Object.freeze({
+          targetActorId,
+          hitIndex,
+          amount: baseAmount,
+          ruleId: undefined,
+          sourceDefinitionId: undefined,
+          tags: effect.tags ?? [],
+          guardPierceBps: effect.guardPierceBps ?? 0,
+        }))
+      )).flat();
+      let hitCount = baseHitCount;
+      if (effectIndex === firstDamageIndex && ctx.ruleId === undefined) {
+        for (const addition of ctx.pendingAction?.actionHitAdditions ?? []) {
+          for (let addedHit = 0; addedHit < addition.hitCount; addedHit += 1) {
+            const hitIndex = hitCount + addedHit;
+            for (const targetActorId of plannedRecipientIds) {
+              hitSlots.push(Object.freeze({
+                targetActorId,
+                hitIndex,
+                amount: addition.amount,
+                ruleId: addition.ruleId,
+                sourceDefinitionId: addition.sourceDefinitionId,
+                tags: addition.tags,
+                guardPierceBps: addition.guardPierceBps,
+              }));
+            }
+          }
+          hitCount += addition.hitCount;
+        }
+      }
 
       effectPlans[effectIndex] = Object.freeze({
         effectIndex,
         baseTargetIds,
         plannedRecipientIds,
         baseHitCount,
-        hitCount: baseHitCount,
-        hitSlots,
+        hitCount,
+        hitSlots: Object.freeze(hitSlots),
         baseAmount,
       });
       for (const instanceId of plannedRecipientIds) plannedRecipients.add(instanceId);
@@ -281,6 +311,7 @@ function actionPlanEventValues(actionPlan, effectPlan) {
     actionTargetCount: actionPlan.baseTargetCount,
     baseHitCount: effectPlan.baseHitCount,
     baseTargetCount: effectPlan.baseTargetIds.length,
+    plannedHitCount: effectPlan.hitCount,
     plannedTargetCount: actionPlan.plannedTargetCount,
   };
 }
@@ -385,20 +416,27 @@ function dealDamage(rt, ctx, effect) {
   if (rt.state.chain) {
     rt.state.chain.lastResolvedTargets = [...effectPlan.plannedRecipientIds];
   }
-  for (const { targetActorId, hitIndex } of effectPlan.hitSlots) {
+  for (const hitSlot of effectPlan.hitSlots) {
+    const { targetActorId, hitIndex } = hitSlot;
+    const hitCtx = hitSlot.ruleId
+      ? { ...ctx, ruleId: hitSlot.ruleId, sourceDefinitionId: hitSlot.sourceDefinitionId }
+      : ctx;
+    const hitEffect = hitSlot.ruleId
+      ? { ...effect, tags: hitSlot.tags, guardPierceBps: hitSlot.guardPierceBps }
+      : effect;
     const target = getActor(rt.state, targetActorId);
     // A recipient that dies loses its remaining slots. The action plan never
     // reallocates those slots to a target that survived.
     if (!target || !target.alive) {
       rt.emit({
         type: "damage_skipped",
-        ...sourceFields(ctx),
+        ...sourceFields(hitCtx),
         targetActorIds: [targetActorId],
-        tags: effect.tags ?? [],
+        tags: hitEffect.tags ?? [],
         values: {
           hitIndex,
           hitCount: effectPlan.hitCount,
-          plannedAmount: effectPlan.baseAmount,
+          plannedAmount: hitSlot.amount,
           ...actionPlanEventValues(actionPlan, effectPlan),
           reason: target ? "target_defeated" : "target_unavailable",
         },
@@ -407,12 +445,12 @@ function dealDamage(rt, ctx, effect) {
     }
     dealOneInstance(
       rt,
-      ctx,
-      effect,
+      hitCtx,
+      hitEffect,
       target,
       hitIndex,
       effectPlan.hitCount,
-      undefined,
+      hitSlot.amount,
       actionPlan,
       effectPlan,
     );
@@ -501,6 +539,69 @@ function actionTargetExpansionFrame(rt, ctx) {
   ) return null;
   const anchor = getActor(rt.state, frame.targetActorIds[0]);
   return anchor?.alive ? { frame, anchor } : null;
+}
+
+function actionHitExpansionFrame(rt, ctx) {
+  const frame = ctx.pendingAction ?? ctx.pending;
+  if (
+    !ACTION_HIT_EXPANSION_EVENT_TYPES.includes(ctx.event?.type)
+    || !frame
+    || frame.kind !== "action"
+    || frame !== rt.state.currentPendingAction
+    || !frame.actionHitExpansionEligible
+    || !ctx.owner
+    || ctx.owner.instanceId !== frame.sourceActorId
+  ) return null;
+  const skill = ctx.owner.side === "enemy"
+    ? rt.state.content.enemyActiveSkills[frame.skillId]
+    : rt.state.content.activeSkills[frame.skillId];
+  const damageEffect = skill?.effects?.find((entry) => entry.type === "deal_damage");
+  if (!damageEffect) return null;
+  const liveTargets = frame.targetActorIds
+    .map((instanceId) => getActor(rt.state, instanceId))
+    .filter((actor) => actor?.alive);
+  return liveTargets.length > 0 ? { frame, skill, damageEffect } : null;
+}
+
+function actionHitAmount(rt, ctx, window, effect) {
+  const actionCtx = {
+    ...ctx,
+    ruleId: undefined,
+    skillId: window.frame.skillId,
+    sourceDefinitionId: window.frame.sourceDefinitionId,
+    equipmentInstanceId: undefined,
+  };
+  return afterRearFalloff(
+    afterSkillLevel(evaluateValue(rt.state, actionCtx, effect.amount), actionCtx),
+    actionCtx,
+    effect,
+  );
+}
+
+export function canAddActionHit(rt, ctx, effect) {
+  const window = actionHitExpansionFrame(rt, ctx);
+  if (!window) return false;
+  const existingHits = (window.frame.actionHitAdditions ?? [])
+    .reduce((sum, addition) => sum + addition.hitCount, 0);
+  if (window.frame.baseHitCount + existingHits + effect.hitCount > 8) return false;
+  const amount = actionHitAmount(rt, ctx, window, effect);
+  if (amount <= 0) return false;
+  ctx.preparedActionHit = Object.freeze({
+    ruleId: ctx.ruleId,
+    sourceDefinitionId: ctx.sourceDefinitionId,
+    hitCount: effect.hitCount,
+    amount,
+    tags: Object.freeze([...new Set([...(ctx.event?.tags ?? []), ...(effect.tags ?? [])])]),
+    guardPierceBps: effect.guardPierceBps ?? 0,
+  });
+  return true;
+}
+
+function addActionHit(rt, ctx) {
+  const window = actionHitExpansionFrame(rt, ctx);
+  if (!window || !ctx.preparedActionHit) return;
+  window.frame.actionHitAdditions ??= [];
+  window.frame.actionHitAdditions.push(ctx.preparedActionHit);
 }
 
 function matchesActionTargetPattern(anchor, candidate, pattern) {
