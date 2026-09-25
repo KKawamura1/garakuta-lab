@@ -252,8 +252,9 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 その列に残る直接ダメージ効果ごとに基礎対象、`targetPattern` 展開後の受け手、hit枠、基礎威力を
 まとめて固定し、予定受け手は行動全体で重複を除いて数えます。各 `damage_proposed` /
 `damage_skipped` は共通の `actionPlanId` と効果index、行動対象数、基礎hit数、基礎対象数、
-予定対象数を持ちます。hit前に対象が消えた `damage_skipped` には、事前に決めた基礎威力も
-`plannedAmount` として記録します。
+予定対象数を持ちます。行動本体の行動対象数には選択済みの対象を使い、ルール効果では引き金イベントの
+対象を流用せず、その効果列の最初の直接ダメージの基礎対象を使います。hit前に対象が消えた
+`damage_skipped` には、事前に決めた基礎威力も `plannedAmount` として記録します。
 途中撃破や後続効果の状態変更で、計画済みhitの対象・基礎威力を選び直しません。pending damageへの
 イベント反応は従来どおり各hitで計画後に処理します。試映も実戦と同じ `simulateBattle` を呼び、
 replayも同じイベント列を読みます。
