@@ -598,6 +598,35 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(braces.length, 0, "the unaffordable higher reactive has no effect");
 }
 
+{
+  // A false predicate leaves the same actor's window open for the next
+  // affordable reactive in priority order.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.counter_blow.rule.costs = [];
+  content.reactiveSkills.brace_after_hit.rule.costs = [];
+  content.reactiveSkills.brace_after_hit.rule.predicates.push({
+    type: "position",
+    subject: "self",
+    op: "eq",
+    row: "rear",
+  });
+  const battle = structuredClone(COST_CONTEST_BATTLE);
+  battle.allies[0].reactiveSkillIds.reverse();
+  const result = simulateBattle(battle, content);
+  const counters = of(result, "damage_proposed").filter((event) =>
+    event.ruleId === "counter_blow_rule");
+  const braces = of(result, "barrier_gained").filter((event) =>
+    event.ruleId === "brace_after_hit_rule");
+  const incomingHit = of(result, "damage_taken").find((event) =>
+    event.sourceActorId === "e_husk" && event.targetActorIds.includes("a_warden"));
+  check(incomingHit, "the fixture creates the reactive trigger event");
+  check(
+    counters.some((event) => event.parentEventId === incomingHit.id),
+    "the affordable lower reactive fires from the same event after predicate failure",
+  );
+  equal(braces.length, 0, "the higher reactive with a false predicate has no effect");
+}
+
 // ---- §12.4 preparation --------------------------------------------------------
 
 {
