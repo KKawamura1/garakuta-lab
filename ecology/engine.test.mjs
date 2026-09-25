@@ -522,7 +522,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
       costs: [],
       effects: [{
         type: "add_status",
-        target: { scope: "self", filters: [{ type: "alive" }], take: 1 },
+        target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
         statusId: "exposed",
         stacks: 1,
       }],
@@ -586,7 +586,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const prepared = of(result, "status_added").find(
     (event) => event.sourceActorId === "e_start_focus"
       && event.parentEventId === selected?.id
-      && event.targetActorIds[0] === "e_start_focus"
+      && event.targetActorIds[0] === "a_warden"
       && event.values.statusId === "exposed",
   );
   const spent = of(result, "resource_spent").find(
