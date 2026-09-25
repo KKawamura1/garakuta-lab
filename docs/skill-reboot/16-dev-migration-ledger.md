@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0・Stage 1・Stage 2
 
 更新日: 2026-09-25  
-状態: **Stage 0完了。Stage 1の敵registry分離を完了。Stage 2の共通解決順とActionPlan基礎を実装中。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、このActionPlan PRで同一効果列に含まれる複数の直接ダメージを一つの計画へ束ねる。対象反応、副対象拡張、追加hit/RP、武器別player registry、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
+状態: **Stage 0・Stage 1完了。Stage 2の反応優先列・ActionPlan基礎・対象前移動と対象再解決まで実装。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、PR #295で同一効果列に含まれる複数の直接ダメージを一つのActionPlanへ束ねた。今回のPRで対象前の移動反応を解決順へ接続し、移動後の対象再解決と既存の対象redirectをevent traceで検査する。攻撃前反応・副対象拡張・追加hit/RP、防御崩し・hit後反応・攻撃後処理、武器別player registry、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -88,7 +88,10 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] PR #294で同一人物のリアクティブ優先列をevent / timingごとに適用する。条件またはRP支払いに失敗した候補は飛ばし、同じ窓で最初に発動した一つだけを選ぶ。他の人物の反応は独立して処理する。複数候補・条件不成立・RP不足からのfallbackを `ecology/engine.test.mjs` のイベント列で固定した。
 - [x] ActionPlanの基礎境界を追加する。`applyEffects` の最初の `deal_damage` 前に、同じ効果列に残る直接ダメージ効果ごとの基礎対象、形状展開後の受け手、hit枠、基礎威力を固定する。効果列の受け手を重複排除し、`damage_proposed` / `damage_skipped` に共通の `actionPlanId`、効果index、基礎hit数・対象数・予定対象数を記録する。提案前に対象が倒れてhitを飛ばす場合も `plannedAmount` を残す。
 - [x] 一つ目の攻撃効果で最弱対象を倒しても後続効果が別対象へ移らないこと、最初のhit後に得た状態が後続効果の基礎威力へ遡及しないことを `ecology/engine.test.mjs` で確認する。試映は同じ `simulateBattle` を通り、replayは同じevent列を読む。
-- [ ] 対象前移動、対象変更・攻撃前・副対象拡張の反応窓、追加hitとRP支払いをActionPlanへ統合する。防御崩し・hit後反応・攻撃後処理の段階も一方向に接続し、追加hitや派生片が元計画を遡及変更しないことを検査する。
+- [x] `action_declared` のinterruptと、そこで発生した移動イベントのafter反応を対象決定前に完了する。melee射程内の候補が空でも、同じqueryに射程外の生存対象があり、発火可能な `action_declared` 位置交換ruleがある場合だけ行動候補として残し、移動後にqueryを解き直す。移動反応が無いときは空振りの宣言を出さない。移動後の対象を `target_selected` に渡し、既存redirect後の最終対象をコスト再確認・`action_started`・ActionPlanへつなぐ。前列へのswap、`actor_moved` after反応、移動後の対象選択、cover redirect、最終対象へのdamageと、移動反応が無いときに宣言しないことを `ecology/engine.test.mjs` のevent traceで確認する。
+- [ ] 攻撃前反応と副対象拡張の反応窓を監査表の順でActionPlanへ接続する。
+- [ ] 追加hitとRP支払いをActionPlanへ統合し、追加hitや派生片が元計画を遡及変更しないことを検査する。
+- [ ] 防御崩し・hit後反応・攻撃後処理を一方向に接続し、解決順をevent traceで固定する。
 - [x] PR #295のActionPlan基礎でPR #293の単独の効果単位計画を包含し、PR #293をsupersededとして閉じた。別系統の計画は並行して残さない。
 
-次は対象前移動と対象反応から、監査表の段階をActionPlanへ一つずつ接続する。効果量・反応窓・preview/replayの独立実装を先に増やさず、共通engineのevent traceで各段階を固定する。
+次は攻撃前反応と副対象拡張を監査表の順で接続し、その後に追加hit/RP支払い、防御崩し、hit後反応、攻撃後処理へ進む。各段階は共通engineのevent traceで固定し、previewとreplayは同じsimulation経路を保つ。

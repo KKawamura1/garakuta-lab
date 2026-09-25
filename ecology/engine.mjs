@@ -935,6 +935,81 @@ function actionReach(skill) {
   // melee actions. Ally/self support skills are not restricted by front rows.
   return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
 }
+
+function actionTargetCandidates(state, ctx, skill) {
+  const reach = actionReach(skill);
+  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach });
+  if (targets.length > 0) return targets;
+  // A melee action can still become targetable after an action_declared
+  // reaction moves the frontline. Do not declare an otherwise unusable action
+  // just because an out-of-reach target exists: that would fire declaration
+  // reactions even when nothing can change its reach.
+  if (
+    reach === "melee"
+    && hasPotentialPreTargetMovement(state, ctx, skill)
+    && resolveTargets(state, ctx, skill.targetQuery).length > 0
+  ) {
+    return [];
+  }
+  return null;
+}
+
+function hasPotentialPreTargetMovement(state, ctx, skill) {
+  const event = {
+    type: "action_declared",
+    sourceActorId: ctx.owner.instanceId,
+    targetActorIds: [],
+    sourceDefinitionId: ctx.owner.definitionId,
+    skillId: skill.id,
+    tags: skill.tags ?? [],
+    values: { apCost: skill.apCost, targetCount: 0 },
+  };
+  const rt = makeRuntime(state);
+  return allRuleEntries(state).some((entry) => {
+    const rule = entry.rule;
+    const swapEffects = rule.effects.filter((effect) => effect.type === "swap_positions");
+    if (
+      rule.listenTo !== "action_declared"
+      || swapEffects.length === 0
+      || !ruleSourceIntact(state, entry)
+    ) return false;
+
+    const key = firingKey(entry);
+    const limit = rule.limit;
+    if (limit.scope === "round" && firedCount(state.roundFirings, key) >= limit.count) return false;
+    if (limit.scope === "battle" && firedCount(state.battleFirings, key) >= limit.count) return false;
+
+    const ruleCtx = {
+      owner: entry.owner,
+      event,
+      pending: null,
+      pendingAction: state.currentPendingAction,
+      candidate: null,
+      sourceDefinitionId: entry.sourceDefinitionId,
+      ruleId: rule.id,
+      skillId: undefined,
+      equipmentInstanceId: entry.equipmentInstanceId,
+    };
+    if (!evaluatePredicates(state, ruleCtx, rule.predicates)
+      || !canPayCosts(rt, ruleCtx, rule.costs)) return false;
+
+    // An eligible rule is not a movement response if the actual selectors
+    // cannot produce two living actors on the same side. Match the effect's
+    // first-target semantics so an unusable swap cannot consume RP on a
+    // pre-target action that still has no reachable target.
+    return swapEffects.some((effect) => {
+      const first = resolveTargets(state, ruleCtx, effect.target)[0];
+      const second = resolveTargets(state, ruleCtx, effect.otherTarget)[0];
+      return first
+        && second
+        && first.instanceId !== second.instanceId
+        && first.side === second.side
+        && first.alive
+        && second.alive;
+    });
+  });
+}
+
 function coreActionChoice(state, actor, key) {
   // Core actions are content-selected, never position- or character-selected.
   // The selected skill's effect.reach is the sole targeting contract. Keep the
@@ -962,8 +1037,8 @@ function coreActionChoice(state, actor, key) {
     skillId: skill.id,
     equipmentInstanceId: undefined,
   };
-  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
-  if (targets.length === 0) return null;
+  const targets = actionTargetCandidates(state, ctx, skill);
+  if (targets === null) return null;
   const costs = [{ type: "spend_action_points", amount: skill.apCost }];
   if (!canPayCosts(rt, ctx, costs)) return null;
   return { skill, targets, costs, tactic: { activeSkillId: skill.id, useWhen: [] } };
@@ -1011,8 +1086,8 @@ function chooseTactic(state, actor) {
     };
     if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) continue;
     if (!evaluatePredicates(state, ctx, tactic.useWhen)) continue;
-    const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
-    if (targets.length === 0) continue;
+    const targets = actionTargetCandidates(state, ctx, skill);
+    if (targets === null) continue;
     const costs = [{ type: "spend_action_points", amount: skill.apCost }];
     if (!canPayCosts(rt, ctx, costs)) continue;
     return { tactic, skill, targets, costs, tacticIndex };
@@ -1029,7 +1104,9 @@ function performAction(state, actor, choice) {
     cancelReason: null,
     skillId: skill.id,
     sourceActorId: actor.instanceId,
-    targetActorIds: targets.map((target) => target.instanceId),
+    // The target list is deliberately empty through action_declared. A
+    // pre-target movement reaction may change which targets are in reach.
+    targetActorIds: [],
   };
   state.currentPendingAction = frame;
   const baseCtx = () => ({
@@ -1054,12 +1131,26 @@ function performAction(state, actor, choice) {
         sourceDefinitionId: actor.definitionId,
         skillId: skill.id,
         tags: skill.tags,
-        values: { apCost: skill.apCost, targetCount: frame.targetActorIds.length },
+        values: { apCost: skill.apCost, targetCount: targets.length },
       },
       frame,
     );
     state.parentEventId = declared.id;
+    // Finish actor_moved after-reactions (and any events they produce) before
+    // the target query reads the post-movement state.
+    drainAfterQueue(state);
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
+
+    // Stage 2 of the attack order: resolve the selected action's targets from
+    // the current formation, after action_declared interrupts have completed.
+    const selectedTargets = resolveTargets(
+      state,
+      baseCtx(),
+      skill.targetQuery,
+      { reach: actionReach(skill) },
+    );
+    if (selectedTargets.length === 0) return cancelAction(state, actor, skill, frame, "no_target");
+    frame.targetActorIds = selectedTargets.map((target) => target.instanceId);
 
     emit(
       state,
