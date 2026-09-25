@@ -763,6 +763,161 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // A single-target action gets one shared secondary-target window after the
+  // attack-start responses and before the ActionPlan fixes its recipients.
+  const makeBundle = () => {
+    const bundle = structuredClone(FIXTURE_CONTENT);
+    bundle.activeSkills.strike.targetQuery = {
+      scope: "enemies",
+      filters: [{ type: "alive" }],
+      sort: ["hp_asc"],
+      take: 1,
+    };
+    bundle.activeSkills.strike.tags = ["attack", "secondary_target_fixture"];
+    bundle.activeSkills.strike.effects = [{
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "constant", value: 4 },
+      reach: "unrestricted",
+      tags: ["attack", "secondary_target_fixture"],
+    }];
+    const expansion = (id, targetPattern, amount, rpCost) => ({
+      id,
+      displayName: `${id} (fixture)`,
+      tags: ["reaction", "fixture"],
+      rule: {
+        id: `${id}_rule`,
+        listenTo: "action_targets_expanding",
+        timing: "interrupt",
+        priority: 100,
+        predicates: [{ type: "event_tag", tag: "secondary_target_fixture", value: true }],
+        costs: [{ type: "spend_reaction_points", amount: rpCost }],
+        effects: [{
+          type: "add_action_damage",
+          target: { scope: "enemies", filters: [{ type: "alive" }], take: "all" },
+          targetPattern,
+          amount: { type: "constant", value: amount },
+          tags: ["attack", "secondary_target_fixture"],
+        }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+      },
+    });
+    bundle.reactiveSkills.expand_adjacent = expansion("expand_adjacent", "adjacent", 3, 2);
+    bundle.reactiveSkills.expand_row = expansion("expand_row", "row", 2, 1);
+    bundle.reactiveSkills.expand_column = expansion("expand_column", "column", 5, 1);
+    return bundle;
+  };
+  const makeBattle = (enemies, reactiveSkillIds = ["expand_adjacent", "expand_row", "expand_column"]) => ({
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "single_target_secondary_expansion",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "strike", useWhen: [] }],
+      reactiveSkillIds,
+      equipment: [],
+    }],
+    enemies,
+  });
+  const enemy = (instanceId, position, hp = 10) => ({
+    instanceId,
+    enemyActorId: "still_husk",
+    position,
+    hp,
+  });
+
+  const bundle = makeBundle();
+  const battle = makeBattle([
+    enemy("e_primary", "front_center", 8),
+    enemy("e_left", "front_left"),
+    enemy("e_right", "front_right"),
+    enemy("e_rear", "rear_center"),
+  ]);
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const expanding = of(result, "action_targets_expanding").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const rowPayment = of(result, "resource_spent").find(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "expand_row_rule",
+  );
+  const damage = of(result, "damage_proposed").filter(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const primaryDamage = damage.find((event) => event.targetActorIds[0] === "e_primary");
+  const sideDamage = damage.filter((event) => ["e_left", "e_right"].includes(event.targetActorIds[0]));
+
+  check(started && expanding && rowPayment && primaryDamage,
+    "the selected attack reaches the target-expansion response window");
+  check(started.sequence < expanding.sequence && expanding.sequence < rowPayment.sequence,
+    "attack-start responses settle before secondary-target responses");
+  equal(expanding.targetActorIds[0], "e_primary", "the expansion event keeps the fixed primary target");
+  equal(expanding.values.baseTargetCount, 1);
+  equal(expanding.values.baseHitCount, 1);
+  check(!of(result, "resource_spent").some(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "expand_adjacent_rule",
+  ), "an unaffordable higher-priority expansion spends no RP");
+  equal(sideDamage.length, 2, "the first affordable row expansion adds both other enemies in the row");
+  check(sideDamage.every((event) => event.values.amount === 2), "added packets use their configured fragment amount");
+  check(sideDamage.every((event) => event.values.actionPlanId === primaryDamage.values.actionPlanId),
+    "primary and expanded damage share one ActionPlan");
+  check(damage.every((event) => event.values.plannedTargetCount === 3),
+    "the frozen recipient count includes unique secondary targets");
+  check(!damage.some((event) => event.targetActorIds[0] === "e_rear"),
+    "a later column expansion does not stack onto the same action");
+
+  const noRowResult = simulateBattle(
+    makeBattle([enemy("e_primary", "front_center", 8), enemy("e_rear", "rear_center")]),
+    bundle,
+  );
+  const columnPayment = of(noRowResult, "resource_spent").find(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "expand_column_rule",
+  );
+  const noRowDamage = of(noRowResult, "damage_proposed").filter(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  check(columnPayment, "a candidate with no eligible adjacent or row target leaves priority open");
+  check(!of(noRowResult, "resource_spent").some(
+    (event) => event.sourceActorId === "a_warden" && event.ruleId === "expand_row_rule",
+  ), "an expansion with no secondary target spends no RP");
+  check(noRowDamage.some((event) => event.targetActorIds[0] === "e_rear" && event.values.amount === 5),
+    "the next valid column expansion registers its own damage fragment");
+
+  const adjacentResult = simulateBattle(
+    makeBattle([
+      enemy("e_primary", "front_left", 8),
+      enemy("e_adjacent", "front_center"),
+      enemy("e_distant", "front_right"),
+    ], ["expand_adjacent"]),
+    {
+      ...bundle,
+      reactiveSkills: {
+        ...bundle.reactiveSkills,
+        expand_adjacent: {
+          ...bundle.reactiveSkills.expand_adjacent,
+          rule: {
+            ...bundle.reactiveSkills.expand_adjacent.rule,
+            costs: [{ type: "spend_reaction_points", amount: 1 }],
+          },
+        },
+      },
+    },
+  );
+  const adjacentDamage = of(adjacentResult, "damage_proposed").filter(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  check(adjacentDamage.some((event) => event.targetActorIds[0] === "e_adjacent" && event.values.amount === 3),
+    "adjacent expansion reaches the neighboring column");
+  check(!adjacentDamage.some((event) => event.targetActorIds[0] === "e_distant"),
+    "adjacent expansion leaves a non-neighbor in the same row untouched");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);

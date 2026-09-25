@@ -24,6 +24,7 @@ import { BPS, roundHalfUpDiv } from "../values.mjs";
 // （ずれると「Lv だけ上がって何も強くならない」技能が黙って生まれる）。
 export const LEVELED_EFFECTS = new Set([
   "deal_damage", "heal", "gain_barrier", "modify_pending_amount", "split_pending_damage",
+  "add_action_damage",
 ]);
 
 function hasLeveledEffect(node) {

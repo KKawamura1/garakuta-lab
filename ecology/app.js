@@ -6523,6 +6523,7 @@ function eventText(event) {
     target_selected: source + "が" + targetLabel + "を狙う",
     target_changed: "狙いが" + targetLabel + "になった",
     action_started: source + "の" + skill + "が始まる",
+    action_targets_expanding: source + "の" + skill + "の副対象を決める",
     action_resolved: source + "の" + skill + "が解決した",
     action_skipped: source + "は行動しなかった" + eventReasonText(values.reason),
     action_canceled: source + "の" + skill + "を実行しなかった" + eventReasonText(values.reason),

@@ -459,6 +459,28 @@ expectRejected(
 
 expectRejected(
   content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_targets_expanding";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{ type: "cancel_pending_action" }];
+  }),
+  "no_pending_action",
+  "target-expansion reactions cannot cancel the finalized primary action",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_started";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{
+      type: "add_action_damage",
+      target: { scope: "enemies", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "constant", value: 1 },
+    }];
+  }),
+  "no_action_target_expansion_frame",
+  "queued action damage is limited to the dedicated expansion window",
+);
+
+expectRejected(
+  content((bundle) => {
     bundle.activeSkills.strike.effects.push({ type: "cancel_pending_action" });
   }),
   "interrupt_only_effect",

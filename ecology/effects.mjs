@@ -9,7 +9,12 @@
 // emit(spec, pendingFrame) records the event and, when a pending frame is given,
 // runs the interrupt window for it before returning.
 
-import { POSITION_COLUMN, POSITION_ROW, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import {
+  COLUMNS,
+  POSITION_COLUMN,
+  POSITION_ROW,
+  SKILL_LEVEL_STEP_BPS,
+} from "./schema.mjs";
 import {
   actorsOnSide,
   bumpHistory,
@@ -142,6 +147,9 @@ export function applyEffects(rt, ctx, effects) {
       effect,
     );
   }
+  if (actionPlan && ctx.ruleId === undefined) {
+    resolveActionDamageExpansion(rt, ctx, actionPlan);
+  }
 }
 
 export function applyEffect(rt, ctx, effect) {
@@ -163,6 +171,7 @@ export function applyEffect(rt, ctx, effect) {
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
+    case "add_action_damage": return addActionDamage(rt, ctx, effect);
     default:
       // §4.1 — an unimplemented effect throws instead of silently doing nothing.
       throw new Error(`unimplemented effect type: ${effect.type}`);
@@ -220,6 +229,26 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
     if (chain) chain.lastResolvedTargets = previousResolvedTargets;
   }
 
+  const queuedExpansion = ctx.ruleId === undefined
+    ? ctx.pendingAction?.actionDamageExpansion
+    : null;
+  const expansionTargetIds = queuedExpansion
+    ? queuedExpansion.targetActorIds.filter((instanceId) => {
+      const target = getActor(state, instanceId);
+      if (!target || !target.alive || plannedRecipients.has(instanceId)) return false;
+      plannedRecipients.add(instanceId);
+      return true;
+    })
+    : [];
+  const actionDamageExpansion = queuedExpansion && expansionTargetIds.length > 0
+    ? Object.freeze({
+      ...queuedExpansion,
+      targetActorIds: Object.freeze(expansionTargetIds),
+      baseTargetIds: Object.freeze([...(ctx.event?.targetActorIds ?? [])]),
+      baseHitCount: ctx.pendingAction.baseHitCount ?? 1,
+    })
+    : null;
+
   // For skill-owned sequences, event targets are this action's selected targets.
   // For rule effects, ctx.event is the triggering event, so use this sequence's
   // first planned damage targets instead of copying the trigger's targets.
@@ -239,18 +268,71 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
     plannedRecipientIds: Object.freeze([...plannedRecipients]),
     plannedTargetCount: plannedRecipients.size,
     effectPlans: Object.freeze(effectPlans),
+    actionDamageExpansion,
   });
 }
 
 function actionPlanEventValues(actionPlan, effectPlan) {
   return {
     actionPlanId: actionPlan.id,
-    effectIndex: effectPlan.effectIndex,
+    ...(effectPlan.effectIndex === undefined
+      ? { actionDamageExpansionIndex: effectPlan.actionDamageExpansionIndex }
+      : { effectIndex: effectPlan.effectIndex }),
     actionTargetCount: actionPlan.baseTargetCount,
     baseHitCount: effectPlan.baseHitCount,
     baseTargetCount: effectPlan.baseTargetIds.length,
     plannedTargetCount: actionPlan.plannedTargetCount,
   };
+}
+
+function resolveActionDamageExpansion(rt, ctx, actionPlan) {
+  const expansion = actionPlan.actionDamageExpansion;
+  if (!expansion) return;
+  const effect = {
+    type: "deal_damage",
+    amount: { type: "constant", value: expansion.amount },
+    guardPierceBps: expansion.guardPierceBps,
+    tags: expansion.tags,
+    reach: "unrestricted",
+  };
+  const effectPlan = Object.freeze({
+    actionDamageExpansionIndex: 0,
+    baseTargetIds: expansion.baseTargetIds,
+    plannedRecipientIds: expansion.targetActorIds,
+    baseHitCount: 1,
+    hitCount: 1,
+    baseAmount: expansion.amount,
+  });
+  for (const targetActorId of expansion.targetActorIds) {
+    const target = getActor(rt.state, targetActorId);
+    if (!target || !target.alive) {
+      rt.emit({
+        type: "damage_skipped",
+        ...sourceFields({ ...ctx, ruleId: expansion.ruleId }),
+        targetActorIds: [targetActorId],
+        tags: expansion.tags,
+        values: {
+          hitIndex: 0,
+          hitCount: 1,
+          plannedAmount: expansion.amount,
+          ...actionPlanEventValues(actionPlan, effectPlan),
+          reason: target ? "target_defeated" : "target_unavailable",
+        },
+      });
+      continue;
+    }
+    dealOneInstance(
+      rt,
+      { ...ctx, ruleId: expansion.ruleId },
+      effect,
+      target,
+      0,
+      1,
+      undefined,
+      actionPlan,
+      effectPlan,
+    );
+  }
 }
 
 // R6 §6.7 — block charge を与える。**次の damage instance を丸ごと止める。**
@@ -402,6 +484,95 @@ function afterRearFalloff(rawAmount, ctx, effect) {
   const owner = ctx.owner;
   if (!owner || POSITION_ROW[owner.position] !== "rear") return rawAmount;
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
+}
+
+function actionTargetExpansionFrame(rt, ctx) {
+  const frame = ctx.pendingAction ?? ctx.pending;
+  if (
+    ctx.event?.type !== "action_targets_expanding"
+    || !frame
+    || frame.kind !== "action"
+    || frame !== rt.state.currentPendingAction
+    || !frame.actionDamageExpansionEligible
+    || frame.actionDamageExpansion
+    || frame.targetActorIds.length !== 1
+    || !ctx.owner
+    || ctx.owner.instanceId !== frame.sourceActorId
+  ) return null;
+  const anchor = getActor(rt.state, frame.targetActorIds[0]);
+  return anchor?.alive ? { frame, anchor } : null;
+}
+
+function matchesActionTargetPattern(anchor, candidate, pattern) {
+  if (candidate.side !== anchor.side) return false;
+  if (pattern === "single") return true;
+  if (pattern === "row") {
+    return POSITION_ROW[candidate.position] === POSITION_ROW[anchor.position];
+  }
+  if (pattern === "column") {
+    return POSITION_COLUMN[candidate.position] === POSITION_COLUMN[anchor.position];
+  }
+  if (pattern === "adjacent") {
+    if (POSITION_ROW[candidate.position] !== POSITION_ROW[anchor.position]) return false;
+    const anchorColumn = COLUMNS.indexOf(POSITION_COLUMN[anchor.position]);
+    const candidateColumn = COLUMNS.indexOf(POSITION_COLUMN[candidate.position]);
+    return Math.abs(anchorColumn - candidateColumn) === 1;
+  }
+  throw new Error(`unimplemented action target expansion pattern: ${pattern}`);
+}
+
+function actionDamageExpansionTargets(rt, ctx, effect) {
+  const window = actionTargetExpansionFrame(rt, ctx);
+  if (!window) return [];
+  const pattern = effect.targetPattern ?? "single";
+  // Apply relative position before take: 1 so the selected target means the
+  // first eligible actor in the requested row/column/adjacent set.
+  const candidates = resolveTargets(
+    rt.state,
+    ctx,
+    { ...effect.target, take: "all" },
+    { reach: window.frame.reach },
+  );
+  const primaryIds = new Set(window.frame.targetActorIds);
+  const eligible = candidates.filter((candidate) => (
+    candidate.alive
+    && !primaryIds.has(candidate.instanceId)
+    && matchesActionTargetPattern(window.anchor, candidate, pattern)
+  ));
+  return effect.target.take === 1 ? eligible.slice(0, 1) : eligible;
+}
+
+function actionDamageExpansionAmount(rt, ctx, effect) {
+  return afterRearFalloff(
+    afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx),
+    ctx,
+    effect,
+  );
+}
+
+// The dispatcher uses this before paying RP. A missing secondary target, an
+// already claimed expansion, or a zero-value fragment leaves the owner's
+// reactive priority open for the next candidate.
+export function canAddActionDamage(rt, ctx, effect) {
+  if (!actionTargetExpansionFrame(rt, ctx)) return false;
+  return actionDamageExpansionTargets(rt, ctx, effect).length > 0
+    && actionDamageExpansionAmount(rt, ctx, effect) > 0;
+}
+
+function addActionDamage(rt, ctx, effect) {
+  const window = actionTargetExpansionFrame(rt, ctx);
+  if (!window) return;
+  const targets = actionDamageExpansionTargets(rt, ctx, effect);
+  const amount = actionDamageExpansionAmount(rt, ctx, effect);
+  if (targets.length === 0 || amount <= 0) return;
+  window.frame.actionDamageExpansion = {
+    ruleId: ctx.ruleId,
+    sourceDefinitionId: ctx.sourceDefinitionId,
+    targetActorIds: targets.map((target) => target.instanceId),
+    amount,
+    tags: [...new Set([...(window.frame.tags ?? []), ...(effect.tags ?? [])])],
+    guardPierceBps: effect.guardPierceBps ?? 0,
+  };
 }
 
 function dealOneInstance(

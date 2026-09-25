@@ -33,6 +33,7 @@ import { resolveTargets } from "./selectors.mjs";
 import {
   advancePreparationOn,
   applyEffects,
+  canAddActionDamage,
   canPayCosts,
   payCosts,
   startPreparationOn,
@@ -536,6 +537,8 @@ function fireRule(state, event, entry, pendingFrame) {
   };
   if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return false;
   if (!canPayCosts(rt, ctx, entry.rule.costs)) return false;
+  const actionDamageAddition = entry.rule.effects.find((effect) => effect.type === "add_action_damage");
+  if (actionDamageAddition && !canAddActionDamage(rt, ctx, actionDamageAddition)) return false;
 
   const key = firingKey(entry);
   state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
@@ -940,6 +943,16 @@ function actionReach(skill) {
   return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
 }
 
+function isSingleTargetDamageAction(skill, targetCount, reach) {
+  if (targetCount !== 1) return false;
+  const damageEffects = (skill.effects ?? []).filter((effect) => effect.type === "deal_damage");
+  return damageEffects.length > 0 && damageEffects.every((effect) => (
+    effect.target?.scope === "event_targets"
+    && (effect.targetPattern ?? "single") === "single"
+    && (effect.reach ?? reach) === reach
+  ));
+}
+
 function actionTargetCandidates(state, ctx, skill) {
   const reach = actionReach(skill);
   const targets = resolveTargets(state, ctx, skill.targetQuery, { reach });
@@ -1108,6 +1121,11 @@ function performAction(state, actor, choice) {
     cancelReason: null,
     skillId: skill.id,
     sourceActorId: actor.instanceId,
+    sourceDefinitionId: actor.definitionId,
+    tags: [...(skill.tags ?? [])],
+    reach: actionReach(skill),
+    baseHitCount: (skill.effects ?? []).find((effect) => effect.type === "deal_damage")?.hitCount ?? 1,
+    actionDamageExpansionEligible: false,
     // The target list is deliberately empty through action_declared. A
     // pre-target movement reaction may change which targets are in reach.
     targetActorIds: [],
@@ -1181,6 +1199,11 @@ function performAction(state, actor, choice) {
       .filter((target) => target !== null && target.alive);
     if (finalTargets.length === 0) return cancelAction(state, actor, skill, frame, "no_target");
     if (!canPayCosts(rt, baseCtx(), costs)) return cancelAction(state, actor, skill, frame, "cost");
+    frame.actionDamageExpansionEligible = isSingleTargetDamageAction(
+      skill,
+      frame.targetActorIds.length,
+      frame.reach,
+    );
 
     payCosts(rt, baseCtx(), costs);
     emit(state, {
@@ -1212,6 +1235,33 @@ function performAction(state, actor, choice) {
 
     bumpHistory(actor, "active_actions", 1);
     recordTargeted(actor, frame.targetActorIds[0]);
+
+    if (frame.actionDamageExpansionEligible) {
+      const previousParent = state.parentEventId;
+      state.parentEventId = started.id;
+      try {
+        emit(
+          state,
+          {
+            type: "action_targets_expanding",
+            sourceActorId: actor.instanceId,
+            targetActorIds: [...frame.targetActorIds],
+            sourceDefinitionId: actor.definitionId,
+            skillId: skill.id,
+            tags: skill.tags ?? [],
+            values: {
+              baseTargetCount: frame.targetActorIds.length,
+              baseHitCount: frame.baseHitCount,
+            },
+          },
+          frame,
+        );
+        drainAfterQueue(state);
+      } finally {
+        state.parentEventId = previousParent;
+      }
+      if (frame.canceled || !actor.alive) return cancelAction(state, actor, skill, frame, "rule");
+    }
 
     // The skill's own effects resolve against action_started, so a query with
     // scope "event_targets" means "whatever this action actually targets" even
