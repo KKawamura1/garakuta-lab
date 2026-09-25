@@ -88,7 +88,7 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] PR #294で同一人物のリアクティブ優先列をevent / timingごとに適用する。条件またはRP支払いに失敗した候補は飛ばし、同じ窓で最初に発動した一つだけを選ぶ。他の人物の反応は独立して処理する。複数候補・条件不成立・RP不足からのfallbackを `ecology/engine.test.mjs` のイベント列で固定した。
 - [x] ActionPlanの基礎境界を追加する。`applyEffects` の最初の `deal_damage` 前に、同じ効果列に残る直接ダメージ効果ごとの基礎対象、形状展開後の受け手、hit枠、基礎威力を固定する。効果列の受け手を重複排除し、`damage_proposed` / `damage_skipped` に共通の `actionPlanId`、効果index、基礎hit数・対象数・予定対象数を記録する。提案前に対象が倒れてhitを飛ばす場合も `plannedAmount` を残す。
 - [x] 一つ目の攻撃効果で最弱対象を倒しても後続効果が別対象へ移らないこと、最初のhit後に得た状態が後続効果の基礎威力へ遡及しないことを `ecology/engine.test.mjs` で確認する。試映は同じ `simulateBattle` を通り、replayは同じevent列を読む。
-- [x] `action_declared` のinterruptと、そこで発生した移動イベントのafter反応を対象決定前に完了する。melee射程内の候補が空でも、同じqueryに射程制限なしで生存対象があれば行動候補として残し、移動後にqueryを解き直す。移動後の対象を `target_selected` に渡し、既存redirect後の最終対象をコスト再確認・`action_started`・ActionPlanへつなぐ。前列へのswap、`actor_moved` after反応、移動後の対象選択、cover redirect、最終対象へのdamageを `ecology/engine.test.mjs` のevent traceで確認する。
+- [x] `action_declared` のinterruptと、そこで発生した移動イベントのafter反応を対象決定前に完了する。melee射程内の候補が空でも、同じqueryに射程外の生存対象があり、発火可能な `action_declared` 位置交換ruleがある場合だけ行動候補として残し、移動後にqueryを解き直す。移動反応が無いときは空振りの宣言を出さない。移動後の対象を `target_selected` に渡し、既存redirect後の最終対象をコスト再確認・`action_started`・ActionPlanへつなぐ。前列へのswap、`actor_moved` after反応、移動後の対象選択、cover redirect、最終対象へのdamageと、移動反応が無いときに宣言しないことを `ecology/engine.test.mjs` のevent traceで確認する。
 - [ ] 攻撃前反応と副対象拡張の反応窓を監査表の順でActionPlanへ接続する。
 - [ ] 追加hitとRP支払いをActionPlanへ統合し、追加hitや派生片が元計画を遡及変更しないことを検査する。
 - [ ] 防御崩し・hit後反応・攻撃後処理を一方向に接続し、解決順をevent traceで固定する。
