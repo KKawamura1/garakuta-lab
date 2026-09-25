@@ -89,6 +89,6 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] ActionPlanの基礎境界を追加する。`applyEffects` の最初の `deal_damage` 前に、同じ効果列に残る直接ダメージ効果ごとの基礎対象、形状展開後の受け手、hit枠、基礎威力を固定する。効果列の受け手を重複排除し、`damage_proposed` / `damage_skipped` に共通の `actionPlanId`、効果index、基礎hit数・対象数・予定対象数を記録する。提案前に対象が倒れてhitを飛ばす場合も `plannedAmount` を残す。
 - [x] 一つ目の攻撃効果で最弱対象を倒しても後続効果が別対象へ移らないこと、最初のhit後に得た状態が後続効果の基礎威力へ遡及しないことを `ecology/engine.test.mjs` で確認する。試映は同じ `simulateBattle` を通り、replayは同じevent列を読む。
 - [ ] 対象前移動、対象変更・攻撃前・副対象拡張の反応窓、追加hitとRP支払いをActionPlanへ統合する。防御崩し・hit後反応・攻撃後処理の段階も一方向に接続し、追加hitや派生片が元計画を遡及変更しないことを検査する。
-- [ ] PR #293の単独の効果単位計画はActionPlan実装で包含する。ActionPlan PRの確認後にPR #293をsupersededとして閉じ、別系統の計画を並行して残さない。
+- [x] PR #295のActionPlan基礎でPR #293の単独の効果単位計画を包含し、PR #293をsupersededとして閉じた。別系統の計画は並行して残さない。
 
 次は対象前移動と対象反応から、監査表の段階をActionPlanへ一つずつ接続する。効果量・反応窓・preview/replayの独立実装を先に増やさず、共通engineのevent traceで各段階を固定する。
