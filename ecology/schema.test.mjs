@@ -447,6 +447,18 @@ expectRejected(
 
 expectRejected(
   content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_started";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{
+      type: "redirect_pending_target",
+      target: { scope: "self", take: 1 },
+    }];
+  }),
+  "no_pending_frame",
+  "action_started reactions cannot redirect the finalized action target",
+);
+
+expectRejected(
+  content((bundle) => {
     bundle.activeSkills.strike.effects.push({ type: "cancel_pending_action" });
   }),
   "interrupt_only_effect",
