@@ -475,6 +475,26 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     ),
     "an out-of-reach target alone does not trigger a phantom action declaration",
   );
+
+  // A swap rule whose selectors cannot find a partner is not an available
+  // pre-target movement response. It must not declare the action or spend RP.
+  const noSwapPartnerBundle = structuredClone(bundle);
+  noSwapPartnerBundle.enemyReactiveSkills.move_before_target.rule.effects[0].otherTarget.filters.push(
+    { type: "row_is", row: "front" },
+  );
+  const withoutSwapPartner = simulateBattle(battle, noSwapPartnerBundle);
+  check(
+    !of(withoutSwapPartner, "action_declared").some(
+      (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+    ),
+    "a swap response without a valid partner does not enable a phantom declaration",
+  );
+  check(
+    !of(withoutSwapPartner, "resource_spent").some(
+      (event) => event.sourceActorId === "e_shifter" && event.ruleId === "move_before_target_rule",
+    ),
+    "a swap response without a valid partner spends no reaction point",
+  );
 }
 
 {
