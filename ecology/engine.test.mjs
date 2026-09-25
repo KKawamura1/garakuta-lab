@@ -211,6 +211,97 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // One action plan spans every direct-damage effect in the active skill. The
+  // first effect defeats the weakest enemy and adds a status between effects;
+  // the later hit slots keep their target and their pre-hit base amount.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  const weakestEnemy = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["hp_asc"],
+    take: 1,
+  };
+  bundle.activeSkills.multi_effect_plan = {
+    ...structuredClone(bundle.activeSkills.strike),
+    id: "multi_effect_plan",
+    displayName: "Multi-effect Plan (fixture)",
+    targetQuery: structuredClone(weakestEnemy),
+    effects: [
+      {
+        type: "deal_damage",
+        target: structuredClone(weakestEnemy),
+        amount: { type: "constant", value: 4 },
+        reach: "unrestricted",
+        tags: ["attack", "fixture"],
+      },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 },
+      {
+        type: "deal_damage",
+        target: structuredClone(weakestEnemy),
+        amount: { type: "status_stacks_scaled", subject: "self", statusId: "exposed" },
+        hitCount: 2,
+        reach: "unrestricted",
+        tags: ["attack", "fixture"],
+      },
+    ],
+  };
+  const battle = {
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "action_plan_spans_damage_effects",
+    maxRounds: 1,
+    objective: { type: "eliminate_all_enemies" },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "multi_effect_plan", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [
+      { instanceId: "e_first", enemyActorId: "husk", position: "front_left", hp: 3 },
+      { instanceId: "e_second", enemyActorId: "husk", position: "front_right", hp: 10 },
+    ],
+  };
+
+  const result = simulateBattle(battle, bundle);
+  const planEvents = result.events.filter((event) => (
+    ["damage_proposed", "damage_skipped"].includes(event.type)
+      && event.sourceActorId === "a_warden"
+      && event.skillId === "multi_effect_plan"
+  ));
+  const firstEffectHit = planEvents.find((event) => event.values.effectIndex === 0);
+  const laterEffectSlots = planEvents.filter((event) => event.values.effectIndex === 2);
+  check(firstEffectHit, "the first planned damage effect fires");
+  equal(firstEffectHit.targetActorIds[0], "e_first");
+  equal(laterEffectSlots.length, 2, "the later effect keeps both planned hit slots");
+  check(
+    laterEffectSlots.every((event) => (
+      event.type === "damage_skipped"
+        && event.targetActorIds[0] === "e_first"
+        && event.values.reason === "target_defeated"
+        && event.values.plannedAmount === 0
+    )),
+    "later hits keep the defeated target and the zero base amount from before the new status",
+  );
+  check(
+    planEvents.every((event) => event.values.actionPlanId === firstEffectHit.values.actionPlanId),
+    "all damage effects carry the same action plan id",
+  );
+  equal(firstEffectHit.values.actionTargetCount, 1, "the plan retains the selected action target count");
+  equal(firstEffectHit.values.plannedTargetCount, 1, "the action plan counts distinct recipients once");
+  equal(firstEffectHit.values.baseHitCount, 1);
+  equal(laterEffectSlots[0].values.baseHitCount, 2);
+  check(
+    result.actors.find((actor) => actor.instanceId === "a_warden").statuses.some((status) => (
+      status.statusId === "exposed" && status.stacks === 1
+    )),
+    "the intervening status effect really applied after the plan was fixed",
+  );
+  equal(result.actors.find((actor) => actor.instanceId === "e_second").hp, 10);
+}
+
+{
   // §12.1 — excess is max(0, proposed - absorbed - hpBefore).
   const result = run(BROKEN_EQUIPMENT_BATTLE);
   const excess = first(result, "excess_damage");
