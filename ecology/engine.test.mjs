@@ -560,6 +560,42 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
+// ---- Same-actor reactive priority windows ----------------------------------
+
+{
+  // The first eligible reactive owns this event window even when a later one
+  // could also pay. The selected skill order wins over rule priority.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.counter_blow.rule.costs = [];
+  content.reactiveSkills.brace_after_hit.rule.costs = [];
+  const result = simulateBattle(COST_CONTEST_BATTLE, content);
+  const counters = of(result, "damage_proposed").filter((event) =>
+    event.ruleId === "counter_blow_rule");
+  const braces = of(result, "barrier_gained").filter((event) =>
+    event.ruleId === "brace_after_hit_rule");
+  check(counters.length > 0, "the first eligible reactive fires");
+  equal(braces.length, 0, "later same-actor reactives wait after one fires");
+}
+
+{
+  // An earlier reactive that cannot pay does not consume the window. The
+  // affordable lower skill is still checked and can fire.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.brace_after_hit.rule.costs = [
+    { type: "spend_reaction_points", amount: 2 },
+  ];
+  content.reactiveSkills.counter_blow.rule.costs = [];
+  const battle = structuredClone(COST_CONTEST_BATTLE);
+  battle.allies[0].reactiveSkillIds.reverse();
+  const result = simulateBattle(battle, content);
+  const counters = of(result, "damage_proposed").filter((event) =>
+    event.ruleId === "counter_blow_rule");
+  const braces = of(result, "barrier_gained").filter((event) =>
+    event.ruleId === "brace_after_hit_rule");
+  check(counters.length > 0, "the affordable lower reactive fires after RP failure");
+  equal(braces.length, 0, "the unaffordable higher reactive has no effect");
+}
+
 // ---- §12.4 preparation --------------------------------------------------------
 
 {
