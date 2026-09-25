@@ -27,7 +27,10 @@ export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-export const RESULT_SCHEMA_VERSION = "ecology-result-3";
+// Stage 2e adds an explicit, interruptible event before a single-target action
+// fixes its ActionPlan. Readers that understand only result-3 would miss this
+// reaction window and the additional damage planned from it.
+export const RESULT_SCHEMA_VERSION = "ecology-result-4";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -95,6 +98,7 @@ export const EVENT_TYPES = freeze([
   "target_changed",
   "action_cost_paid",
   "action_started",
+  "action_targets_expanding",
   "action_resolved",
   "action_skipped",
   "action_canceled",
@@ -168,6 +172,9 @@ export const NON_LISTENABLE_EVENT_TYPES = freeze([
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.
 export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_selected"]);
+// This frame can append a damage fragment to the action's future ActionPlan,
+// but cannot redirect the already selected primary target or cancel the action.
+export const ACTION_TARGET_EXPANSION_EVENT_TYPES = freeze(["action_targets_expanding"]);
 export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   "damage_proposed",
   "healing_proposed",
@@ -181,6 +188,7 @@ export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   // action_started opens an attack-start reaction window after targets and AP
   // are fixed. It does not carry a mutable pending-action frame.
   "action_started",
+  ...ACTION_TARGET_EXPANSION_EVENT_TYPES,
   ...PENDING_AMOUNT_EVENT_TYPES,
 ]);
 
@@ -319,6 +327,7 @@ export const EFFECT_TYPES = freeze([
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
+  "add_action_damage",
   // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
   "gain_block",
 ]);
@@ -329,6 +338,12 @@ export const EFFECT_TYPES = freeze([
 // implementation in a later phase; listing them here now would let content
 // reference a pattern the engine silently treats as single.
 export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
+// Shape used by the common pre-plan secondary-target reaction window. This is
+// separate from direct-damage targetPattern: additions are queued damage
+// fragments and never rewrite the primary damage effect's selector.
+export const ACTION_TARGET_EXPANSION_PATTERNS = freeze([
+  "single", "adjacent", "row", "column",
+]);
 
 // R6 §6.4 — PHASE A. active 技能の静的な種別。攻撃テンポの保証がこれで決まる。
 //   offense … 使えると判定されたら、生存敵へ direct damage を必ず作る
@@ -343,6 +358,7 @@ export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
+  "add_action_damage",
 ]);
 // Which pending frame each interrupt-only effect needs.
 export const PENDING_ACTION_EFFECT_TYPES = freeze([

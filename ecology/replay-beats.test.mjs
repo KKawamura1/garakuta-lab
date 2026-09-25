@@ -45,6 +45,18 @@ assert.ok(declaration?.events.some((entry) => entry.type === "action_declared"),
 assert.ok(impact?.events.some((entry) => entry.type === "damage_absorbed"), "zero-damage absorption is an impact event");
 assert.ok(impact?.events.some((entry) => entry.type === "barrier_damaged"), "barrier consumption stays with the impact");
 
+const expandedAttack = buildBeats([
+  event("action_started", { skillId: "strike" }),
+  event("action_targets_expanding", { skillId: "strike" }),
+  event("damage_taken", { skillId: "strike", values: { amount: 2 } }),
+  event("action_resolved", { skillId: "strike" }),
+]);
+assert.equal(expandedAttack.length, 1, "secondary-target resolution does not add an empty replay beat");
+assert.ok(
+  expandedAttack[0].events.some((entry) => entry.type === "damage_taken"),
+  "expanded damage remains attached to the original action impact",
+);
+
 // Round-duration expiry is emitted after the next round_started event. Because
 // expiry is a board-skipped event, that order keeps the disappearing barrier on
 // the round-opening beat instead of attaching it to the last attack.

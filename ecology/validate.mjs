@@ -11,6 +11,8 @@
 
 import {
   ACTION_MODES,
+  ACTION_TARGET_EXPANSION_EVENT_TYPES,
+  ACTION_TARGET_EXPANSION_PATTERNS,
   ACTOR_STATS,
   PASSIVE_STAT_BONUSES,
   REACHES,
@@ -401,6 +403,47 @@ function validateEffect(bag, path, effect, ctx) {
   }
   if (!requireOneOf(bag, `${path}.type`, effect.type, EFFECT_TYPES, "unknown_effect")) return;
 
+  if (effect.type === "add_action_damage") {
+    if (ctx.timing !== "interrupt") {
+      bag.add(path, "interrupt_only_effect", 'add_action_damage requires timing: "interrupt"');
+      return;
+    }
+    if (!ACTION_TARGET_EXPANSION_EVENT_TYPES.includes(ctx.listenTo)) {
+      bag.add(
+        path,
+        "no_action_target_expansion_frame",
+        "add_action_damage needs action_targets_expanding",
+      );
+      return;
+    }
+    validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+    if (effect.target?.scope !== "enemies") {
+      bag.add(`${path}.target.scope`, "not_enemy_expansion_target", "action damage additions must target enemies");
+    }
+    if (effect.targetPattern !== undefined) {
+      requireOneOf(
+        bag,
+        `${path}.targetPattern`,
+        effect.targetPattern,
+        ACTION_TARGET_EXPANSION_PATTERNS,
+        "unknown_action_target_pattern",
+      );
+    }
+    if ((effect.targetPattern ?? "single") === "single" && effect.target?.take !== 1) {
+      bag.add(
+        `${path}.target.take`,
+        "single_action_damage_target_requires_one",
+        'single action damage additions require target.take: 1',
+      );
+    }
+    validateValue(bag, `${path}.amount`, effect.amount, ctx);
+    if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+    if (effect.guardPierceBps !== undefined) {
+      requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
+    }
+    return;
+  }
+
   // §11.4 — the three pending-frame effects only exist inside an interrupt rule,
   // and only for an event that actually carries the frame they need.
   if (INTERRUPT_ONLY_EFFECT_TYPES.includes(effect.type)) {
@@ -585,6 +628,14 @@ function validateRule(bag, path, rule, ctx) {
   validatePredicates(bag, `${path}.predicates`, rule.predicates, ruleCtx);
   validateCosts(bag, `${path}.costs`, rule.costs, ruleCtx);
   validateEffects(bag, `${path}.effects`, rule.effects, ruleCtx);
+  if (Array.isArray(rule.effects) && rule.effects.filter((effect) => effect?.type === "add_action_damage").length > 1) {
+    bag.add(`${path}.effects`, "multiple_action_damage_additions", "one rule may add only one action damage fragment");
+  }
+  if (Array.isArray(rule.effects)
+    && rule.effects.some((effect) => effect?.type === "add_action_damage")
+    && rule.effects.length !== 1) {
+    bag.add(`${path}.effects`, "action_damage_addition_must_stand_alone", "add_action_damage must be the rule's only effect");
+  }
 
   if (!isPlainObject(rule.limit)) {
     bag.add(`${path}.limit`, "not_an_object", "expected a limit object");

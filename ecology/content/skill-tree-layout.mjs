@@ -75,6 +75,7 @@ export const BRANCH_BUILDS = Object.freeze({
 export const TRIGGER_LABELS = Object.freeze({
   action_declared: "行動が宣言されたとき",
   action_resolved: "行動が解決したとき",
+  action_targets_expanding: "単体攻撃の副対象を広げるとき",
   actor_defeated: "誰かが倒れたとき",
   actor_moved: "誰かが位置を変えたとき",
   barrier_broken: "防壁が割れたとき",

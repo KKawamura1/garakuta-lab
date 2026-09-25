@@ -240,6 +240,17 @@ if (dispatch.length < 10) {
   process.exit(1);
 }
 const scaledByEngine = new Set(dispatch.filter(([, , handler]) => scaling.has(handler)).map(([, type]) => type));
+// add_action_damage resolves its amount during canAddActionDamage, before the rule
+// pays its cost. Its commit handler intentionally consumes that prepared snapshot,
+// so include this preflight path in the same level-scaling audit.
+const preparedActionDamageCheck = bodies.get("canAddActionDamage") ?? "";
+const preparedActionDamageAmount = bodies.get("actionDamageExpansionAmount") ?? "";
+if (
+  preparedActionDamageCheck.includes("actionDamageExpansionAmount(rt, ctx, effect)")
+  && preparedActionDamageAmount.includes("afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx)")
+) {
+  scaledByEngine.add("add_action_damage");
+}
 const declared = new Set(LEVELED_EFFECTS);
 for (const type of scaledByEngine) {
   if (!declared.has(type)) {
