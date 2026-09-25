@@ -302,6 +302,169 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // action_declared reactions may move a frontline actor before a melee
+  // action chooses its target. The target_selected window then reacts to that
+  // post-movement choice, and action_started uses the redirected final target.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  const lowHealthEnemy = {
+    scope: "enemies",
+    filters: [
+      { type: "alive" },
+      { type: "hp_percent", op: "lte", value: 50 },
+    ],
+    sort: ["position_asc"],
+    take: 1,
+  };
+  bundle.activeSkills.strike.targetQuery = structuredClone(lowHealthEnemy);
+  bundle.activeSkills.strike.tags = [...bundle.activeSkills.strike.tags, "pretarget_fixture"];
+  bundle.activeSkills.strike.effects[0] = {
+    ...bundle.activeSkills.strike.effects[0],
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+    reach: "melee",
+  };
+  bundle.enemyReactiveSkills.move_before_target = {
+    id: "move_before_target",
+    displayName: "Move Before Target (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "move_before_target_rule",
+      listenTo: "action_declared",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "pretarget_fixture", value: true }],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [{
+        type: "swap_positions",
+        target: { scope: "self", filters: [{ type: "alive" }], take: 1 },
+        otherTarget: {
+          scope: "allies",
+          filters: [{ type: "alive" }, { type: "not_self" }],
+          sort: ["position_asc"],
+          take: 1,
+        },
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyReactiveSkills.cover_after_move = {
+    id: "cover_after_move",
+    displayName: "Cover After Move (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "cover_after_move_rule",
+      listenTo: "target_selected",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "pretarget_fixture", value: true }],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [{
+        type: "redirect_pending_target",
+        target: { scope: "self", filters: [{ type: "alive" }], take: 1 },
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyReactiveSkills.mark_front_mover = {
+    id: "mark_front_mover",
+    displayName: "Mark Front Mover (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "mark_front_mover_rule",
+      listenTo: "actor_moved",
+      timing: "after",
+      priority: 100,
+      predicates: [
+        { type: "event_tag", tag: "swap", value: true },
+        {
+          type: "target_exists",
+          query: {
+            scope: "event_targets",
+            filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+            take: 1,
+          },
+        },
+      ],
+      costs: [],
+      effects: [{
+        type: "add_status",
+        target: {
+          scope: "event_targets",
+          filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+          take: 1,
+        },
+        statusId: "exposed",
+        stacks: 1,
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyActors.target_shifter = {
+    ...structuredClone(bundle.enemyActors.husk),
+    id: "target_shifter",
+    displayName: "Target Shifter (fixture)",
+    baseReactionPoints: 2,
+    reactiveSkillIds: ["move_before_target", "cover_after_move", "mark_front_mover"],
+  };
+
+  const battle = {
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "action_plan_target_after_movement",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "strike", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [
+      { instanceId: "e_shifter", enemyActorId: "target_shifter", position: "front_left", hp: 10 },
+      { instanceId: "e_low", enemyActorId: "husk", position: "rear_left", hp: 4 },
+    ],
+  };
+
+  const result = simulateBattle(battle, bundle);
+  const declared = of(result, "action_declared").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const moved = of(result, "actor_moved").filter(
+    (event) => event.sourceActorId === "e_shifter" && event.parentEventId === declared.id,
+  );
+  const selected = of(result, "target_selected").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const marked = of(result, "status_added").find(
+    (event) => event.sourceActorId === "e_shifter"
+      && event.targetActorIds[0] === "e_low"
+      && event.values.statusId === "exposed",
+  );
+  const changed = of(result, "target_changed").find(
+    (event) => event.values.from === "e_low" && event.targetActorIds[0] === "e_shifter",
+  );
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const hit = of(result, "damage_proposed").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+
+  check(declared, "the melee action is still declared when only an unrestricted target exists");
+  equal(declared.values.targetCount, 0, "no target was in melee reach before the movement window");
+  equal(moved.length, 2, "the declared-action interrupt moves the front and rear enemies");
+  check(moved[1].sequence < selected.sequence, "both move events finish before target selection");
+  check(marked.sequence < selected.sequence, "the movement after-reaction resolves before target selection");
+  equal(selected.targetActorIds[0], "e_low", "the low-health enemy is selected after moving to the front");
+  check(selected.sequence < changed.sequence, "the target reaction follows the post-movement selection");
+  equal(changed.values.from, "e_low");
+  equal(changed.targetActorIds[0], "e_shifter");
+  equal(started.targetActorIds[0], "e_shifter", "the attack starts against the final redirected target");
+  equal(hit.targetActorIds[0], "e_shifter", "damage follows the resolved target through ActionPlan");
+  check(started.sequence < hit.sequence, "ActionPlan damage is created after target reactions finish");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);
