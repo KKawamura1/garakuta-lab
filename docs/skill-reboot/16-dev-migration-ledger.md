@@ -1,7 +1,7 @@
-# dev移行台帳 — Stage 0・Stage 1・Stage 2
+# dev移行台帳 — Stage 0〜4
 
 更新日: 2026-09-26  
-状態: **Stage 0・Stage 1完了。Stage 2（共通解決順とActionPlan）はdevで完了。#299〜#302の変更を#303で統合し、#304で最後の防御崩し反応窓を追加した。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、PR #295で同一効果列に含まれる複数の直接ダメージを一つのActionPlanへ束ねた。PR #296で対象前の移動反応を解決順へ接続し、移動後に対象を再選択した。PR #297では対象選択後のafter反応を先に完了し、最終対象・行動者の生存・APを再確認してから、主効果とActionPlan固定の前に攻撃開始時のinterruptを解決した。PR #298で単体攻撃の副対象拡張反応を主行動のActionPlanへ接続した。PR #299で追加hit/RPを統合し、PR #300で防御崩しと各hit後の反応を次hitの前に解決する。PR #301で主効果のafter反応と `action_resolved` の境界を閉じる。PR #302で新武器技能の個別レベル廃止と旧level依存の切替条件を記録し、PR #303で#300〜#302をdevへ統合した。PR #304で監査項目6aの攻撃前防御崩しを実装し、7bのhit後防御崩しと `defense_reduced` 反応窓を共有した。武器別player registry、未実装技能の取得制御、ロードアウト・進行・UI切替、190節の実装は依存順序表の後続段階。
+状態: **Stage 0〜3完了。Stage 4（fixture-first UI）を実装中。** Stage 0の190節同期と初期20導出、Stage 1の敵registry分離、Stage 2の共通解決順・ActionPlan（#299〜#304）、Stage 3のloadout・progression・pack・save契約（#306〜#311）はdevで完了。現行runtime・画面への切替と残り170節の実装は後続段階。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -115,3 +115,12 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 - [x] **3d / PR #310 — Profile / Run保存境界。** `ecology/weapon-save.mjs` はProfileとRunを別schema versionでJSON保存・再読込する。未対応version・未知field・旧skill level欄・roster違い・Profile未解禁pack・Manifest範囲外の取得node・未取得loadout技能は理由付きで拒否する。旧saveの自動移行や現行storageへの接続はしない。
 
 3a〜3dは新武器技能系の移行契約であり、現行Profile/Run保存・runtime Manifest・画面・BattleInputへは未接続である。現行ゲームの技能tree/runtimeは切替PRまで維持し、Stage 5の本体切替で旧経路を同時撤去する。
+
+## Stage 4 progress — fixture-first UI
+
+- [x] **4a — 技能ツリーと節の説明。** 独立プレビューで10武器×19節を地図／一覧表示し、PR #289と同じ丸付きA/R/T/P、条件・コスト／効果バッジ、選択で地図を作り直さない効果専用の詳細盤を使う。内部位置名を表示せず、全節を `catalog-only` / `canAcquire: false` として本編のruntime・取得・saveへ接続しない。
+- [ ] **4b — 主軸・リアクティブ・ターゲットのロードアウト画面。** 固定fixtureの状態だけを見せ、主軸は一つ、リアクティブ／ターゲットは個別の優先列として並べ替えられることを確認する。パッシブの個別装着枠は出さない。
+- [ ] **4c — 前提・取得予約画面。** 固定fixtureで前提経路と一人一件の予約表示を確認する。未実装技能の取得操作を有効にしない。
+- [ ] **4d — 技能説明と戦闘予測の表示面。** 効果説明を表示し、予測画面の情報配置を確認する。新runtime未接続の固定値を本編の予測と誤認させない。
+
+4aのプレビューは `/ecology/weapon-skill-prototype.html`。現行 `/ecology/` の起動経路を変えず、game stateも書き換えない。各後続PRで画面単位の試験とモバイルbranch preview確認を記録する。

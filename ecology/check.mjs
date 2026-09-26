@@ -20,6 +20,7 @@ const SUITES = [
   "weapon-progression.test.mjs",
   "weapon-pack-manifest.test.mjs",
   "weapon-save.test.mjs",
+  "weapon-skill-prototype.test.mjs",
   "phase-b.test.mjs",
   "campaign-stage.test.mjs",
   "phase-c.test.mjs",
