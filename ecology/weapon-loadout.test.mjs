@@ -104,5 +104,19 @@ assert.ok(validateWeaponSkillLoadout({ ...fresh, passiveSkillIdsByCharacter: { g
   .errors.some((error) => error.code === "unknown_loadout_field"), "未定義の欄を読み飛ばさない");
 assert.ok(validateWeaponSkillLoadout(fresh, { characterIds: ["gou"] })
   .errors.some((error) => error.code === "roster_mismatch"));
+for (const invalidCharacterId of ["", "   "]) {
+  const malformedRoster = {
+    ...fresh,
+    primarySkillByCharacter: { [invalidCharacterId]: null },
+    reactivePriorityByCharacter: { [invalidCharacterId]: [] },
+    targetPriorityByCharacter: { [invalidCharacterId]: [] },
+  };
+  assert.ok(validateWeaponSkillLoadout(malformedRoster).errors
+    .some((error) => error.code === "invalid_character_ids"),
+  "derived roster must reject empty or whitespace-only character IDs");
+  assert.ok(validateWeaponSkillLoadout(fresh, { characterIds: [invalidCharacterId] }).errors
+    .some((error) => error.code === "invalid_character_ids"),
+  "explicit roster must reject empty or whitespace-only character IDs");
+}
 
 console.log(`weapon loadout: ${Object.keys(WEAPON_SKILL_NODES).length} catalogue nodes; single primary and ordered priority lists pass`);
