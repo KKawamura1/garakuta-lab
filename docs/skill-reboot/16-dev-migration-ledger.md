@@ -112,6 +112,6 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 - [x] **3a / PR #306 — 主軸と優先列のロードアウト契約。** `ecology/weapon-loadout.mjs` は仕様190節の `weaponId:position` から一意なnode keyを作り、一人一つの主軸、順序を持つリアクティブ列とターゲット列を定義する。取得済みpassiveは個別装着欄を持たずすべて適用する。未取得・種別違い・未知node・未知field・別version・roster不一致を拒否する。旧skill ID / level map / tree / packには依存しない。
 - [x] **3b / PR #307 — 取得・前提・予約。** `ecology/weapon-progression.mjs` はカタログ位置から前提DAGを導出し、取得済みnodeと人物別SPのみを保持する。技能levelは持たない。人物ごと一つの予約先へ前提から自動取得し、予約の取消・差替え・クリア報酬の重複防止を扱う。利用可能nodeは後続の新Manifestから渡す。
 - [x] **3c / PR #309 — skill packとequipment packの分離。** `ecology/weapon-pack-manifest.mjs` は武器10種のskill pack（`skill:<weaponId>`）と装備affix family pack（`equipment:<familyId>`）を別registry・Profile欄・Manifest欄として定義する。二つのpoolを別seed domainで抽選し、取得可能nodeはskill packから、装備familyはequipment packからだけ導出する。共通の `family_scar` は常時有効。旧Profile/Runと現行runtimeへはまだ接続しない。
-- [ ] **3d — Profile / Run保存境界。** 新状態を現行versionで保存・再読込し、未対応versionは理由付きで拒否する。旧saveの移行はしない。
+- [x] **3d — Profile / Run保存境界。** `ecology/weapon-save.mjs` はProfileとRunを別schema versionでJSON保存・再読込する。未対応version・未知field・旧skill level欄・roster違い・Profile未解禁pack・Manifest範囲外の取得node・未取得loadout技能は理由付きで拒否する。旧saveの自動移行や現行storageへの接続はしない。
 
-3a〜3cは現行Profile/Run保存・runtime Manifest・画面・BattleInputへ未接続の移行契約である。現行ゲームの技能tree/runtimeは切替PRまで維持し、Stage 5の本体切替で旧経路を同時撤去する。
+3a〜3dは新武器技能系の移行契約であり、現行Profile/Run保存・runtime Manifest・画面・BattleInputへは未接続である。現行ゲームの技能tree/runtimeは切替PRまで維持し、Stage 5の本体切替で旧経路を同時撤去する。
