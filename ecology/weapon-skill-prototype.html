@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#111719">
-    <title>技能の森 — 武器技能UIプレビュー</title>
+    <title>技能 — 武器技能UIプレビュー</title>
     <link rel="stylesheet" href="./weapon-skill-prototype.css">
   </head>
   <body>
@@ -12,16 +12,15 @@
       <header class="page-head">
         <a class="back-link" href="./">本編へ戻る</a>
         <div class="heading">
-          <p class="eyebrow">WEAPON SKILLS · UI PREVIEW</p>
-          <h1>技能の森</h1>
+          <h1>技能</h1>
         </div>
         <span class="prototype-mark">表示試作</span>
       </header>
 
-      <aside class="fixture-note" aria-label="プレビューについて">
-        <span class="note-mark" aria-hidden="true">i</span>
-        <p><b>固定データの閲覧画面</b><br>カタログ190節と画面配置を確認できます。取得・戦闘・保存には接続していません。構成・予約デモの変更はこのページ内だけで、再読み込みすると戻ります。</p>
-      </aside>
+      <details class="fixture-note" aria-label="プレビューについて">
+        <summary><span class="note-mark" aria-hidden="true">i</span><b>固定データのプレビュー</b></summary>
+        <p>カタログ190節と画面配置を確認できます。取得・戦闘・保存には接続していません。構成・予約デモの変更はこのページ内だけで、再読み込みすると戻ります。</p>
+      </details>
 
       <nav id="screen-tabs" class="screen-tabs" role="tablist" aria-label="武器技能UIの画面">
         <button id="tab-tree" class="screen-tab" type="button" role="tab" aria-selected="true" aria-controls="tree-screen" data-screen="tree">技能</button>
@@ -40,7 +39,7 @@
         <div id="tree-controls" class="weapon-tree-controls"></div>
       </section>
 
-      <section id="skill-tree" class="skill-tree" aria-label="技能ツリー"></section>
+      <section id="skill-tree" class="skill-tree card" aria-label="技能ツリー"></section>
 
       <section id="skill-detail" aria-label="選択した技能の説明" aria-live="polite"></section>
       </section>
@@ -57,7 +56,7 @@
         <div id="forecast-content"></div>
       </section>
 
-      <footer class="page-foot">カタログの表示用効果文を掲載しています。</footer>
+      <footer class="page-foot">固定カタログの表示試作です。取得・戦闘・保存には接続していません。</footer>
     </main>
     <script type="module" src="./weapon-skill-prototype.js"></script>
   </body>
