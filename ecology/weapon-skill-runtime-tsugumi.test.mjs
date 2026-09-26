@@ -187,7 +187,7 @@ const barrierBattle = battle("stage5c_medical_barrier", [
 ]);
 const barrierResult = simulateBattle(barrierBattle, contentFor());
 const medicalBarrier = barrierResult.events.find((event) =>
-  event.type === "barrier_gained" && event.sourceDefinitionId === MEDICAL_R);
+  event.type === "barrier_gained" && event.skillId === MEDICAL_R);
 assert.ok(medicalBarrier, "medical R creates a barrier through the shared engine");
 assert.deepEqual(medicalBarrier.targetActorIds, ["a_gou_stage5c"],
   "the active chooses the lowest HP percentage, not the lowest absolute HP");
