@@ -66,10 +66,14 @@ function prerequisiteChain(nodeKey) {
   return chain.reverse();
 }
 
+function isValidCharacterIds(characterIds) {
+  return Array.isArray(characterIds)
+    && characterIds.every((id) => typeof id === "string" && id.trim())
+    && new Set(characterIds).size === characterIds.length;
+}
+
 function uniqueCharacterIds(characterIds) {
-  if (!Array.isArray(characterIds)
-    || characterIds.some((id) => typeof id !== "string" || !id.trim())
-    || new Set(characterIds).size !== characterIds.length) {
+  if (!isValidCharacterIds(characterIds)) {
     throw new TypeError("characterIds は重複のない、空でない文字列の配列が必要です。");
   }
   return characterIds;
@@ -175,7 +179,12 @@ export function validateWeaponSkillProgression(progression, options = {}) {
   const mapNames = ["unlockedSkillKeysByCharacter", "skillPointsByCharacter", "skillReservationByCharacter"];
   const ids = options.characterIds === undefined
     ? Object.keys(progression.unlockedSkillKeysByCharacter)
-    : uniqueCharacterIds(options.characterIds);
+    : options.characterIds;
+  if (!isValidCharacterIds(ids)) {
+    const path = options.characterIds === undefined ? "unlockedSkillKeysByCharacter" : "characterIds";
+    addError(errors, "invalid_character_ids", path, "人物IDは重複のない、空でない文字列の配列である必要があります。");
+    return { valid: false, errors };
+  }
   for (const field of mapNames) {
     const actual = Object.keys(progression[field]).sort();
     const expected = [...ids].sort();
