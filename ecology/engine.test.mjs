@@ -1059,8 +1059,126 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // A pre-hit defense reduction opens the same reaction window as a defense
+  // change during a hit. The reaction applies exposed before ActionPlan and
+  // damage_proposed, so the next damage calculation sees the new status.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.strike.tags = ["attack", "stage2j_pre_hit_defense_break"];
+  bundle.activeSkills.strike.targetQuery = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    take: 1,
+  };
+  const eventTarget = { scope: "event_targets", filters: [{ type: "alive" }], take: 1 };
+  bundle.activeSkills.strike.effects = [
+    { type: "gain_barrier", target: eventTarget, amount: { type: "constant", value: 2 }, duration: "round" },
+    { type: "gain_block", target: eventTarget, amount: { type: "constant", value: 1 } },
+    { type: "reduce_defenses", target: eventTarget, barrierBps: 5_000, clearBlock: true },
+    {
+      type: "deal_damage",
+      target: eventTarget,
+      amount: { type: "constant", value: 4 },
+      reach: "unrestricted",
+      tags: ["attack", "stage2j_pre_hit_defense_break"],
+    },
+  ];
+  const isSelfEventTarget = {
+    type: "target_exists",
+    query: {
+      scope: "self",
+      filters: [{ type: "is_event_primary_target" }, { type: "alive" }],
+      take: 1,
+    },
+  };
+  bundle.enemyReactiveSkills.husk_exposes_after_pre_hit_defense_reduction = {
+    id: "husk_exposes_after_pre_hit_defense_reduction",
+    displayName: "Husk Exposes After Pre-Hit Defense Reduction (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "husk_exposes_after_pre_hit_defense_reduction_rule",
+      listenTo: "defense_reduced",
+      timing: "after",
+      priority: 100,
+      predicates: [isSelfEventTarget],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyReactiveSkills.husk_later_pre_hit_defense_reaction = {
+    id: "husk_later_pre_hit_defense_reaction",
+    displayName: "Later Pre-Hit Defense Reaction (fixture)",
+    tags: ["reaction", "fixture"],
+    rule: {
+      id: "husk_later_pre_hit_defense_reaction_rule",
+      listenTo: "defense_reduced",
+      timing: "after",
+      priority: 1_000,
+      predicates: [isSelfEventTarget],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  bundle.enemyActors.husk.reactiveSkillIds.push(
+    "husk_exposes_after_pre_hit_defense_reduction",
+    "husk_later_pre_hit_defense_reaction",
+  );
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "pre_hit_defense_break_boundary";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [structuredClone(CORE_BATTLE.allies[0])];
+  battle.allies[0].tactics = [{ activeSkillId: "strike", useWhen: [] }];
+  battle.allies[0].reactiveSkillIds = [];
+  battle.allies[0].equipment = [];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_center", hp: 10 }];
+
+  const result = simulateBattle(battle, bundle);
+  const reduced = of(result, "defense_reduced").find(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk"
+      && event.values.cause === "effect",
+  );
+  const exposed = of(result, "status_added").find(
+    (event) => event.ruleId === "husk_exposes_after_pre_hit_defense_reduction_rule",
+  );
+  const laterSameWindowReaction = of(result, "status_added").find(
+    (event) => event.ruleId === "husk_later_pre_hit_defense_reaction_rule"
+      && event.parentEventId === reduced?.id,
+  );
+  const proposed = of(result, "damage_proposed").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const exposureAdjustment = of(result, "pending_amount_modified").find(
+    (event) => event.values.proposalEventId === proposed?.id,
+  );
+  const hit = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk",
+  );
+  check(reduced && exposed && proposed && exposureAdjustment && hit,
+    "pre-hit defense reduction, its reaction, and the following hit all resolve");
+  check(!laterSameWindowReaction, "the first eligible reactive in the shared defense-break window wins");
+  equal(reduced.values.barrierBefore, 2);
+  equal(reduced.values.barrierAfter, 1);
+  equal(reduced.values.barrierRemoved, 1);
+  equal(reduced.values.blockBefore, 1);
+  equal(reduced.values.blockAfter, 0);
+  equal(reduced.values.blockRemoved, 1);
+  check(reduced.sequence < exposed.sequence && exposed.sequence < proposed.sequence,
+    "the shared defense-break reaction finishes before the next damage proposal");
+  equal(proposed.values.amount, 4, "the frozen base amount remains visible");
+  equal(exposureAdjustment.values.before, 4);
+  equal(exposureAdjustment.values.after, 5,
+    "the pre-hit reaction's exposed status increases the following damage calculation");
+  equal(hit.values.proposed, 5);
+  equal(hit.values.barrierAbsorbed, 1);
+}
+
+{
   // A broken barrier's after reaction finishes the hit, counter and status
-  // application before the next frozen hit begins.
+  // application before the next frozen hit begins. It listens to the same
+  // defense-reduction event as the pre-hit fixture above.
   const bundle = structuredClone(FIXTURE_CONTENT);
   bundle.activeSkills.strike.tags = ["attack", "stage2g_fixture"];
   bundle.activeSkills.strike.targetQuery = {
@@ -1105,7 +1223,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   bundle.enemyActors.husk.intrinsicRules.push(
     {
       id: "husk_exposes_after_barrier_break",
-      listenTo: "barrier_broken",
+      listenTo: "defense_reduced",
       timing: "after",
       priority: 100,
       predicates: [isSelfEventTarget],
@@ -1137,6 +1255,9 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const barrierBroken = of(result, "barrier_broken").find(
     (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk",
   );
+  const defenseReduced = of(result, "defense_reduced").find(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk",
+  );
   const hits = of(result, "damage_proposed").filter(
     (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
   );
@@ -1156,7 +1277,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const counterAfterReaction = of(result, "status_added").find(
     (event) => event.ruleId === "warden_marks_counter_after_reaction",
   );
-  check(barrierBroken && barrierReactionHit && exposedAfterBreak && counterAfterReaction,
+  check(barrierBroken && defenseReduced && barrierReactionHit && exposedAfterBreak && counterAfterReaction,
     "a broken defense opens its after-reaction before the next hit");
   equal(hits.length, 2, "both preplanned hit proposals resolve");
   equal(damageTaken.length, 2, "both hits finish their defense and HP result");
@@ -1166,7 +1287,8 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(laterHitAdjustment.values.before, 4);
   equal(laterHitAdjustment.values.after, 5);
   check(barrierBroken.sequence < damageTaken[0].sequence
-    && damageTaken[0].sequence < barrierReactionHit.sequence
+    && damageTaken[0].sequence < defenseReduced.sequence
+    && defenseReduced.sequence < barrierReactionHit.sequence
     && barrierReactionHit.sequence < exposedAfterBreak.sequence
     && exposedAfterBreak.sequence < counterAfterReaction.sequence
     && exposedAfterBreak.sequence < hits[1].sequence,

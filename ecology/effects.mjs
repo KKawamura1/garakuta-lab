@@ -158,6 +158,7 @@ export function applyEffect(rt, ctx, effect) {
     case "deal_damage": return dealDamage(rt, ctx, effect);
     case "heal": return applyHealing(rt, ctx, effect);
     case "gain_barrier": return gainBarrier(rt, ctx, effect);
+    case "reduce_defenses": return reduceDefenses(rt, ctx, effect);
     case "gain_block": return gainBlock(rt, ctx, effect);
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
@@ -392,6 +393,66 @@ function gainBlock(rt, ctx, effect) {
       values: { amount: proposed, before, after: target.block },
     });
   }
+}
+
+// §6a — reduce defenses before the following damage/effect calculation.
+// This is not damage: it creates neither a hit nor barrier absorption. Each
+// target is reduced and its shared defense-break reaction is settled before
+// the next target or effect starts.
+function reduceDefenses(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    if (!target.alive) continue;
+    const barrierBefore = totalBarrier(target);
+    const blockBefore = target.block ?? 0;
+    const requestedBarrierReduction = Math.floor(
+      (barrierBefore * (effect.barrierBps ?? 0)) / BPS,
+    );
+    const barrierRemoved = reduceBarrierPackets(target, requestedBarrierReduction);
+    if (effect.clearBlock === true) target.block = 0;
+    const blockAfter = target.block ?? 0;
+    const blockRemoved = Math.max(0, blockBefore - blockAfter);
+    const barrierAfter = totalBarrier(target);
+    if (barrierRemoved === 0 && blockRemoved === 0) continue;
+
+    emitDefenseReduced(rt, ctx, target, {
+      cause: "effect",
+      barrierBefore,
+      barrierAfter,
+      barrierRemoved,
+      blockBefore,
+      blockAfter,
+      blockRemoved,
+    });
+    rt.settleAfterReactions();
+  }
+}
+
+function reduceBarrierPackets(target, amount) {
+  let remaining = amount;
+  const packets = [...target.barriers].sort((a, b) => {
+    const byDuration = DURATION_RANK[a.duration] - DURATION_RANK[b.duration];
+    if (byDuration !== 0) return byDuration;
+    return a.createdSequence - b.createdSequence;
+  });
+  for (const packet of packets) {
+    if (remaining <= 0) break;
+    const removed = Math.min(remaining, packet.amount);
+    packet.amount -= removed;
+    remaining -= removed;
+    if (packet.amount === 0) target.barriers = target.barriers.filter((entry) => entry !== packet);
+  }
+  return amount - remaining;
+}
+
+function emitDefenseReduced(rt, ctx, target, values, parentEventId) {
+  rt.emit({
+    type: "defense_reduced",
+    ...sourceFields(ctx),
+    parentEventId,
+    targetActorIds: [target.instanceId],
+    tags: [],
+    values,
+  });
 }
 
 // §12.1 / R6 §6.7 — damage.
@@ -735,6 +796,8 @@ function dealOneInstance(
     return;
   }
   const amount = frame.amount;
+  const barrierBefore = totalBarrier(finalTarget);
+  const blockBefore = finalTarget.block ?? 0;
 
   // block — 一 charge で instance を丸ごと止める。
   // **多段は charge を1つずつ剥がすので、単発より通しやすい。**
@@ -757,6 +820,17 @@ function dealOneInstance(
       tags: [],
       values: { amount: 1, before, after: finalTarget.block },
     });
+    emitDefenseReduced(rt, ctx, finalTarget, {
+      cause: "damage",
+      barrierBefore,
+      barrierAfter: barrierBefore,
+      barrierRemoved: 0,
+      blockBefore: before,
+      blockAfter: finalTarget.block,
+      blockRemoved: before - finalTarget.block,
+      hitIndex,
+      hitCount,
+    }, event.id);
     return;
   }
 
@@ -846,6 +920,24 @@ function dealOneInstance(
       tags,
       values: { amount: excess, proposed: amount, afterGuard: guarded, barrierAbsorbed: absorbed, hpBefore },
     });
+  }
+  const barrierAfter = totalBarrier(finalTarget);
+  const blockAfter = finalTarget.block ?? 0;
+  const barrierRemoved = Math.max(0, barrierBefore - barrierAfter);
+  const blockRemoved = Math.max(0, blockBefore - blockAfter);
+  const defenseBreak = blockRemoved > 0 || (barrierBefore > 0 && barrierAfter === 0);
+  if (defenseBreak) {
+    emitDefenseReduced(rt, ctx, finalTarget, {
+      cause: "damage",
+      barrierBefore,
+      barrierAfter,
+      barrierRemoved,
+      blockBefore,
+      blockAfter,
+      blockRemoved,
+      hitIndex,
+      hitCount,
+    }, event.id);
   }
 }
 
