@@ -47,14 +47,14 @@ function hasExecutablePayload(definition) {
 }
 
 export function weaponSkillRuntimeId(nodeKey) {
-  const runtimeId = RUNTIME_ID_BY_NODE_KEY[nodeKey];
+  const runtimeId = Object.hasOwn(RUNTIME_ID_BY_NODE_KEY, nodeKey) ? RUNTIME_ID_BY_NODE_KEY[nodeKey] : null;
   if (!runtimeId) throw new RangeError(`unknown weapon skill node: ${String(nodeKey)}`);
   return runtimeId;
 }
 
 export function weaponSkillNodeKeyFromRuntimeId(runtimeId) {
   if (typeof runtimeId !== "string") return null;
-  return NODE_KEY_BY_RUNTIME_ID[runtimeId] ?? null;
+  return Object.hasOwn(NODE_KEY_BY_RUNTIME_ID, runtimeId) ? NODE_KEY_BY_RUNTIME_ID[runtimeId] : null;
 }
 
 export function makeWeaponSkillRuntimeRegistry(definitions = {}) {
@@ -64,7 +64,7 @@ export function makeWeaponSkillRuntimeRegistry(definitions = {}) {
 
   const entries = {};
   for (const [nodeKey, definition] of Object.entries(definitions)) {
-    const node = WEAPON_SKILL_NODES[nodeKey];
+    const node = Object.hasOwn(WEAPON_SKILL_NODES, nodeKey) ? WEAPON_SKILL_NODES[nodeKey] : null;
     if (!node) throw new TypeError(`unknown weapon skill node: ${nodeKey}`);
     if (!isRecord(definition)) {
       throw new TypeError(`runtime definition for ${nodeKey} must be an object.`);
@@ -110,7 +110,7 @@ export function validateWeaponSkillRuntimeRegistry(registry) {
   const claimedRuntimeIds = new Set();
   for (const [nodeKey, entry] of Object.entries(registry.entries)) {
     const path = `entries.${nodeKey}`;
-    const node = WEAPON_SKILL_NODES[nodeKey];
+    const node = Object.hasOwn(WEAPON_SKILL_NODES, nodeKey) ? WEAPON_SKILL_NODES[nodeKey] : null;
     if (!node) {
       addError(errors, "unknown_runtime_node", path, "node key is not in the weapon catalog.");
       continue;
