@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.20",
+ "contentVersion": "ecology-playable-full-0.21",
  "content": {
   "schemaVersion": "ecology-content-7",
-  "contentVersion": "ecology-playable-full-0.20",
+  "contentVersion": "ecology-playable-full-0.21",
   "characters": {
    "warden": {
     "id": "warden",
@@ -14412,6 +14412,92 @@
      "guard"
     ]
    },
+   "lured": {
+    "id": "lured",
+    "displayName": "誘引",
+    "polarity": "positive",
+    "maxStacks": 5,
+    "duration": "battle",
+    "rules": [
+     {
+      "id": "lured_redirect_rule",
+      "listenTo": "target_selected",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "not_self"
+          },
+          {
+           "type": "alive"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "singleTarget",
+        "op": "eq",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "redirect_pending_target",
+        "target": {
+         "scope": "self",
+         "take": 1
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "lured",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "guard"
+    ]
+   },
    "bleeding": {
     "id": "bleeding",
     "displayName": "裂傷",
@@ -15965,6 +16051,7 @@
   "focused": "集中",
   "staggered": "怯み",
   "warded": "守勢",
+  "lured": "誘引",
   "bleeding": "裂傷",
   "ultimate_spent": "必殺",
   "husk": "灰殻兵",

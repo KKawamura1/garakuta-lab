@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { CORE_BATTLE } from "./fixtures.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
+import { enemyActionIdFor } from "./content/enemy-skill-ids.mjs";
+import { STATUSES } from "./content/statuses.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import {
   compileWeaponSkillRuntimeContent,
@@ -98,12 +100,15 @@ const ENEMY_AREA_ATTACK = {
 
 function contentFor({
   extraActiveSkills = {},
-  enemyTacticSkillId = "strike",
+  extraEnemyActiveSkills = {},
+  enemyTacticSkillId = "foe_action_strike",
 } = {}) {
   const projected = compileWeaponSkillRuntimeContent(FIXTURE_CONTENT, registry);
   const content = {
     ...projected,
     activeSkills: Object.freeze({ ...projected.activeSkills, ...extraActiveSkills }),
+    enemyActiveSkills: Object.freeze({ ...projected.enemyActiveSkills, ...extraEnemyActiveSkills }),
+    statuses: Object.freeze({ ...projected.statuses, lured: STATUSES.lured }),
     enemyActors: Object.freeze({
       ...projected.enemyActors,
       husk: {
@@ -180,6 +185,7 @@ assert.equal(bonus[0].values.after, 35);
 
 function simulateShieldGuard(enemyAttack) {
   const skill = enemyAttack;
+  const enemySkillId = enemyActionIdFor(skill.id);
   const input = baseBattle("stage5d_nagi_tower_guard_" + skill.id, [
     {
       instanceId: "a_nagi_stage5d_guard",
@@ -205,8 +211,8 @@ function simulateShieldGuard(enemyAttack) {
     },
   ]);
   const content = contentFor({
-    extraActiveSkills: { [skill.id]: skill },
-    enemyTacticSkillId: skill.id,
+    extraEnemyActiveSkills: { [enemySkillId]: { ...skill, id: enemySkillId } },
+    enemyTacticSkillId: enemySkillId,
   });
   return simulateBattle(input, content);
 }
@@ -230,7 +236,7 @@ assert.ok(redirected, "lure redirects a single-target enemy action during target
 assert.equal(redirected.values.from, "a_front_stage5d_guard");
 assert.equal(redirected.values.to, "a_nagi_stage5d_guard");
 const incomingHits = singleTargetResult.events.filter((event) =>
-  event.type === "damage_proposed" && event.skillId === ENEMY_SINGLE_ATTACK.id);
+  event.type === "damage_proposed" && event.skillId === enemyActionIdFor(ENEMY_SINGLE_ATTACK.id));
 assert.deepEqual(incomingHits.map((event) => event.values.hitIndex), [0, 1]);
 assert.deepEqual(incomingHits.map((event) => event.targetActorIds[0]), [
   "a_nagi_stage5d_guard",
@@ -244,14 +250,14 @@ assert.equal(spentLure.values.remaining, 1);
 
 const areaResult = simulateShieldGuard(ENEMY_AREA_ATTACK);
 const areaSelection = areaResult.events.find((event) =>
-  event.type === "target_selected" && event.skillId === ENEMY_AREA_ATTACK.id);
+  event.type === "target_selected" && event.skillId === enemyActionIdFor(ENEMY_AREA_ATTACK.id));
 assert.equal(areaSelection.values.singleTarget, false);
 assert.equal(areaSelection.values.targetCount, 2);
 assert.equal(areaResult.events.filter((event) =>
   event.type === "target_changed" && event.sourceDefinitionId === "lured").length, 0,
 "lure does not redirect an area attack even if its selected recipients include an ally");
 const areaHits = areaResult.events.filter((event) =>
-  event.type === "damage_proposed" && event.skillId === ENEMY_AREA_ATTACK.id);
+  event.type === "damage_proposed" && event.skillId === enemyActionIdFor(ENEMY_AREA_ATTACK.id));
 assert.deepEqual(areaHits.map((event) => event.targetActorIds[0]), [
   "a_front_stage5d_guard",
   "a_nagi_stage5d_guard",
