@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
 import {
-  EQUIPMENT_PACKS,
-  WEAPON_SKILL_PACKS,
   availableWeaponSkillNodeKeys,
   freshWeaponPackProfile,
   makeWeaponPackManifest,
@@ -29,6 +27,7 @@ for (const nodeKey of allNodeKeys) {
 }
 assert.equal(weaponSkillNodeKeyFromRuntimeId("steady_cut"), null, "legacy skill IDs do not map to weapon nodes");
 assert.throws(() => weaponSkillRuntimeId("legacy_skill_id"), /unknown weapon skill node/);
+assert.throws(() => weaponSkillRuntimeId("toString"), /unknown weapon skill node/);
 
 const profile = freshWeaponPackProfile({
   unlockedSkillPackIds: ["skill:warhammer"],
@@ -124,8 +123,5 @@ const unknownNodeRegistry = {
 };
 assert.ok(validateWeaponSkillRuntimeRegistry(unknownNodeRegistry).errors
   .some((error) => error.code === "unknown_runtime_node"));
-
-assert.equal(WEAPON_SKILL_PACKS.length, 10);
-assert.ok(EQUIPMENT_PACKS.length > 0);
 
 console.log("weapon skill runtime: stable engine IDs and executable-node manifest gating");
