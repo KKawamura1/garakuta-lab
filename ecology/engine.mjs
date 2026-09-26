@@ -240,6 +240,7 @@ function makeRuntime(state) {
   return {
     state,
     emit: (spec, pendingFrame = null) => emit(state, spec, pendingFrame),
+    settleAfterReactions: () => drainAfterQueue(state),
     onResourceGained: (actor) => requeueOnResourceGain(state, actor),
   };
 }
@@ -317,9 +318,15 @@ function runChain(state, rootType, body, { checkOutcomeAfter = true } = {}) {
 }
 
 function drainAfterQueue(state) {
-  while (state.chain.afterQueue.length > 0) {
-    const eventId = state.chain.afterQueue.shift();
-    dispatchRules(state, state.eventsById.get(eventId), "after", null);
+  if (!state.chain || state.chain.drainingAfterQueue) return;
+  state.chain.drainingAfterQueue = true;
+  try {
+    while (state.chain.afterQueue.length > 0) {
+      const eventId = state.chain.afterQueue.shift();
+      dispatchRules(state, state.eventsById.get(eventId), "after", null);
+    }
+  } finally {
+    if (state.chain) state.chain.drainingAfterQueue = false;
   }
 }
 
