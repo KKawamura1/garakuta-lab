@@ -741,6 +741,13 @@ function addActionDamage(rt, ctx) {
   window.frame.actionDamageExpansion = ctx.preparedActionDamage;
 }
 
+function gridDistance(from, to) {
+  const rowDistance = POSITION_ROW[from.position] === POSITION_ROW[to.position] ? 0 : 1;
+  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[from.position]);
+  const toColumn = COLUMNS.indexOf(POSITION_COLUMN[to.position]);
+  return rowDistance + Math.abs(fromColumn - toColumn);
+}
+
 function dealOneInstance(
   rt,
   ctx,
@@ -771,6 +778,7 @@ function dealOneInstance(
         amount: proposed,
         hitIndex,
         hitCount,
+        ...(ctx.owner ? { distance: gridDistance(ctx.owner, target) } : {}),
         ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
       },
     },
