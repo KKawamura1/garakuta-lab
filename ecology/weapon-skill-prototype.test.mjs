@@ -3,6 +3,7 @@ import { WEAPON_SKILL_SPECIFICATIONS } from "./content/weapon-specifications.mjs
 import {
   WEAPON_SKILL_PROTOTYPE_WEAPONS,
   buildWeaponSkillPrototypeTree,
+  createWeaponSkillLoadoutPrototypeFixture,
   getWeaponSkillPrototypeNode,
   listWeaponSkillPrototypeNodes,
 } from "./weapon-skill-prototype.mjs";
@@ -35,4 +36,11 @@ for (const weapon of WEAPON_SKILL_PROTOTYPE_WEAPONS) {
 
 assert.equal(allKeys.size, 190);
 assert.equal(getWeaponSkillPrototypeNode("unknown:node"), null);
+
+const loadoutFixture = createWeaponSkillLoadoutPrototypeFixture("warhammer");
+const characterId = loadoutFixture.characterId;
+assert.equal(loadoutFixture.loadout.primarySkillByCharacter[characterId], "warhammer:R");
+assert.deepEqual(loadoutFixture.loadout.reactivePriorityByCharacter[characterId], ["warhammer:A2", "warhammer:AB1"]);
+assert.deepEqual(loadoutFixture.loadout.targetPriorityByCharacter[characterId], ["warhammer:B1"]);
+assert.equal("passiveByCharacter" in loadoutFixture.loadout, false, "passives do not have a per-skill equipment list");
 console.log("weapon skill prototype: all catalogue nodes remain view-only until runtime support exists");
