@@ -208,11 +208,14 @@ function renderDetail() {
   const node = getWeaponSkillPrototypeNode(state.selectedKey);
   if (!node) { detail.innerHTML = ""; syncPinnedDetailSpace(); return; }
   const pointsToAcquire = getWeaponSkillPrototypePointsToAcquire(node.key);
-  const pointHeading = pointsToAcquire === 0 ? "初期取得済み" : "取得まであと";
+  const pointDescription = pointsToAcquire === 0
+    ? "初期取得済み（0SP）"
+    : `R・A1を初期取得済みの状態から、取得まであと${pointsToAcquire}SP`;
   detail.innerHTML = `<aside class="weapon-skill-sheet locked" aria-live="polite">
-    <header class="weapon-sheet-head">${kindIcon(node.kind)}<span class="weapon-sheet-title"><b>${escapeHtml(node.displayName)}</b></span><span class="weapon-sheet-state">本編未実装</span>
+    <header class="weapon-sheet-head">${kindIcon(node.kind)}<span class="weapon-sheet-title"><b>${escapeHtml(node.displayName)}</b></span>
+      <div class="weapon-sheet-action"><span class="weapon-node-state skill-point-cost" role="status" aria-label="${escapeHtml(pointDescription)}" title="${escapeHtml(pointDescription)}">${pointsToAcquire}SP</span></div>
       <button type="button" class="weapon-sheet-close" data-clear-selection aria-label="選択を閉じる" title="閉じる">×</button></header>
-    <div class="weapon-sheet-body"><p class="weapon-detail-cost">${pointHeading} <b>${pointsToAcquire}SP</b><small>（R・A1を初期取得済みの状態から）</small></p><p class="weapon-detail-effect">${escapeHtml(node.displayEffect)}</p></div></aside>`;
+    <div class="weapon-sheet-body"><p class="weapon-detail-effect">${escapeHtml(node.displayEffect)}</p></div></aside>`;
   syncPinnedDetailSpace();
 }
 
