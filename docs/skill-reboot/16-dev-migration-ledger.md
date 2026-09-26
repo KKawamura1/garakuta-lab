@@ -1,7 +1,7 @@
-# dev移行台帳 — Stage 0〜4
+# dev移行台帳 — Stage 0〜4（Stage 5開始前）
 
 更新日: 2026-09-26  
-状態: **Stage 0〜3完了。Stage 4（fixture-first UI）を実装中。** Stage 0の190節同期と初期20導出、Stage 1の敵registry分離、Stage 2の共通解決順・ActionPlan（#299〜#304）、Stage 3のloadout・progression・pack・save契約（#306〜#311）はdevで完了。現行runtime・画面への切替と残り170節の実装は後続段階。
+状態: **Stage 0〜4完了。Stage 5（本編runtime切替）は未着手。** Stage 0の190節同期と初期20導出、Stage 1の敵registry分離、Stage 2の共通解決順・ActionPlan（#299〜#304）、Stage 3のloadout・progression・pack・save契約（#306〜#311）、Stage 4のfixture-first UI（#312 → #313 → #316 → #317 → #318）はdevへ統合済み。Stage 4の最後のPR #318は2026-09-26にマージされた。現行runtime・保存・画面への切替と残り170節の実装は未完了。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -124,3 +124,10 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 - [x] **4d — 技能説明と戦闘予測の表示面。** 190節の効果は技能画面で確認でき、予測画面は勝敗・ラウンド・味方／敵HP損失の読み値枠を用意する。新engine未接続の間はすべてnullのままとし、試映操作を無効化する。
 
 4a〜4dのプレビューは `/ecology/weapon-skill-prototype.html`。現行 `/ecology/` の起動経路を変えず、game stateも書き換えない。構成・予約デモはページ内だけで動き、予測結果は同じengine経路に接続するまで表示しない。各画面変更PRでモバイルbranch preview確認を記録する。
+
+
+## 次工程: Stage 5 — 本編runtime切替
+
+Stage 4の #312 → #313 → #316 → #317 → #318 はすべてdevへ統合済み。これらはfixture-firstの独立UIであり、取得・保存・戦闘には未接続である。Stage 5では、Stage 3で用意した新save / progression / loadout / pack契約とStage 4の表示を本編の同一戦闘経路へ接続する。
+
+切替の範囲、初期20節の固定、実装PRの順序、旧player runtimeを撤去する条件は [Stage 5切替計画](17-stage5-runtime-cutover.md) に記録する。最初の実装PRは、実装済み技能だけを取得・装備・戦闘入力へ通すruntime registry境界と検査から始める。初期20節すべての実挙動を同じsimulation / preview / replay経路で検証できるまで、現在の本編runtimeを切り替えない。
