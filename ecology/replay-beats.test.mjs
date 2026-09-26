@@ -32,6 +32,7 @@ const enemyAction = filterReplayEvents([
   event("damage_proposed", { skillId: "strike", values: { amount: 4 } }),
   event("barrier_damaged", { skillId: "strike", values: { amount: 4 } }),
   event("barrier_broken", { skillId: "strike" }),
+  event("defense_reduced", { skillId: "strike", values: { barrierRemoved: 4, blockRemoved: 0 } }),
   event("damage_absorbed", {
     skillId: "strike",
     values: { amount: 4, finalDamage: 0, fullyAbsorbed: true },
@@ -44,6 +45,18 @@ const impact = beats.find((beat) => beat.kind === "impact");
 assert.ok(declaration?.events.some((entry) => entry.type === "action_declared"), "enemy action declaration is a beat");
 assert.ok(impact?.events.some((entry) => entry.type === "damage_absorbed"), "zero-damage absorption is an impact event");
 assert.ok(impact?.events.some((entry) => entry.type === "barrier_damaged"), "barrier consumption stays with the impact");
+assert.ok(impact?.events.some((entry) => entry.type === "defense_reduced"), "defense reductions stay with the impact");
+
+const preHitDefenseBreak = buildBeats([
+  event("action_started", { skillId: "strike" }),
+  event("defense_reduced", { skillId: "strike", values: { barrierRemoved: 1, blockRemoved: 0 } }),
+  event("damage_taken", { skillId: "strike", values: { amount: 4 } }),
+]);
+assert.equal(preHitDefenseBreak.length, 1, "a pre-hit defense reduction stays with the following impact");
+assert.ok(
+  preHitDefenseBreak[0].events.some((entry) => entry.type === "damage_taken"),
+  "the following hit shares the defense-reduction impact beat",
+);
 
 const expandedAttack = buildBeats([
   event("action_started", { skillId: "strike" }),

@@ -89,6 +89,7 @@ const IMPACT_EFFECTS = new Set([
   "damage_absorbed",
   "barrier_damaged",
   "barrier_broken",
+  "defense_reduced",
   "healing_applied",
   "barrier_gained",
   "damage_blocked",

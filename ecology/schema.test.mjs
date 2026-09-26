@@ -97,6 +97,29 @@ expectRejected(
   "unknown effect",
 );
 
+expectValid(
+  content((bundle) => {
+    bundle.activeSkills.strike.effects = [{
+      type: "reduce_defenses",
+      target: { scope: "self", take: 1 },
+      barrierBps: 5_000,
+      clearBlock: true,
+    }];
+  }),
+  "defense reduction effect",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.activeSkills.strike.effects = [{
+      type: "reduce_defenses",
+      target: { scope: "self", take: 1 },
+    }];
+  }),
+  "no_defense_reduction",
+  "defense reduction without a requested reduction",
+);
+
 expectRejected(
   content((bundle) => {
     bundle.activeSkills.strike.intrinsicPredicates = [{ type: "vibes_are_good" }];

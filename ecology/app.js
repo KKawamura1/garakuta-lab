@@ -6541,6 +6541,9 @@ function eventText(event) {
     recovery_window_closed: target + "の回復可能な窓が閉じた",
     barrier_damaged: target + "の防壁が" + number + "吸収",
     barrier_broken: target + "の防壁が壊れた",
+    defense_reduced: target + "の防御が減少"
+      + (values.barrierRemoved > 0 ? "（防壁 -" + values.barrierRemoved + "）" : "")
+      + (values.blockRemoved > 0 ? "（受け構え -" + values.blockRemoved + "）" : ""),
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
@@ -6895,6 +6898,17 @@ function floatsFor(event) {
       return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause, amount: values.amount ?? 0 }));
     case "damage_absorbed":
       return targets.map((id) => ({ actorId: id, text: "◈-" + (values.amount ?? 0), tone: tone("barrier"), cause }));
+    case "defense_reduced": {
+      const reductions = [];
+      if (values.barrierRemoved > 0) reductions.push("防壁 -" + values.barrierRemoved);
+      if (values.blockRemoved > 0) reductions.push("受け構え -" + values.blockRemoved);
+      return targets.map((id) => ({
+        actorId: id,
+        text: reductions.join(" / ") || "防御↓",
+        tone: tone("blocked"),
+        cause,
+      }));
+    }
     case "damage_skipped":
       return targets.map((id) => ({ actorId: id, text: "不発", tone: "blocked", cause }));
     case "healing_applied": {

@@ -117,6 +117,9 @@ export const EVENT_TYPES = freeze([
   "damage_skipped",
   "barrier_damaged",
   "barrier_broken",
+  // §6a / §7b — one shared reaction hook after barrier/block is reduced,
+  // whether an effect did it before a hit or a hit did it while resolving.
+  "defense_reduced",
   "damage_taken",
   "recovery_window_closed",
   "excess_damage",
@@ -318,6 +321,7 @@ export const EFFECT_TYPES = freeze([
   "deal_damage",
   "heal",
   "gain_barrier",
+  "reduce_defenses",
   "gain_resource",
   "add_status",
   "remove_status",

@@ -528,6 +528,18 @@ function validateEffect(bag, path, effect, ctx) {
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.duration`, effect.duration, BARRIER_DURATIONS, "unknown_duration");
       break;
+    case "reduce_defenses":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      if (effect.barrierBps !== undefined) {
+        requireCount(bag, `${path}.barrierBps`, effect.barrierBps, { min: 0, max: 10_000 });
+      }
+      if (effect.clearBlock !== undefined && typeof effect.clearBlock !== "boolean") {
+        bag.add(`${path}.clearBlock`, "not_a_boolean", "expected a boolean");
+      }
+      if ((effect.barrierBps ?? 0) === 0 && effect.clearBlock !== true) {
+        bag.add(path, "no_defense_reduction", "barrierBps must be positive or clearBlock must be true");
+      }
+      break;
     // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
     case "gain_block":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);

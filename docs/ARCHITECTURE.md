@@ -248,6 +248,9 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 防壁で吸い切った攻撃は `damage_proposed` → `barrier_damaged` / `barrier_broken` →
 `damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
+`reduce_defenses` はdamageやhitを作らず、防壁を指定割合だけ、受け構えを全解除できます。防御が変わった対象ごとに
+`defense_reduced` を出してafter反応を次の対象・効果より先に処理します。damage中は受け構えが減るか防壁が0になった
+hitの結果確定後に同じeventで通知し、hit前（6a）とhit後（7b）の防御崩し技能が共通の反応窓を使います。
 `engine.mjs` は `action_declared` のinterruptと、その結果生じた `actor_moved` などのafter反応を処理し終えてから、技能の `targetQuery` を現隊列で解決します。現在のmelee射程では候補がなくても、同じqueryに射程外の生存対象があり、かつ `action_declared` に応答する位置交換ruleが述語・支払い条件を満たす行動に限って宣言を保留し、移動後にも対象がなければ `action_canceled` にします。移動後の候補は `target_selected` に渡します。そのinterruptと後反応を処理し終えた後で、最終対象・行動者の生存・AP支払いを再確認してから `action_started` を出します。したがってActionPlanが初撃前に作られる時点では、移動・対象反応後の状態と最終対象が使われます。
 `action_started` では、対象とAPを確定した後に攻撃開始時のinterruptを処理します。pending action frameは渡さないため、この窓から対象変更や行動取消しはできません。反応とその後反応が終わってから技能効果を開始し、反応で行動者が倒れた場合は支払い済みAPを戻さず `action_canceled` として本体の効果列を止めます。ActionPlanはこの窓の後、最初の直接ダメージ直前に作られます。
 単体の直接攻撃で行動者が生存している場合は、攻撃開始反応とその後反応の後に `action_targets_expanding` を記録します。この窓はpending action frameを受け取り、`add_action_damage` だけを許します。各人物の優先列では条件・RP・副対象を満たす最初の反応だけがRPを払い、後続候補は発火しません。副対象は最終的な主対象と重なる場合に除外されます。
@@ -262,7 +265,9 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 途中撃破や後続効果の状態変更で、計画済みhitの対象・威力を選び直しません。追加hitは最初の直接ダメージ効果の各基礎対象へ割り当て、
 対象が倒れた後の枠は `damage_skipped` に残します。pending damageへの
 interruptは各hitの提案中に処理し、そのhitのblock・guard・barrier・HP結果が完了した直後にafter反応を解決してから次の枠へ進みます。
-したがって `barrier_broken` や `damage_taken` の反応は次のhitより先に完了し、新しく得た状態は未処理hitだけへ効きます。
+最初の `deal_damage` より前にある `reduce_defenses` は対象ごとに先に実行され、`defense_reduced` のafter反応を
+解決してからActionPlanを作ります。hit中の受け構え減少・防壁破壊も同じeventで通知し、`barrier_broken` や `damage_taken` などの
+反応は結果確定後・次hitより前に完了します。新しく得た状態は未処理hitだけへ効きます。
 after queueは一度に一つだけdrainし、反応効果の中で別のdamageが発生しても、現在の反応規則が終わる前にqueueを再帰drainしません。
 行動の効果列と準備開始が発生させたafter queueは `action_resolved` より前にdrainし、同イベントに対するafter queueは最後にdrainします。
 試映も実戦と同じ `simulateBattle` を呼び、
