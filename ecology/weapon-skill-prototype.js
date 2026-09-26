@@ -148,13 +148,17 @@ function weaponListGuide(layout) {
 
 function nodeCard(node, mode, layout = null) {
   const selected = node.key === state.selectedKey;
+  const pointsToAcquire = getWeaponSkillPrototypePointsToAcquire(node.key);
+  const pointDescription = pointsToAcquire === 0
+    ? "初期取得済み、必要SP 0"
+    : `初期取得状態から取得まであと${pointsToAcquire} SP`;
   const placement = mode === "map" ? treeCoordinates(node.position) : { depth: layout?.depth ?? 0 };
   const style = mode === "map" ? ` style="grid-column:${placement.column};grid-row:${placement.row}"` : ` style="--weapon-depth:${placement.depth}"`;
   return `<div class="weapon-tree-cell ${mode}${selected ? " selected" : ""}" data-skill-key="${escapeHtml(node.key)}"${style}>${mode === "list" ? weaponListGuide(layout) : ""}
     <article class="weapon-skill-node role-${escapeHtml(node.kind)} locked${selected ? " selected" : ""}">
       <button class="weapon-node-main" type="button" data-skill-key="${escapeHtml(node.key)}" aria-pressed="${selected}">
         <span class="weapon-node-copy"><span class="weapon-node-name">${kindIcon(node.kind)}<b>${escapeHtml(node.displayName)}</b></span>${nodeSignals(node)}</span>
-      </button><span class="weapon-node-action"><span class="weapon-node-state locked skill-point-cost" aria-label="初期取得状態から取得まであと${getWeaponSkillPrototypePointsToAcquire(node.key)} SP" title="初期取得状態から取得まであと${getWeaponSkillPrototypePointsToAcquire(node.key)} SP">${getWeaponSkillPrototypePointsToAcquire(node.key)}SP</span></span>
+      </button><span class="weapon-node-action"><span class="weapon-node-state locked skill-point-cost" aria-label="${pointDescription}" title="${pointDescription}">${pointsToAcquire}SP</span></span>
     </article></div>`;
 }
 
@@ -194,13 +198,22 @@ function renderTree() {
   }
 }
 
+function syncPinnedDetailSpace() {
+  const sheet = detail.querySelector(".weapon-skill-sheet");
+  const height = sheet ? Math.ceil(sheet.getBoundingClientRect().height) : 0;
+  treeScreen.style.setProperty("--skill-detail-space", `${height}px`);
+}
+
 function renderDetail() {
   const node = getWeaponSkillPrototypeNode(state.selectedKey);
-  if (!node) { detail.innerHTML = ""; return; }
+  if (!node) { detail.innerHTML = ""; syncPinnedDetailSpace(); return; }
+  const pointsToAcquire = getWeaponSkillPrototypePointsToAcquire(node.key);
+  const pointHeading = pointsToAcquire === 0 ? "初期取得済み" : "取得まであと";
   detail.innerHTML = `<aside class="weapon-skill-sheet locked" aria-live="polite">
     <header class="weapon-sheet-head">${kindIcon(node.kind)}<span class="weapon-sheet-title"><b>${escapeHtml(node.displayName)}</b></span><span class="weapon-sheet-state">本編未実装</span>
       <button type="button" class="weapon-sheet-close" data-clear-selection aria-label="選択を閉じる" title="閉じる">×</button></header>
-    <div class="weapon-sheet-body"><p class="weapon-detail-cost">取得まであと <b>${getWeaponSkillPrototypePointsToAcquire(node.key)}SP</b><small>（R・A1を初期取得済みの状態から）</small></p><p class="weapon-detail-effect">${escapeHtml(node.displayEffect)}</p></div></aside>`;
+    <div class="weapon-sheet-body"><p class="weapon-detail-cost">${pointHeading} <b>${pointsToAcquire}SP</b><small>（R・A1を初期取得済みの状態から）</small></p><p class="weapon-detail-effect">${escapeHtml(node.displayEffect)}</p></div></aside>`;
+  syncPinnedDetailSpace();
 }
 
 function layoutWeaponSkillTreeConnectors() {
@@ -547,7 +560,10 @@ loadoutContent.addEventListener("click", (event) => {
   renderLoadout();
 });
 
-window.addEventListener("resize", layoutWeaponSkillTreeConnectors, { passive: true });
+window.addEventListener("resize", () => {
+  syncPinnedDetailSpace();
+  layoutWeaponSkillTreeConnectors();
+}, { passive: true });
 reservationContent.addEventListener("change", (event) => {
   if (event.target.id !== "reservation-target") return;
   state.reservationFixture = { ...state.reservationFixture, targetKey: event.target.value };
