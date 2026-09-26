@@ -360,14 +360,16 @@ function ruleEntriesFor(state, actor) {
   // **反応権を払わない**ので、costs は content 側で空にしてある
   // （validator は rule として同じ検査を通す）。
   for (const skillId of actor.passiveSkillIds ?? []) {
-    const rule = passiveSkills?.[skillId]?.rule;
-    if (!rule) continue;
-    entries.push({
-      rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "passive_skill",
-    });
+    const passive = passiveSkills?.[skillId];
+    const rules = passive?.rules ?? (passive?.rule ? [passive.rule] : []);
+    for (const rule of rules) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "passive_skill",
+      });
+    }
   }
   for (const item of actor.equipment) {
     // §5.6 — a broken or depleted item stops supplying rules for the rest of
