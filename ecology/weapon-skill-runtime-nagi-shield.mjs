@@ -1,9 +1,13 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
 
-const BARRIER_RECIPIENT = {
-  scope: "allies",
+const SELF = {
+  scope: "self",
   filters: [{ type: "alive" }],
-  sort: ["hp_percent_asc", "position_asc"],
+  take: 1,
+};
+const EVENT_TARGET = {
+  scope: "event_targets",
+  filters: [{ type: "alive" }],
   take: 1,
 };
 const SELF_IS_BARRIER_RECIPIENT = {
@@ -14,6 +18,33 @@ const SELF_IS_BARRIER_RECIPIENT = {
     take: 1,
   },
 };
+
+function drawGuard() {
+  const id = weaponSkillRuntimeId("tower_shield:R");
+  return {
+    id,
+    displayName: "守りを引く",
+    apCost: 1,
+    actionMode: "utility",
+    intrinsicPredicates: [],
+    targetQuery: SELF,
+    effects: [
+      {
+        type: "gain_barrier",
+        target: EVENT_TARGET,
+        amount: { type: "constant", value: 30 },
+        duration: "round",
+      },
+      {
+        type: "add_status",
+        target: EVENT_TARGET,
+        statusId: "lured",
+        stacks: 2,
+      },
+    ],
+    tags: ["support", "shield"],
+  };
+}
 
 function barrierBonus() {
   const id = weaponSkillRuntimeId("tower_shield:A1");
@@ -39,9 +70,11 @@ function barrierBonus() {
 }
 
 export const NAGI_TOWER_SHIELD_STARTER_WEAPON_SKILL_NODE_KEYS = Object.freeze([
+  "tower_shield:R",
   "tower_shield:A1",
 ]);
 
 export const NAGI_TOWER_SHIELD_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY = makeWeaponSkillRuntimeRegistry({
+  "tower_shield:R": drawGuard(),
   "tower_shield:A1": barrierBonus(),
 });

@@ -32,6 +32,7 @@ export const STATUS_NAMES = {
   focused: "集中",
   staggered: "怯み",
   warded: "守勢",
+  lured: "誘引",
   bleeding: "裂傷",
   ultimate_spent: "必殺",
 };
@@ -198,6 +199,49 @@ statuses.bleeding = {
   tags: ["playable", "debuff"],
 };
 
+// Stage 5d — 誘引は、味方へ向いた敵の単体攻撃を盾役へ移す。
+// target_selected のmutable action frameを書き換え、multi-hit action全体の対象を保つ。
+statuses.lured = {
+  id: "lured",
+  displayName: STATUS_NAMES.lured,
+  polarity: "positive",
+  maxStacks: 5,
+  duration: "battle",
+  rules: [{
+    id: "lured_redirect_rule",
+    listenTo: "target_selected",
+    timing: "interrupt",
+    priority: 45,
+    predicates: [
+      {
+        type: "target_exists",
+        query: { scope: "enemies", filters: [{ type: "is_event_source" }], take: 1 },
+      },
+      {
+        type: "target_exists",
+        query: {
+          scope: "allies",
+          filters: [
+            { type: "is_event_primary_target" },
+            { type: "not_self" },
+            { type: "alive" },
+          ],
+          take: 1,
+        },
+      },
+      { type: "event_tag", tag: "attack", value: true },
+      { type: "event_value", key: "singleTarget", op: "eq", value: true },
+    ],
+    costs: [],
+    effects: [
+      { type: "redirect_pending_target", target: SELF_TARGET },
+      { type: "remove_status", target: SELF_TARGET, statusId: "lured", stacks: 1 },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "guard"],
+};
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -229,6 +273,7 @@ const STATUS_SUMMARIES = {
   focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
   staggered: "その相手が**出す**ダメージが1段につき20%減る。多段の各hitへ効き、倒さずに攻撃を細くする。",
   warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
+  lured: "次に味方へ向かう敵の単体攻撃を自分へ引き受け、1段消費する。範囲攻撃と自分が元から対象の攻撃では消費しない。",
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
