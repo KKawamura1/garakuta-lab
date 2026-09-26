@@ -3,6 +3,11 @@ import {
   WEAPON_SKILL_KIND_LABELS,
   buildWeaponSkillPrototypeTree,
   createWeaponSkillLoadoutPrototypeFixture,
+  createWeaponSkillReservationPrototypeFixture,
+  cancelWeaponSkillPrototypeTarget,
+  getWeaponSkillPrototypePrerequisiteChain,
+  grantWeaponSkillPrototypePoint,
+  reserveWeaponSkillPrototypeTarget,
   getWeaponSkillPrototypeNode,
   weaponSkillPrototypeSignals,
 } from "./weapon-skill-prototype.mjs";
@@ -21,11 +26,14 @@ const state = {
   viewByWeapon: Object.fromEntries(WEAPON_SKILL_PROTOTYPE_WEAPONS.map((weapon) => [weapon.id, "map"])),
   mapScrollByWeapon: {},
   loadoutFixture: createWeaponSkillLoadoutPrototypeFixture(),
+  reservationFixture: createWeaponSkillReservationPrototypeFixture(),
 };
 const screenTabs = document.querySelector("#screen-tabs");
 const treeScreen = document.querySelector("#tree-screen");
 const loadoutScreen = document.querySelector("#loadout-screen");
 const loadoutContent = document.querySelector("#loadout-content");
+const reservationScreen = document.querySelector("#reservation-screen");
+const reservationContent = document.querySelector("#reservation-content");
 const weaponTabs = document.querySelector("#weapon-tabs");
 const treeControls = document.querySelector("#tree-controls");
 const tree = document.querySelector("#skill-tree");
@@ -306,6 +314,69 @@ function renderLoadout() {
   </div>`;
 }
 
+function renderReservation() {
+  const fixture = state.reservationFixture;
+  const characterId = fixture.characterId;
+  const availableNodes = buildWeaponSkillPrototypeTree(fixture.weaponId).flatMap((group) => group.nodes);
+  const unlocked = new Set(fixture.progression.unlockedSkillKeysByCharacter[characterId]);
+  const reservedKey = fixture.progression.skillReservationByCharacter[characterId];
+  const chain = getWeaponSkillPrototypePrerequisiteChain(fixture.targetKey);
+  const points = fixture.progression.skillPointsByCharacter[characterId];
+  const goalAlreadyInFixture = unlocked.has(fixture.targetKey);
+  const steps = chain.map((node, index) => {
+    const isInitial = fixture.startingSkillKeys.includes(node.key);
+    const isTarget = node.key === reservedKey || (reservedKey === null && node.key === fixture.targetKey);
+    const isDemoThrough = unlocked.has(node.key) && !isInitial;
+    const status = isInitial
+      ? "開始時の固定例"
+      : isDemoThrough ? "デモで通過" : isTarget ? "予約先の例" : "前提待ち";
+    const classes = ["reservation-step"];
+    if (isTarget) classes.push("is-target");
+    if (isInitial || isDemoThrough) classes.push("is-through");
+    return `<li class="${classes.join(" ")}">
+      ${kindIcon(node.kind)}
+      <span><b>${escapeHtml(node.displayName)}</b><small>本編未実装</small></span>
+      <span class="reservation-status">${escapeHtml(status)}</span>
+    </li>${index < chain.length - 1 ? '<li class="reservation-arrow" aria-hidden="true">↓</li>' : ""}`;
+  }).join("");
+  const targetOptions = availableNodes
+    .filter((node) => !fixture.startingSkillKeys.includes(node.key))
+    .map((node) => `<option value="${escapeHtml(node.key)}"${node.key === fixture.targetKey ? " selected" : ""}>${escapeHtml(node.displayName)} · 本編未実装</option>`)
+    .join("");
+  const reservedLabel = reservedKey ? getWeaponSkillPrototypeNode(reservedKey)?.displayName ?? "" : "未設定";
+  reservationContent.innerHTML = `<div class="reservation-page">
+    <section class="card">
+      <div class="loadout-title"><div><p class="eyebrow">RESERVATION</p><h2>予約と前提の流れ</h2></div><span class="demo-mark">固定デモ</span></div>
+      <p class="demo-explainer">以下はStage 3の進行契約を使う画面内デモです。固定の技能点イベントを加えても、本編の報酬・保存・使用可能技能は変わりません。</p>
+      <div class="reservation-summary">
+        <div class="reservation-stat"><span>残り技能点 · デモ</span><b>${points}</b></div>
+        <div class="reservation-stat"><span>一人一件の予約</span><b>${reservedKey ? escapeHtml(reservedLabel) : "未設定"}</b></div>
+      </div>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="reservation-target-title">
+      <h3 id="reservation-target-title">目標の例 · ゴウ / 戦槌</h3>
+      <p class="section-note">前提が足りない技能も目標にできる形</p>
+      <div class="reservation-controls">
+        <select id="reservation-target" class="reservation-select" aria-label="予約目標の表示例"${goalAlreadyInFixture ? " disabled" : ""}>${targetOptions}</select>
+      </div>
+      <div class="demo-actions">
+        <button class="demo-action primary" type="button" data-reservation-action="reserve"${goalAlreadyInFixture ? " disabled" : ""}>この目標を予約する</button>
+        <button class="demo-action" type="button" data-reservation-action="cancel"${reservedKey === null ? " disabled" : ""}>予約を取り消す</button>
+        <button class="demo-action" type="button" data-reservation-action="reward"${reservedKey === null ? " disabled" : ""}>固定イベント例 · +1技能点</button>
+        <button class="demo-action" type="button" data-reservation-action="reset">デモを最初から</button>
+      </div>
+      <p class="reservation-hint">「固定イベント例」は戦闘報酬ではありません。前提から順に進む様子だけを表示します。</p>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="prerequisite-title">
+      <h3 id="prerequisite-title">前提ルート</h3>
+      <p class="section-note">必要な技能を根から表示</p>
+      <ol class="reservation-chain">${steps}</ol>
+    </section>
+  </div>`;
+}
+
 function renderScreenNavigation() {
   for (const tab of screenTabs.querySelectorAll("[data-screen]")) {
     const selected = tab.dataset.screen === state.screen;
@@ -314,6 +385,7 @@ function renderScreenNavigation() {
   }
   treeScreen.hidden = state.screen !== "tree";
   loadoutScreen.hidden = state.screen !== "loadout";
+  reservationScreen.hidden = state.screen !== "reservation";
 }
 
 function render() {
@@ -322,8 +394,10 @@ function render() {
     renderWeaponTabs();
     renderTreeControls();
     renderTree();
-  } else {
+  } else if (state.screen === "loadout") {
     renderLoadout();
+  } else {
+    renderReservation();
   }
 }
 
@@ -414,4 +488,26 @@ loadoutContent.addEventListener("click", (event) => {
 });
 
 window.addEventListener("resize", layoutWeaponSkillTreeConnectors, { passive: true });
+reservationContent.addEventListener("change", (event) => {
+  if (event.target.id !== "reservation-target") return;
+  state.reservationFixture = { ...state.reservationFixture, targetKey: event.target.value };
+  renderReservation();
+});
+
+reservationContent.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-reservation-action]");
+  if (!button || button.disabled) return;
+  const fixture = state.reservationFixture;
+  const action = button.dataset.reservationAction;
+  let result;
+  if (action === "reserve") result = reserveWeaponSkillPrototypeTarget(fixture, fixture.targetKey);
+  if (action === "cancel") result = cancelWeaponSkillPrototypeTarget(fixture);
+  if (action === "reward") result = grantWeaponSkillPrototypePoint(fixture);
+  if (action === "reset") result = { ok: true, fixture: createWeaponSkillReservationPrototypeFixture() };
+  if (!result?.ok) return;
+  state.reservationFixture = result.fixture;
+  renderReservation();
+});
+
+
 render();
