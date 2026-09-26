@@ -38,7 +38,7 @@ Stage 5の目的は、新しい武器技能を本編の取得・編成・戦闘�
 
 各PRはdevへ積み、コード変更のPRには実際に追加した利用者向け挙動と、対応するリスクの検証だけを含める。
 
-1. **Stage 5a — runtime registry境界。** node keyとengine skill IDの変換、executable nodeの登録、未実装節をManifest取得対象から除く経路を用意する。初期20以外を実行可能と見なさない検査を加える。
+1. **Stage 5a — runtime registry境界。** node keyとengine skill IDの変換、executable nodeの登録、Manifestで解禁されたpackから取得可能nodeを導き、実装済みregistryとの交差だけを取得可能にする。初期20以外を実行可能と見なさない検査を加える。
 2. **Stage 5b〜5f — 初期20の定義。** 人物の組ごとにR / A1を実装し、各技能の発火条件・対象・費用・効果とイベント列を確かめる。1つのPRで全190節を移植しない。
 3. **Stage 5g — 新stateからBattleInputを構築。** run・formation・装備・Manifest・取得済み技能・loadoutを検証し、同じengine bundleへ接続する。予測と本番で入力と結果が一致する境界を固定する。
 4. **Stage 5h — 本編UI・保存接続。** Stage 4で整えた表示を実run stateへ接続し、初期技能、取得、予約、主軸、リアクティブ／ターゲット優先列を保存・再読込する。表示される操作は本編で有効な挙動と対応させる。
