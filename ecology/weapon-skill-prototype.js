@@ -2,9 +2,11 @@ import {
   WEAPON_SKILL_PROTOTYPE_WEAPONS,
   WEAPON_SKILL_KIND_LABELS,
   buildWeaponSkillPrototypeTree,
+  createWeaponSkillLoadoutPrototypeFixture,
   getWeaponSkillPrototypeNode,
   weaponSkillPrototypeSignals,
 } from "./weapon-skill-prototype.mjs";
+import { moveWeaponPrioritySkill, selectPrimaryWeaponSkill } from "./weapon-loadout.mjs";
 
 const POSITION_ORDER = [
   "R", "A1", "A2", "A3", "AA1", "AA2", "AA3", "AB1", "AB2", "AB3",
@@ -12,12 +14,18 @@ const POSITION_ORDER = [
 ];
 const KIND_GLYPHS = { active: "A", reactive: "R", target: "T", passive: "P" };
 const state = {
+  screen: "tree",
   weaponId: WEAPON_SKILL_PROTOTYPE_WEAPONS[0].id,
   selectedKey: `${WEAPON_SKILL_PROTOTYPE_WEAPONS[0].id}:R`,
   selectedByWeapon: Object.fromEntries(WEAPON_SKILL_PROTOTYPE_WEAPONS.map((weapon) => [weapon.id, `${weapon.id}:R`])),
   viewByWeapon: Object.fromEntries(WEAPON_SKILL_PROTOTYPE_WEAPONS.map((weapon) => [weapon.id, "map"])),
   mapScrollByWeapon: {},
+  loadoutFixture: createWeaponSkillLoadoutPrototypeFixture(),
 };
+const screenTabs = document.querySelector("#screen-tabs");
+const treeScreen = document.querySelector("#tree-screen");
+const loadoutScreen = document.querySelector("#loadout-screen");
+const loadoutContent = document.querySelector("#loadout-content");
 const weaponTabs = document.querySelector("#weapon-tabs");
 const treeControls = document.querySelector("#tree-controls");
 const tree = document.querySelector("#skill-tree");
@@ -240,10 +248,83 @@ function rememberMapScroll() {
   if (scroller) state.mapScrollByWeapon[state.weaponId] = scroller.scrollLeft;
 }
 
+function priorityList(kind, keys, nodesByKey) {
+  if (!keys.length) return '<p class="empty-loadout">この武器に表示例はありません。</p>';
+  return `<ol class="sample-skill-list" aria-label="${kind === "reactive" ? "リアクティブ" : "ターゲット"}優先順">${keys.map((key, index) => {
+    const node = nodesByKey.get(key);
+    return `<li class="sample-skill">
+      ${kindIcon(node.kind)}
+      <span><b>${escapeHtml(node.displayName)}</b><small>固定例</small></span>
+      <span class="priority-controls">
+        <button type="button" data-priority-kind="${kind}" data-index="${index}" data-direction="-1" aria-label="${escapeHtml(node.displayName)}を上へ"${index === 0 ? " disabled" : ""}>↑</button>
+        <button type="button" data-priority-kind="${kind}" data-index="${index}" data-direction="1" aria-label="${escapeHtml(node.displayName)}を下へ"${index === keys.length - 1 ? " disabled" : ""}>↓</button>
+      </span>
+    </li>`;
+  }).join("")}</ol>`;
+}
+
+function renderLoadout() {
+  const fixture = state.loadoutFixture;
+  const characterId = fixture.characterId;
+  const selectedPrimary = fixture.loadout.primarySkillByCharacter[characterId];
+  const nodesByKey = new Map([...fixture.primaryChoices, ...fixture.reactiveNodes, ...fixture.targetNodes, ...fixture.passiveNodes]
+    .map((node) => [node.key, node]));
+  const reactives = fixture.loadout.reactivePriorityByCharacter[characterId];
+  const targets = fixture.loadout.targetPriorityByCharacter[characterId];
+  loadoutContent.innerHTML = `<div class="loadout-page">
+    <section class="card">
+      <div class="loadout-title"><div><p class="eyebrow">LOADOUT</p><h2>構成の見え方</h2></div><span class="demo-mark">固定サンプル</span></div>
+      <p class="demo-explainer">実装済み技能や取得状態を示す画面ではありません。下の操作は表示順の確認だけに使います。</p>
+      <div class="loadout-person" style="margin-top:12px"><b>ゴウ · 戦槌</b><span>人物1名の表示例</span></div>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="primary-title">
+      <h3 id="primary-title">主軸 · 一つ</h3>
+      <p class="section-note">戦闘で使うactiveを一つ選ぶ形</p>
+      <select id="primary-skill-select" class="primary-select" aria-label="主軸の表示例">
+        ${fixture.primaryChoices.map((node) => `<option value="${escapeHtml(node.key)}"${node.key === selectedPrimary ? " selected" : ""}>${escapeHtml(node.displayName)} · 本編未実装</option>`).join("")}
+      </select>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="reactive-title">
+      <h3 id="reactive-title">リアクティブ · 先に成立した一つ</h3>
+      <p class="section-note">優先順のデモ。矢印でこのページ内の順を変更</p>
+      ${priorityList("reactive", reactives, nodesByKey)}
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="target-title">
+      <h3 id="target-title">ターゲット · 上から判定</h3>
+      <p class="section-note">対象選択規則の優先順を表示</p>
+      ${priorityList("target", targets, nodesByKey)}
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="passive-title">
+      <h3 id="passive-title">パッシブ · 個別の装着欄なし</h3>
+      <p class="section-note">分類の表示例。画面で個別にON/OFFする枠は置かない</p>
+      <div class="passive-list">${fixture.passiveNodes.map((node) => `<div class="passive-chip">${kindIcon(node.kind)}<b>${escapeHtml(node.displayName)}</b><small>本編未実装</small></div>`).join("")}</div>
+    </section>
+  </div>`;
+}
+
+function renderScreenNavigation() {
+  for (const tab of screenTabs.querySelectorAll("[data-screen]")) {
+    const selected = tab.dataset.screen === state.screen;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  }
+  treeScreen.hidden = state.screen !== "tree";
+  loadoutScreen.hidden = state.screen !== "loadout";
+}
+
 function render() {
-  renderWeaponTabs();
-  renderTreeControls();
-  renderTree();
+  renderScreenNavigation();
+  if (state.screen === "tree") {
+    renderWeaponTabs();
+    renderTreeControls();
+    renderTree();
+  } else {
+    renderLoadout();
+  }
 }
 
 weaponTabs.addEventListener("click", (event) => {
@@ -275,6 +356,61 @@ detail.addEventListener("click", (event) => {
   state.selectedKey = null;
   state.selectedByWeapon[state.weaponId] = null;
   refreshTreeSelection();
+});
+
+screenTabs.addEventListener("click", (event) => {
+  const tab = event.target.closest("button[data-screen]");
+  if (!tab) return;
+  rememberMapScroll();
+  state.screen = tab.dataset.screen;
+  render();
+});
+
+screenTabs.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  const tabs = [...screenTabs.querySelectorAll("button[data-screen]")];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const delta = event.key === "ArrowRight" ? 1 : -1;
+  const next = tabs[(current + delta + tabs.length) % tabs.length];
+  rememberMapScroll();
+  state.screen = next.dataset.screen;
+  render();
+  next.focus();
+});
+
+loadoutContent.addEventListener("change", (event) => {
+  if (event.target.id !== "primary-skill-select") return;
+  const fixture = state.loadoutFixture;
+  const selected = selectPrimaryWeaponSkill(
+    fixture.loadout,
+    fixture.characterId,
+    event.target.value,
+    fixture.unlockedSkillKeysByCharacter,
+  );
+  if (selected.ok) {
+    state.loadoutFixture = { ...fixture, loadout: selected.loadout };
+    renderLoadout();
+  }
+});
+
+loadoutContent.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-priority-kind]");
+  if (!button || button.disabled) return;
+  const fixture = state.loadoutFixture;
+  const index = Number(button.dataset.index);
+  const nextIndex = index + Number(button.dataset.direction);
+  const moved = moveWeaponPrioritySkill(
+    fixture.loadout,
+    fixture.characterId,
+    button.dataset.priorityKind,
+    index,
+    nextIndex,
+  );
+  if (!moved.ok) return;
+  state.loadoutFixture = { ...fixture, loadout: moved.loadout };
+  renderLoadout();
 });
 
 window.addEventListener("resize", layoutWeaponSkillTreeConnectors, { passive: true });

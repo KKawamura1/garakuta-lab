@@ -20,10 +20,16 @@
 
       <aside class="fixture-note" aria-label="プレビューについて">
         <span class="note-mark" aria-hidden="true">i</span>
-        <p><b>固定データの閲覧画面</b><br>カタログ190節の構造と説明を確認できます。技能の取得・戦闘・保存には接続していません。</p>
+        <p><b>固定データの閲覧画面</b><br>カタログ190節と画面配置を確認できます。取得・戦闘・保存には接続していません。構成例の変更はこのページ内だけで、再読み込みすると戻ります。</p>
       </aside>
 
-      <section class="picker card" aria-labelledby="picker-title">
+      <nav id="screen-tabs" class="screen-tabs" role="tablist" aria-label="武器技能UIの画面">
+        <button id="tab-tree" class="screen-tab" type="button" role="tab" aria-selected="true" aria-controls="tree-screen" data-screen="tree">ツリー</button>
+        <button id="tab-loadout" class="screen-tab" type="button" role="tab" aria-selected="false" aria-controls="loadout-screen" data-screen="loadout" tabindex="-1">構成</button>
+      </nav>
+
+      <section id="tree-screen" class="screen-view" role="tabpanel" aria-labelledby="tab-tree">
+        <section class="picker card" aria-labelledby="picker-title">
         <div class="picker-heading">
           <h2 id="picker-title">武器技能</h2>
           <span id="visible-count" class="count-badge" aria-live="polite"></span>
@@ -35,6 +41,11 @@
       <section id="skill-tree" class="skill-tree" aria-label="技能ツリー"></section>
 
       <section id="skill-detail" aria-label="選択した技能の説明" aria-live="polite"></section>
+      </section>
+
+      <section id="loadout-screen" class="screen-view" role="tabpanel" aria-labelledby="tab-loadout" hidden>
+        <div id="loadout-content"></div>
+      </section>
 
       <footer class="page-foot">カタログの表示用効果文を掲載しています。</footer>
     </main>

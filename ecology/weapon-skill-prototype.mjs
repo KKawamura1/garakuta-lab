@@ -1,6 +1,11 @@
 import { WEAPON_SKILL_SPECIFICATIONS } from "./content/weapon-specifications.mjs";
 import { weaponSkillNodeKey } from "./weapon-loadout.mjs";
 import { weaponSkillPrerequisiteKeys } from "./weapon-progression.mjs";
+import {
+  addWeaponPrioritySkill,
+  freshWeaponSkillLoadout,
+  selectPrimaryWeaponSkill,
+} from "./weapon-loadout.mjs";
 
 export const WEAPON_SKILL_PROTOTYPE_WEAPONS = Object.freeze([
   { id: "warhammer", label: "戦槌" },
@@ -70,6 +75,7 @@ export function weaponSkillPrototypeSignals(node) {
   });
 }
 
+
 const POSITIONS = Object.freeze({
   root: ["R"],
   A: ["A1", "A2", "A3"],
@@ -119,4 +125,42 @@ export function buildWeaponSkillPrototypeTree(weaponId) {
     throw new Error(`武器技能ツリーが19節ではありません: ${weaponId}`);
   }
   return groups;
+}
+
+export function createWeaponSkillLoadoutPrototypeFixture(weaponId = "warhammer") {
+  const nodes = listWeaponSkillPrototypeNodes(weaponId);
+  const byKind = (kind) => nodes.filter((node) => node.kind === kind);
+  const primaryChoices = byKind("active");
+  if (!primaryChoices.length) throw new Error(`主軸の例がありません: ${weaponId}`);
+  const characterId = "prototype-character";
+  const unlockedSkillKeysByCharacter = { [characterId]: nodes.map((node) => node.key) };
+  let loadout = freshWeaponSkillLoadout([characterId]);
+  const primary = selectPrimaryWeaponSkill(
+    loadout,
+    characterId,
+    primaryChoices[0].key,
+    unlockedSkillKeysByCharacter,
+  );
+  if (!primary.ok) throw new Error(primary.reason);
+  loadout = primary.loadout;
+  for (const node of byKind("reactive").slice(0, 2)) {
+    const added = addWeaponPrioritySkill(loadout, characterId, node.key, unlockedSkillKeysByCharacter);
+    if (!added.ok) throw new Error(added.reason);
+    loadout = added.loadout;
+  }
+  for (const node of byKind("target").slice(0, 2)) {
+    const added = addWeaponPrioritySkill(loadout, characterId, node.key, unlockedSkillKeysByCharacter);
+    if (!added.ok) throw new Error(added.reason);
+    loadout = added.loadout;
+  }
+  return {
+    characterId,
+    weaponId,
+    loadout,
+    unlockedSkillKeysByCharacter,
+    primaryChoices,
+    reactiveNodes: byKind("reactive"),
+    targetNodes: byKind("target"),
+    passiveNodes: byKind("passive"),
+  };
 }
