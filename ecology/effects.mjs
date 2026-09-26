@@ -1188,7 +1188,7 @@ function gainResource(rt, ctx, effect) {
       type: "resource_gained",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: [effect.resource],
+      tags: [...new Set([effect.resource, ...(effect.tags ?? [])])],
       values: { resource: effect.resource, amount, before, after: target[key] },
     });
     // §11.3 — engine.mjs makes a gained action point available on the next
@@ -1381,7 +1381,12 @@ export function completePreparation(rt, actor) {
       skillId: preparation.skillId,
       equipmentInstanceId: preparation.equipmentInstanceId,
     },
-    preparation.completionEffects,
+    preparation.completionEffects.map((effect) => effect.type === "deal_damage"
+      ? {
+        ...effect,
+        tags: [...new Set([...(effect.tags ?? []), "prepared_attack"])],
+      }
+      : effect),
   );
 }
 
