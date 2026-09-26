@@ -3,6 +3,7 @@ import { WEAPON_SKILL_SPECIFICATIONS } from "./content/weapon-specifications.mjs
 import {
   WEAPON_SKILL_PROTOTYPE_WEAPONS,
   buildWeaponSkillPrototypeTree,
+  createWeaponSkillForecastPrototypeReadout,
   createWeaponSkillLoadoutPrototypeFixture,
   createWeaponSkillReservationPrototypeFixture,
   getWeaponSkillPrototypeNode,
@@ -65,4 +66,11 @@ assert.deepEqual(
 );
 assert.equal(reservationFixture.progression.skillReservationByCharacter[reservationFixture.characterId], null);
 assert.ok(listWeaponSkillPrototypeNodes("warhammer").every((node) => node.canAcquire === false));
+assert.deepEqual(createWeaponSkillForecastPrototypeReadout(), {
+  connected: false,
+  result: null,
+  roundsUsed: null,
+  allyHpLost: null,
+  enemyHpLost: null,
+});
 console.log("weapon skill prototype: all catalogue nodes remain view-only until runtime support exists");

@@ -24,9 +24,10 @@
       </aside>
 
       <nav id="screen-tabs" class="screen-tabs" role="tablist" aria-label="武器技能UIの画面">
-        <button id="tab-tree" class="screen-tab" type="button" role="tab" aria-selected="true" aria-controls="tree-screen" data-screen="tree">ツリー</button>
+        <button id="tab-tree" class="screen-tab" type="button" role="tab" aria-selected="true" aria-controls="tree-screen" data-screen="tree">技能</button>
         <button id="tab-loadout" class="screen-tab" type="button" role="tab" aria-selected="false" aria-controls="loadout-screen" data-screen="loadout" tabindex="-1">構成</button>
         <button id="tab-reservation" class="screen-tab" type="button" role="tab" aria-selected="false" aria-controls="reservation-screen" data-screen="reservation" tabindex="-1">予約</button>
+        <button id="tab-forecast" class="screen-tab" type="button" role="tab" aria-selected="false" aria-controls="forecast-screen" data-screen="forecast" tabindex="-1">予測</button>
       </nav>
 
       <section id="tree-screen" class="screen-view" role="tabpanel" aria-labelledby="tab-tree">
@@ -50,6 +51,10 @@
 
       <section id="reservation-screen" class="screen-view" role="tabpanel" aria-labelledby="tab-reservation" hidden>
         <div id="reservation-content"></div>
+      </section>
+
+      <section id="forecast-screen" class="screen-view" role="tabpanel" aria-labelledby="tab-forecast" hidden>
+        <div id="forecast-content"></div>
       </section>
 
       <footer class="page-foot">カタログの表示用効果文を掲載しています。</footer>
