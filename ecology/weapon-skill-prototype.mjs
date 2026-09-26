@@ -5,6 +5,7 @@ import {
   freshWeaponSkillProgression,
   grantWeaponSkillPointsForClear,
   reserveWeaponSkill,
+  WEAPON_SKILL_NODE_COST,
   weaponSkillPrerequisiteKeys,
 } from "./weapon-progression.mjs";
 import {
@@ -52,7 +53,13 @@ const CONDITION_LABEL_RULES = Object.freeze([
 
 export function weaponSkillPrototypeSignals(node) {
   const contract = String(node?.implementationContract ?? "");
-  const firstSentence = contract.split("。", 1)[0].trim();
+  const publicSentences = String(node?.displayEffect ?? "")
+    .split("。")
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const conditionDetail = publicSentences.find((sentence) => /(?:時|とき|場合|たび|につき|ごと|反応窓|直後|攻撃後|行動後|命中)/.test(sentence))
+    ?? publicSentences[0]
+    ?? "";
   const costs = [];
   const seen = new Set();
   for (const match of contract.matchAll(/\b(AP|RP|HP)\s*(\d+)(?=\s*(?:を(?:一度)?(?:追加)?(?:消費|支払|払)|で))/g)) {
@@ -63,15 +70,15 @@ export function weaponSkillPrototypeSignals(node) {
     }
   }
 
-  const hasTriggerLanguage = /(?:時|とき|場合|たび|につき|反応窓|直後|攻撃後|行動後)/.test(firstSentence);
+  const hasTriggerLanguage = /(?:時|とき|場合|たび|につき|ごと|反応窓|直後|攻撃後|行動後|命中)/.test(conditionDetail);
   const shouldShowCondition = node?.kind === "reactive"
     || ((node?.kind === "passive" || node?.kind === "target") && hasTriggerLanguage);
   let condition = null;
-  if (shouldShowCondition && firstSentence) {
-    const rule = CONDITION_LABEL_RULES.find(([pattern]) => pattern.test(firstSentence));
+  if (shouldShowCondition && conditionDetail) {
+    const rule = CONDITION_LABEL_RULES.find(([pattern]) => pattern.test(conditionDetail));
     condition = Object.freeze({
       label: rule?.[1] ?? "条件",
-      detail: firstSentence,
+      detail: conditionDetail,
     });
   }
 
@@ -83,6 +90,8 @@ export function weaponSkillPrototypeSignals(node) {
 
 
 
+
+const STARTING_SKILL_POSITIONS = Object.freeze(["R", "A1"]);
 
 const POSITIONS = Object.freeze({
   root: ["R"],
@@ -177,7 +186,7 @@ export function createWeaponSkillReservationPrototypeFixture(weaponId = "warhamm
   const nodes = listWeaponSkillPrototypeNodes(weaponId);
   const availableSkillNodeKeys = new Set(nodes.map((node) => node.key));
   const characterId = "prototype-character";
-  const startingSkillKeys = [weaponSkillNodeKey(weaponId, "R"), weaponSkillNodeKey(weaponId, "A1")];
+  const startingSkillKeys = STARTING_SKILL_POSITIONS.map((position) => weaponSkillNodeKey(weaponId, position));
   return {
     characterId,
     weaponId,
@@ -235,6 +244,13 @@ export function getWeaponSkillPrototypePrerequisiteChain(skillKey) {
     current = weaponSkillPrerequisiteKeys(current)?.[0] ?? null;
   }
   return chain.map((key) => getWeaponSkillPrototypeNode(key));
+}
+
+export function getWeaponSkillPrototypePointsToAcquire(skillKey) {
+  const chain = getWeaponSkillPrototypePrerequisiteChain(skillKey);
+  if (!chain.length) return null;
+  return chain.reduce((total, node) => total
+    + (STARTING_SKILL_POSITIONS.includes(node.position) ? 0 : WEAPON_SKILL_NODE_COST), 0);
 }
 
 export function createWeaponSkillForecastPrototypeReadout() {

@@ -7,6 +7,7 @@ import {
   createWeaponSkillLoadoutPrototypeFixture,
   createWeaponSkillReservationPrototypeFixture,
   getWeaponSkillPrototypeNode,
+  getWeaponSkillPrototypePointsToAcquire,
   getWeaponSkillPrototypePrerequisiteChain,
   grantWeaponSkillPrototypePoint,
   listWeaponSkillPrototypeNodes,
@@ -51,6 +52,15 @@ assert.equal("passiveByCharacter" in loadoutFixture.loadout, false, "passives do
 
 let reservationFixture = createWeaponSkillReservationPrototypeFixture("warhammer");
 assert.deepEqual(getWeaponSkillPrototypePrerequisiteChain("warhammer:AA1").map((node) => node.position), ["R", "A1", "A2", "A3", "AA1"]);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:R"), 0);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:A1"), 0);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:A2"), 1);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:A3"), 2);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:AA1"), 3);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("warhammer:BB3"), 6);
+assert.equal(getWeaponSkillPrototypePointsToAcquire("unknown:node"), null);
+assert.ok(allKeys.size > 0 && [...allKeys].every((key) => Number.isInteger(getWeaponSkillPrototypePointsToAcquire(key))),
+  "all catalogue nodes show a deterministic SP cost from their path");
 const reservation = reserveWeaponSkillPrototypeTarget(reservationFixture, "warhammer:AA1");
 assert.equal(reservation.ok, true);
 reservationFixture = reservation.fixture;
