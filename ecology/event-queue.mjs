@@ -20,6 +20,7 @@ export function beginChain(state, rootType) {
     rootType,
     eventCount: 0,
     afterQueue: [],
+    drainingAfterQueue: false,
     ruleFirings: new Map(),
     lastResolvedTargets: [],
     // Recovery is bounded per side so several heal sources cannot add up to

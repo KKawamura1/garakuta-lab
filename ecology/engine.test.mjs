@@ -1059,6 +1059,200 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // A broken barrier's after reaction finishes the hit, counter and status
+  // application before the next frozen hit begins.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.strike.tags = ["attack", "stage2g_fixture"];
+  bundle.activeSkills.strike.targetQuery = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    take: 1,
+  };
+  bundle.activeSkills.strike.effects = [
+    {
+      type: "gain_barrier",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "constant", value: 2 },
+      duration: "round",
+    },
+    {
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "constant", value: 4 },
+      hitCount: 2,
+      reach: "unrestricted",
+      tags: ["attack", "stage2g_fixture"],
+    },
+  ];
+  const isSelfEventTarget = {
+    type: "target_exists",
+    query: {
+      scope: "self",
+      filters: [{ type: "is_event_primary_target" }, { type: "alive" }],
+      take: 1,
+    },
+  };
+  bundle.characters.warden.signatureRules.push({
+    id: "warden_marks_counter_after_reaction",
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 100,
+    predicates: [isSelfEventTarget],
+    costs: [],
+    effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 }],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  });
+  bundle.enemyActors.husk.intrinsicRules.push(
+    {
+      id: "husk_exposes_after_barrier_break",
+      listenTo: "barrier_broken",
+      timing: "after",
+      priority: 100,
+      predicates: [isSelfEventTarget],
+      costs: [],
+      effects: [
+        {
+          type: "deal_damage",
+          target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+          amount: { type: "constant", value: 1 },
+          tags: ["counter", "stage2g_fixture"],
+        },
+        { type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 },
+      ],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  );
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "per_hit_defense_break_boundary";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [structuredClone(CORE_BATTLE.allies[0])];
+  battle.allies[0].tactics = [{ activeSkillId: "strike", useWhen: [] }];
+  battle.allies[0].reactiveSkillIds = [];
+  battle.allies[0].equipment = [];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_center", hp: 10 }];
+
+  const result = simulateBattle(battle, bundle);
+  const barrierBroken = of(result, "barrier_broken").find(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk",
+  );
+  const hits = of(result, "damage_proposed").filter(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  );
+  const damageTaken = of(result, "damage_taken").filter(
+    (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_husk",
+  );
+  const laterHitAdjustment = of(result, "pending_amount_modified").find(
+    (event) => event.values.proposalEventId === hits[1]?.id,
+  );
+  const barrierReactionHit = of(result, "damage_taken").find(
+    (event) => event.ruleId === "husk_exposes_after_barrier_break"
+      && event.targetActorIds[0] === "a_warden",
+  );
+  const exposedAfterBreak = of(result, "status_added").find(
+    (event) => event.ruleId === "husk_exposes_after_barrier_break",
+  );
+  const counterAfterReaction = of(result, "status_added").find(
+    (event) => event.ruleId === "warden_marks_counter_after_reaction",
+  );
+  check(barrierBroken && barrierReactionHit && exposedAfterBreak && counterAfterReaction,
+    "a broken defense opens its after-reaction before the next hit");
+  equal(hits.length, 2, "both preplanned hit proposals resolve");
+  equal(damageTaken.length, 2, "both hits finish their defense and HP result");
+  equal(hits[0].values.amount, 4, "the first hit uses its frozen base proposal");
+  equal(hits[1].values.amount, 4, "the second hit keeps its planned pre-interrupt proposal");
+  check(laterHitAdjustment, "the defense-break reaction adjusts the later pending damage");
+  equal(laterHitAdjustment.values.before, 4);
+  equal(laterHitAdjustment.values.after, 5);
+  check(barrierBroken.sequence < damageTaken[0].sequence
+    && damageTaken[0].sequence < barrierReactionHit.sequence
+    && barrierReactionHit.sequence < exposedAfterBreak.sequence
+    && exposedAfterBreak.sequence < counterAfterReaction.sequence
+    && exposedAfterBreak.sequence < hits[1].sequence,
+  "barrier break, hit result, nested counter, queued after-reaction, and next hit run in order");
+  check(damageTaken[1].sequence < of(result, "action_resolved").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
+  ).sequence, "the action-end event follows both resolved hit results");
+}
+
+{
+  // Finish after-reactions caused by the action's effects before action_resolved;
+  // after-reactions to action_resolved itself then form the final action window.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.action_end_trace = {
+    ...structuredClone(bundle.activeSkills.strike),
+    id: "action_end_trace",
+    displayName: "Action End Trace (fixture)",
+    tags: [...bundle.activeSkills.strike.tags, "action_end_fixture"],
+    effects: [
+      ...structuredClone(bundle.activeSkills.strike.effects),
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 },
+    ],
+  };
+  bundle.characters.warden.signatureRules.push(
+    {
+      id: "warden_reacts_to_action_effect_status",
+      listenTo: "status_added",
+      timing: "after",
+      priority: 100,
+      predicates: [{ type: "event_value", key: "statusId", op: "eq", value: "exposed" }],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+    {
+      id: "warden_reacts_to_action_resolved",
+      listenTo: "action_resolved",
+      timing: "after",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "action_end_fixture", value: true }],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  );
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "action_end_after_reaction_boundary";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [structuredClone(CORE_BATTLE.allies[0])];
+  battle.allies[0].tactics = [{ activeSkillId: "action_end_trace", useWhen: [] }];
+  battle.allies[0].reactiveSkillIds = [];
+  battle.allies[0].equipment = [];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_center", hp: 10 }];
+
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "action_end_trace",
+  );
+  const effectStatus = of(result, "status_added").find(
+    (event) => event.sourceActorId === "a_warden"
+      && event.targetActorIds[0] === "a_warden"
+      && event.values.statusId === "exposed"
+      && event.parentEventId === started?.id,
+  );
+  const effectReactionStatus = of(result, "status_added").find(
+    (event) => event.ruleId === "warden_reacts_to_action_effect_status",
+  );
+  const actionResolved = of(result, "action_resolved").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "action_end_trace",
+  );
+  const actionEndStatus = of(result, "status_added").find(
+    (event) => event.ruleId === "warden_reacts_to_action_resolved",
+  );
+
+  check(started && effectStatus && effectReactionStatus && actionResolved && actionEndStatus,
+    "both effect and action-end after-reactions resolve");
+  check(started.sequence < effectStatus.sequence
+    && effectStatus.sequence < effectReactionStatus.sequence
+    && effectReactionStatus.sequence < actionResolved.sequence
+    && actionResolved.sequence < actionEndStatus.sequence,
+  "action-effect reactions settle before action_resolved and its own reactions settle last");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);

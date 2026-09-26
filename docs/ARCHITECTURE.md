@@ -261,7 +261,11 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 `damage_skipped` には、事前に決めた基礎威力も `plannedAmount` として記録します。
 途中撃破や後続効果の状態変更で、計画済みhitの対象・威力を選び直しません。追加hitは最初の直接ダメージ効果の各基礎対象へ割り当て、
 対象が倒れた後の枠は `damage_skipped` に残します。pending damageへの
-イベント反応は従来どおり各hitで計画後に処理します。試映も実戦と同じ `simulateBattle` を呼び、
+interruptは各hitの提案中に処理し、そのhitのblock・guard・barrier・HP結果が完了した直後にafter反応を解決してから次の枠へ進みます。
+したがって `barrier_broken` や `damage_taken` の反応は次のhitより先に完了し、新しく得た状態は未処理hitだけへ効きます。
+after queueは一度に一つだけdrainし、反応効果の中で別のdamageが発生しても、現在の反応規則が終わる前にqueueを再帰drainしません。
+行動の効果列と準備開始が発生させたafter queueは `action_resolved` より前にdrainし、同イベントに対するafter queueは最後にdrainします。
+試映も実戦と同じ `simulateBattle` を呼び、
 replayも同じイベント列を読みます。
 副対象の追加damage片も同じActionPlanへ固定し、主効果列を解決した後に標準のdamage処理で適用します。
 追加先は行動内の予定対象数に重複なく加算し、主攻撃後に倒れていた追加先は再選択せず `damage_skipped` に残します。

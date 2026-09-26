@@ -306,11 +306,12 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 
 // A rule that is mid firing when the cap trips leaves its own frame behind, so
 // the diagnostic points at the rule rather than only at the event count. The
-// ally-first phases make the overflow-care reaction blow the active frame here.
+// action-end after boundary changes where this chain reaches the cap, so use
+// the limit that trips during overflow-care rather than between rules.
 {
   let thrown = null;
   try {
-    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 12 });
+    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 11 });
   } catch (error) {
     thrown = error;
   }

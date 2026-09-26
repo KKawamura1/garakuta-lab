@@ -240,6 +240,7 @@ function makeRuntime(state) {
   return {
     state,
     emit: (spec, pendingFrame = null) => emit(state, spec, pendingFrame),
+    settleAfterReactions: () => drainAfterQueue(state),
     onResourceGained: (actor) => requeueOnResourceGain(state, actor),
   };
 }
@@ -317,9 +318,15 @@ function runChain(state, rootType, body, { checkOutcomeAfter = true } = {}) {
 }
 
 function drainAfterQueue(state) {
-  while (state.chain.afterQueue.length > 0) {
-    const eventId = state.chain.afterQueue.shift();
-    dispatchRules(state, state.eventsById.get(eventId), "after", null);
+  if (!state.chain || state.chain.drainingAfterQueue) return;
+  state.chain.drainingAfterQueue = true;
+  try {
+    while (state.chain.afterQueue.length > 0) {
+      const eventId = state.chain.afterQueue.shift();
+      dispatchRules(state, state.eventsById.get(eventId), "after", null);
+    }
+  } finally {
+    if (state.chain) state.chain.drainingAfterQueue = false;
   }
 }
 
@@ -1314,6 +1321,9 @@ function performAction(state, actor, choice) {
       state.parentEventId = previousParent;
     }
 
+    // Action-effect after-reactions belong to the action, so they complete
+    // before action_resolved opens the action-end reaction window.
+    drainAfterQueue(state);
     emit(state, {
       type: "action_resolved",
       sourceActorId: actor.instanceId,
@@ -1323,6 +1333,8 @@ function performAction(state, actor, choice) {
       tags: skill.tags,
       values: { targetCount: frame.targetActorIds.length },
     });
+    // Reactions raised by action_resolved are the final part of this action.
+    drainAfterQueue(state);
   } finally {
     state.currentPendingAction = null;
   }
