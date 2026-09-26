@@ -18,6 +18,7 @@ const SUITES = [
   "contract.test.mjs",
   "weapon-loadout.test.mjs",
   "weapon-progression.test.mjs",
+  "weapon-pack-manifest.test.mjs",
   "phase-b.test.mjs",
   "campaign-stage.test.mjs",
   "phase-c.test.mjs",
