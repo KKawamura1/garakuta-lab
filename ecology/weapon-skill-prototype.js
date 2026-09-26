@@ -3,6 +3,7 @@ import {
   WEAPON_SKILL_KIND_LABELS,
   buildWeaponSkillPrototypeTree,
   getWeaponSkillPrototypeNode,
+  weaponSkillPrototypeSignals,
 } from "./weapon-skill-prototype.mjs";
 
 const POSITION_ORDER = [
@@ -45,28 +46,15 @@ function kindIcon(kind) {
 }
 
 function compactCondition(node) {
-  const clause = node.displayEffect.match(/(?:^|[、,])([^、,。]{1,36}(?:時|とき|場合|反応窓)[^、,。]{0,8})(?=[、,。]|$)/)?.[1];
-  if (!clause) return "";
-  const label = /反応窓/.test(clause) ? "反応窓"
-    : /1hit目|初撃/.test(clause) ? "初撃命中"
-      : /命中/.test(clause) ? "命中時"
-        : /被弾|被攻撃|攻撃を受け/.test(clause) ? "被弾時"
-          : /対象変更/.test(clause) ? "対象変更時"
-            : /対象選択/.test(clause) ? "対象選択時"
-              : /行動.*宣言/.test(clause) ? "宣言時"
-                : /行動.*解決/.test(clause) ? "解決時"
-                  : /撃破/.test(clause) ? "撃破時"
-                    : /ラウンド.*始/.test(clause) ? "開始時"
-                      : /ラウンド.*終/.test(clause) ? "終了時" : "条件";
-  return `<i class="effect-chip condition" title="${escapeHtml(clause)}" aria-label="条件: ${escapeHtml(clause)}">${label}</i>`;
+  const { condition } = weaponSkillPrototypeSignals(node);
+  if (!condition) return "";
+  return `<i class="effect-chip condition" title="${escapeHtml(condition.detail)}" aria-label="条件: ${escapeHtml(condition.detail)}">${escapeHtml(condition.label)}</i>`;
 }
 
 function costBadges(node) {
-  const seen = new Set();
-  return [...node.displayEffect.matchAll(/\b(AP|RP|HP)\s*(\d+)/g)]
-    .map((match) => `${match[1]}${match[2]}`)
-    .filter((label) => !seen.has(label) && seen.add(label))
-    .map((label) => `<i class="effect-chip cost ${label.startsWith("RP") ? "rp" : label.startsWith("HP") ? "hp" : "ap"}">${label}</i>`)
+  const { costs } = weaponSkillPrototypeSignals(node);
+  return costs
+    .map((label) => `<i class="effect-chip cost ${label.startsWith("RP") ? "rp" : label.startsWith("HP") ? "hp" : "ap"}">${escapeHtml(label)}</i>`)
     .join("");
 }
 
