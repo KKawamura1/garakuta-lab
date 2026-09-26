@@ -107,7 +107,7 @@ import {
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
 // PR #292 / R26 — enemy active/reactive/passiveを専用registryへ分離し、敵action・reactionと
 // actor参照へ `foe_*` namespaceを付けた。schema節とevent上のskill/rule IDが変わるため上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-30";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-29";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

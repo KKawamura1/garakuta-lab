@@ -96,7 +96,7 @@ function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null) 
 
 function attackProposals(result, activeSkillId) {
   return result.events.filter((event) =>
-    event.type === "damage_proposed" && event.sourceDefinitionId === activeSkillId);
+    event.type === "damage_proposed" && event.skillId === activeSkillId);
 }
 
 function passiveModifications(result, passiveSkillId) {
