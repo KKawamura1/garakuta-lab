@@ -466,6 +466,68 @@ expectRejected(
   "target-expansion reactions cannot cancel the finalized primary action",
 );
 
+expectValid(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_hits_expanding";
+    bundle.reactiveSkills.cover_ally.rule.timing = "interrupt";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{
+      type: "add_action_hit",
+      hitCount: 1,
+      amount: { type: "constant", value: 2 },
+    }];
+  }),
+  "an additional hit on the dedicated pre-plan interrupt window",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_started";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{
+      type: "add_action_hit",
+      hitCount: 1,
+      amount: { type: "constant", value: 2 },
+    }];
+  }),
+  "no_action_hit_expansion_frame",
+  "an added hit outside the dedicated expansion window",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.timing = "after";
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_hits_expanding";
+    bundle.reactiveSkills.cover_ally.rule.effects = [];
+  }),
+  "preplan_event_interrupt_only",
+  "an after rule cannot observe the pre-plan hit window",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_hits_expanding";
+    bundle.reactiveSkills.cover_ally.rule.effects = [{
+      type: "add_action_hit",
+      hitCount: 9,
+      amount: { type: "constant", value: 2 },
+    }];
+  }),
+  "out_of_range",
+  "an added hit sequence larger than the effect cap",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.cover_ally.rule.listenTo = "action_hits_expanding";
+    bundle.reactiveSkills.cover_ally.rule.effects.push({
+      type: "add_action_hit",
+      hitCount: 1,
+      amount: { type: "constant", value: 2 },
+    });
+  }),
+  "action_hit_addition_must_stand_alone",
+  "an added hit cannot share its rule with another effect",
+);
+
 expectRejected(
   content((bundle) => {
     bundle.reactiveSkills.cover_ally.rule.listenTo = "action_started";

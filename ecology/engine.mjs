@@ -33,6 +33,7 @@ import { resolveTargets } from "./selectors.mjs";
 import {
   advancePreparationOn,
   applyEffects,
+  canAddActionHit,
   canAddActionDamage,
   canPayCosts,
   payCosts,
@@ -538,6 +539,8 @@ function fireRule(state, event, entry, pendingFrame) {
   if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return false;
   if (!canPayCosts(rt, ctx, entry.rule.costs)) return false;
   const actionDamageAddition = entry.rule.effects.find((effect) => effect.type === "add_action_damage");
+  const actionHitAddition = entry.rule.effects.find((effect) => effect.type === "add_action_hit");
+  if (actionHitAddition && !canAddActionHit(rt, ctx, actionHitAddition)) return false;
   if (actionDamageAddition && !canAddActionDamage(rt, ctx, actionDamageAddition)) return false;
 
   const key = firingKey(entry);
@@ -1126,6 +1129,8 @@ function performAction(state, actor, choice) {
     reach: actionReach(skill),
     baseHitCount: (skill.effects ?? []).find((effect) => effect.type === "deal_damage")?.hitCount ?? 1,
     actionDamageExpansionEligible: false,
+    actionHitExpansionEligible: false,
+    actionHitAdditions: [],
     // The target list is deliberately empty through action_declared. A
     // pre-target movement reaction may change which targets are in reach.
     targetActorIds: [],
@@ -1204,6 +1209,7 @@ function performAction(state, actor, choice) {
       frame.targetActorIds.length,
       frame.reach,
     );
+    frame.actionHitExpansionEligible = (skill.effects ?? []).some((effect) => effect.type === "deal_damage");
 
     payCosts(rt, baseCtx(), costs);
     emit(state, {
@@ -1232,6 +1238,33 @@ function performAction(state, actor, choice) {
     // primary action without refunding that cost or choosing another target.
     drainAfterQueue(state);
     if (!actor.alive) return cancelAction(state, actor, skill, frame, "rule");
+
+    if (frame.actionHitExpansionEligible) {
+      const previousParent = state.parentEventId;
+      state.parentEventId = started.id;
+      try {
+        emit(
+          state,
+          {
+            type: "action_hits_expanding",
+            sourceActorId: actor.instanceId,
+            targetActorIds: [...frame.targetActorIds],
+            sourceDefinitionId: actor.definitionId,
+            skillId: skill.id,
+            tags: skill.tags ?? [],
+            values: {
+              baseTargetCount: frame.targetActorIds.length,
+              baseHitCount: frame.baseHitCount,
+            },
+          },
+          frame,
+        );
+        drainAfterQueue(state);
+      } finally {
+        state.parentEventId = previousParent;
+      }
+      if (frame.canceled || !actor.alive) return cancelAction(state, actor, skill, frame, "rule");
+    }
 
     bumpHistory(actor, "active_actions", 1);
     recordTargeted(actor, frame.targetActorIds[0]);

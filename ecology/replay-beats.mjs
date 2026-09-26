@@ -42,6 +42,7 @@ export const BOARD_SKIP = new Set([
   "action_cost_paid",
   // The event opens an internal reaction window; its resulting damage stays
   // with the action's existing impact beat.
+  "action_hits_expanding",
   "action_targets_expanding",
   "action_resolved",
   "round_ended",

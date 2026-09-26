@@ -11,7 +11,7 @@ const freeze = (value) => Object.freeze(value);
 
 // PR #292 — required separate enemy active/reactive/passive registries and
 // enemyCoreActions. Enemy references are validated only against those sections.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-5";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-6";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -27,10 +27,10 @@ export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-// Stage 2e adds an explicit, interruptible event before a single-target action
-// fixes its ActionPlan. Readers that understand only result-3 would miss this
-// reaction window and the additional damage planned from it.
-export const RESULT_SCHEMA_VERSION = "ecology-result-4";
+// Stage 2f adds an explicit, interruptible event before an action fixes its
+// ActionPlan hit slots. Readers that understand only result-4 would miss this
+// planning window and the additional hit recorded from it.
+export const RESULT_SCHEMA_VERSION = "ecology-result-5";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -98,6 +98,7 @@ export const EVENT_TYPES = freeze([
   "target_changed",
   "action_cost_paid",
   "action_started",
+  "action_hits_expanding",
   "action_targets_expanding",
   "action_resolved",
   "action_skipped",
@@ -175,6 +176,12 @@ export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_sel
 // This frame can append a damage fragment to the action's future ActionPlan,
 // but cannot redirect the already selected primary target or cancel the action.
 export const ACTION_TARGET_EXPANSION_EVENT_TYPES = freeze(["action_targets_expanding"]);
+// This frame can append frozen damage hit slots before the action plan is built.
+export const ACTION_HIT_EXPANSION_EVENT_TYPES = freeze(["action_hits_expanding"]);
+export const PREPLAN_INTERRUPT_EVENT_TYPES = freeze([
+  ...ACTION_HIT_EXPANSION_EVENT_TYPES,
+  ...ACTION_TARGET_EXPANSION_EVENT_TYPES,
+]);
 export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   "damage_proposed",
   "healing_proposed",
@@ -188,6 +195,7 @@ export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   // action_started opens an attack-start reaction window after targets and AP
   // are fixed. It does not carry a mutable pending-action frame.
   "action_started",
+  ...ACTION_HIT_EXPANSION_EVENT_TYPES,
   ...ACTION_TARGET_EXPANSION_EVENT_TYPES,
   ...PENDING_AMOUNT_EVENT_TYPES,
 ]);
@@ -327,6 +335,7 @@ export const EFFECT_TYPES = freeze([
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
+  "add_action_hit",
   "add_action_damage",
   // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
   "gain_block",
@@ -359,6 +368,7 @@ export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "redirect_pending_target",
   "cancel_pending_action",
   "add_action_damage",
+  "add_action_hit",
 ]);
 // Which pending frame each interrupt-only effect needs.
 export const PENDING_ACTION_EFFECT_TYPES = freeze([

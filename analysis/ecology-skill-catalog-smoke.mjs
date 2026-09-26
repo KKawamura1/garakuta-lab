@@ -251,6 +251,17 @@ if (
 ) {
   scaledByEngine.add("add_action_damage");
 }
+// add_action_hit freezes its amount during canAddActionHit, before paying RP.
+// The preflight evaluates the active skill's amount with afterSkillLevel, then
+// the ActionPlan consumes that immutable snapshot.
+const preparedActionHitCheck = bodies.get("canAddActionHit") ?? "";
+const preparedActionHitAmount = bodies.get("actionHitAmount") ?? "";
+if (
+  preparedActionHitCheck.includes("actionHitAmount(rt, ctx, window, effect)")
+  && preparedActionHitAmount.includes("afterSkillLevel(evaluateValue(rt.state, actionCtx, effect.amount), actionCtx)")
+) {
+  scaledByEngine.add("add_action_hit");
+}
 const declared = new Set(LEVELED_EFFECTS);
 for (const type of scaledByEngine) {
   if (!declared.has(type)) {
