@@ -41,6 +41,7 @@ function hasExecutablePayload(definition) {
     || (isRecord(definition.rule)
       && Array.isArray(definition.rule.effects)
       && definition.rule.effects.length > 0)
+    || (Array.isArray(definition.rules) && definition.rules.length > 0)
     || (isRecord(definition.statBonus) && Object.keys(definition.statBonus).length > 0)
     || (isRecord(definition.targetQuery) && Object.keys(definition.targetQuery).length > 0)
     || (isRecord(definition.query) && Object.keys(definition.query).length > 0);
@@ -168,6 +169,53 @@ export function availableExecutableWeaponSkillNodeKeys(manifest, registry) {
   }
   const availableFromManifest = availableWeaponSkillNodeKeys(manifest);
   return availableFromManifest.filter((nodeKey) => Object.hasOwn(registry.entries, nodeKey));
+}
+
+export const WEAPON_SKILL_RUNTIME_CONTENT_VERSION = "weapon-skill-runtime-content-1";
+
+const RUNTIME_CONTENT_SECTION_BY_KIND = Object.freeze({
+  active: "activeSkills",
+  reactive: "reactiveSkills",
+  passive: "passiveSkills",
+});
+
+// Stage 5 adapter: materialize registered definitions through the existing
+// battle engine's player content sections. Target-priority nodes stay outside
+// this adapter until the new BattleInput builder owns their selection semantics.
+export function compileWeaponSkillRuntimeContent(contentBundle, registry) {
+  const validation = validateWeaponSkillRuntimeRegistry(registry);
+  if (!validation.valid) {
+    throw new TypeError(validation.errors.map(({ path, message }) => path + ": " + message).join("\n"));
+  }
+  if (!isRecord(contentBundle) || typeof contentBundle.contentVersion !== "string") {
+    throw new TypeError("content bundle must have a contentVersion.");
+  }
+
+  const next = { ...contentBundle };
+  const projectedSections = {};
+  for (const [nodeKey, entry] of Object.entries(registry.entries)) {
+    const section = RUNTIME_CONTENT_SECTION_BY_KIND[entry.kind];
+    if (!section) {
+      throw new TypeError("runtime node kind cannot be projected to engine content yet: " + entry.kind);
+    }
+    if (!isRecord(contentBundle[section])) {
+      throw new TypeError("content bundle section is missing: " + section);
+    }
+    projectedSections[section] ??= { ...contentBundle[section] };
+    if (Object.hasOwn(projectedSections[section], entry.runtimeSkillId)) {
+      throw new TypeError("runtime skill ID already exists in " + section + ": " + entry.runtimeSkillId);
+    }
+    projectedSections[section][entry.runtimeSkillId] = entry.definition;
+    if (entry.nodeKey !== nodeKey) {
+      throw new TypeError("runtime registry key mismatch: " + nodeKey);
+    }
+  }
+
+  for (const [section, definitions] of Object.entries(projectedSections)) {
+    next[section] = Object.freeze(definitions);
+  }
+  next.contentVersion = contentBundle.contentVersion + "+" + WEAPON_SKILL_RUNTIME_CONTENT_VERSION;
+  return Object.freeze(next);
 }
 
 export const EMPTY_WEAPON_SKILL_RUNTIME_REGISTRY = makeWeaponSkillRuntimeRegistry();
