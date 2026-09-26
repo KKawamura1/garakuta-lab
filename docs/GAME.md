@@ -373,7 +373,7 @@ Stage 0 を初めて遊ぶときだけ、**本当に負ける配置**で始ま�
 条件・コストは実装契約から意味を確定できるものだけ表示し、効果文中の `AP1` や `HP50%` を
 機械的にコスト扱いしません。選択した節の詳細盤には効果文だけを表示します。
 Stage 4では全節が `catalog-only` / `canAcquire: false` で、本編runtime・保存・戦闘には未接続です。
-Stage 5a のruntime registryはnode keyとengine IDを可逆に対応づけ、登録できる節を5人の代表武器のR/A1、計20節に制限します。各定義は共通content validatorで検証し、Manifestで解禁されたpackとregistryの積集合だけを実装済み候補として返します。Stage 5b / 5c / 5d / 5eでは、ゴウ・ツグミ・ナギ・ヒバナの初期14節を共有engine bundleへ投影して挙動を検証します。Stage 5eでは鉤縄の距離順対象選択と1マス引き、移動先が塞がれていても各hitに働くA1を検証しますが、本編の取得・loadout・BattleInputにはまだ接続していません。
+Stage 5a のruntime registryはnode keyとengine IDを可逆に対応づけ、登録できる節を5人の代表武器のR/A1、計20節に制限します。各定義は共通content validatorで検証し、Manifestで解禁されたpackとregistryの積集合だけを実装済み候補として返します。Stage 5b / 5c / 5d / 5eでは、ゴウ・ツグミ・ナギ・ヒバナの初期16節を共有engine bundleへ投影して挙動を検証します。Stage 5eでは鉤縄の距離順対象選択と1マス引き、双刃の2hit攻撃と2hit以上への武器不問A1を検証しますが、本編の取得・loadout・BattleInputにはまだ接続していません。
 構成タブはStage 3のloadout契約を固定fixtureで使い、主軸1つ・リアクティブ／ターゲット優先列・パッシブ常時適用を表示します。操作結果はページ内だけに留まり、本編stateや保存には渡しません。
 予測タブは勝敗・ラウンド・味方／敵HP損失の読み値枠だけを用意し、新engine未接続の間は値をnullのまま表示して試映操作を無効化します。固定の予測値を本番結果として見せません。
 
