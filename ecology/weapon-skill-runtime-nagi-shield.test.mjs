@@ -94,6 +94,7 @@ const ENEMY_AREA_ATTACK = {
   },
   effects: [{
     ...ENEMY_SINGLE_ATTACK.effects[0],
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: "all" },
     hitCount: 1,
     reach: "ranged",
   }],
