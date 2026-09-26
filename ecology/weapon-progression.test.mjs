@@ -137,6 +137,24 @@ const legacyLevelField = { ...state, skillLevels: { gou: { legacy_skill_id: 10 }
 assert.ok(validateWeaponSkillProgression(legacyLevelField).errors.some((error) => error.code === "unknown_progression_field"));
 const wrongRoster = validateWeaponSkillProgression(state, { characterIds: ["gou"] });
 assert.ok(wrongRoster.errors.some((error) => error.code === "roster_mismatch"));
+for (const invalidCharacterId of ["", "   "]) {
+  const malformedRoster = {
+    ...state,
+    unlockedSkillKeysByCharacter: { [invalidCharacterId]: [...starter] },
+    skillPointsByCharacter: { [invalidCharacterId]: 1 },
+    skillReservationByCharacter: { [invalidCharacterId]: null },
+  };
+  assert.ok(validateWeaponSkillProgression(malformedRoster).errors
+    .some((error) => error.code === "invalid_character_ids"),
+  "derived roster must reject empty or whitespace-only character IDs");
+  assert.ok(validateWeaponSkillProgression(state, { characterIds: ["gou", invalidCharacterId] }).errors
+    .some((error) => error.code === "invalid_character_ids"),
+  "explicit roster must return a validation error for invalid character IDs");
+  assert.equal(unlockWeaponSkill(malformedRoster, invalidCharacterId, key("A2"), available).code,
+    "invalid_character_ids", "acquisition must reject malformed progression state");
+}
+assert.ok(validateWeaponSkillProgression(state, { characterIds: ["gou", "gou"] }).errors
+  .some((error) => error.code === "invalid_character_ids"), "explicit roster must reject duplicate IDs");
 const brokenClosure = {
   ...state,
   unlockedSkillKeysByCharacter: { ...state.unlockedSkillKeysByCharacter, gou: [key("A1")] },
