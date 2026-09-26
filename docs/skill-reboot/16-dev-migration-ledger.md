@@ -83,6 +83,8 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 
 準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。PR #292の共有enemy actionは移行用の複製であり、武器別player実装の後に複製元importを撤去する。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。
 
+新しい武器スキルに個別レベルは設けない。PR #299の `add_action_hit` は現行の旧player runtimeに残る `skillLevels` / `afterSkillLevel` を経由するが、この補正を新しい武器スキルへ引き継がない。旧runtime撤去時に、追加hitを含む新武器技能の解決から旧level map依存をなくす。現行contentは `action_hits_expanding` を使わないため、Stage 2中は旧runtime上の暫定挙動として扱う。
+
 ## Stage 2の共通解決順とActionPlan
 
 - [x] PR #294で同一人物のリアクティブ優先列をevent / timingごとに適用する。条件またはRP支払いに失敗した候補は飛ばし、同じ窓で最初に発動した一つだけを選ぶ。他の人物の反応は独立して処理する。複数候補・条件不成立・RP不足からのfallbackを `ecology/engine.test.mjs` のイベント列で固定した。
