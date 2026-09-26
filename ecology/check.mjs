@@ -25,6 +25,7 @@ const SUITES = [
   "weapon-skill-runtime-tsugumi.test.mjs",
   "weapon-skill-runtime-nagi-spear.test.mjs",
   "weapon-skill-runtime-nagi-shield.test.mjs",
+  "weapon-skill-runtime-hibana-grappling.test.mjs",
   "weapon-skill-prototype.test.mjs",
   "phase-b.test.mjs",
   "campaign-stage.test.mjs",

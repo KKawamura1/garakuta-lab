@@ -108,7 +108,8 @@ import {
 // PR #292 / R26 — enemy active/reactive/passiveを専用registryへ分離し、敵action・reactionと
 // actor参照へ `foe_*` namespaceを付けた。schema節とevent上のskill/rule IDが変わるため上げる。
 // PR #327 / Stage 5d — 誘引状態と敵の単体攻撃 redirect を公開。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-30";
+// PR #328 / Stage 5e — 距離順対象選択と鉤縄の強制移動を公開。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-31";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

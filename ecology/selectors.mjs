@@ -3,7 +3,7 @@
 // §9 — target queries. Every query ends with position_asc then instance_id_asc,
 // so `take: 1` can never depend on array order coming out of a Map or a filter.
 
-import { IMPLICIT_SORTS, POSITION_ROW, compareOp } from "./schema.mjs";
+import { COLUMNS, IMPLICIT_SORTS, POSITION_COLUMN, POSITION_ROW, compareOp } from "./schema.mjs";
 import {
   actorsOnSide,
   compareActorsDefault,
@@ -79,7 +79,14 @@ function hpPercentBps(actor) {
   return Math.floor(actor.hp * BPS / ceiling);
 }
 
-function sortValue(actor, sortType) {
+function gridDistance(from, to) {
+  const rowDistance = POSITION_ROW[from.position] === POSITION_ROW[to.position] ? 0 : 1;
+  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[from.position]);
+  const toColumn = COLUMNS.indexOf(POSITION_COLUMN[to.position]);
+  return rowDistance + Math.abs(fromColumn - toColumn);
+}
+
+function sortValue(actor, sortType, ctx) {
   switch (sortType) {
     case "hp_asc": return actor.hp;
     case "hp_desc": return -actor.hp;
@@ -91,6 +98,7 @@ function sortValue(actor, sortType) {
     case "barrier_desc": return -totalBarrier(actor);
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
+    case "distance_asc": return ctx.owner ? gridDistance(ctx.owner, actor) : 0;
     default: return 0;
   }
 }
@@ -115,7 +123,7 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
         if (a.instanceId !== b.instanceId) return a.instanceId < b.instanceId ? -1 : 1;
         continue;
       }
-      const difference = sortValue(a, sortType) - sortValue(b, sortType);
+      const difference = sortValue(a, sortType, ctx) - sortValue(b, sortType, ctx);
       if (difference !== 0) return difference;
     }
     return compareActorsDefault(a, b);
