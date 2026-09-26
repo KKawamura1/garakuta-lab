@@ -34,10 +34,14 @@ function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isValidCharacterIds(characterIds) {
+  return Array.isArray(characterIds)
+    && characterIds.every((id) => typeof id === "string" && id.trim())
+    && new Set(characterIds).size === characterIds.length;
+}
+
 function uniqueCharacterIds(characterIds) {
-  if (!Array.isArray(characterIds)
-    || characterIds.some((id) => typeof id !== "string" || !id.trim())
-    || new Set(characterIds).size !== characterIds.length) {
+  if (!isValidCharacterIds(characterIds)) {
     throw new TypeError("characterIds は重複のない、空でない文字列の配列が必要です。");
   }
   return characterIds;
@@ -240,7 +244,12 @@ export function validateWeaponSkillLoadout(loadout, options = {}) {
 
   const characterIds = options.characterIds === undefined
     ? Object.keys(loadout.primarySkillByCharacter)
-    : uniqueCharacterIds(options.characterIds);
+    : options.characterIds;
+  if (!isValidCharacterIds(characterIds)) {
+    const path = options.characterIds === undefined ? "primarySkillByCharacter" : "characterIds";
+    addError(errors, "invalid_character_ids", path, "人物IDは重複のない、空でない文字列の配列である必要があります。");
+    return { valid: false, errors };
+  }
   for (const field of fields) {
     const actualIds = Object.keys(loadout[field]).sort();
     const expectedIds = [...characterIds].sort();
