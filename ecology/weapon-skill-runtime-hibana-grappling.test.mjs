@@ -91,7 +91,7 @@ function run(activeSkillId, allyPosition, enemyPositions, {
       instanceId: "a_hibana_stage5e",
       characterId: "warden",
       position: allyPosition,
-      hp: 120,
+      hp: 20,
       tactics: [{ activeSkillId, useWhen: [] }],
       reactiveSkillIds: [],
       passiveSkillIds,
