@@ -105,3 +105,13 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行してdevへマージ済みで、PR #300〜#302は [PR #303](https://github.com/KKawamura1/garakuta-lab/pull/303) で統合、最後の防御崩し窓は [PR #304](https://github.com/KKawamura1/garakuta-lab/pull/304) で追加された。devの統合commitは `0341d850655b5b99bf1671e107881c787bba8754`。このcommitの [Current implementation checks](https://github.com/KKawamura1/garakuta-lab/actions/runs/36208047199) と [deployed expedition trial](https://github.com/KKawamura1/garakuta-lab/actions/runs/36208047165) はsuccess。
 
 以降は依存順序表のStage 3〜7（ロードアウトと取得・UI・本体切替・残り170節・最終統合）へ進み、各境界を個別PRと同じsimulation/replay経路で検証する。
+
+
+## Stage 3 progress — loadout and progression state
+
+- [x] **3a / PR #306 — 主軸と優先列のロードアウト契約。** `ecology/weapon-loadout.mjs` は仕様190節の `weaponId:position` から一意なnode keyを作り、一人一つの主軸、順序を持つリアクティブ列とターゲット列を定義する。取得済みpassiveは個別装着欄を持たずすべて適用する。未取得・種別違い・未知node・未知field・別version・roster不一致を拒否する。旧skill ID / level map / tree / packには依存しない。
+- [ ] **3b — 取得・前提・予約。** カタログ位置からDAGを導出し、取得済みnodeと人物別SPのみを持つ。level値は持たず、人物ごと一つの予約目標へ前提から順に自動取得する。取消・差替え・重複報酬の防止を含める。
+- [ ] **3c — skill packとequipment packの分離。** Manifest・Profile・抽選・取得可能集合で二つのpack種別が混ざらないことを検証する。
+- [ ] **3d — Profile / Run保存境界。** 新状態を現行versionで保存・再読込し、未対応versionは理由付きで拒否する。旧saveの移行はしない。
+
+3aは保存形式・取得処理・画面・BattleInputへ未接続のデータ契約である。現行ゲームの技能tree/runtimeは切替PRまで維持し、Stage 5の本体切替で旧経路を同時撤去する。
