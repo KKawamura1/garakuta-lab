@@ -84,7 +84,7 @@ function run(activeSkillId, allyPosition, enemyPosition, {
       instanceId: "a_nagi_stage5d",
       characterId: "lancer",
       position: allyPosition,
-      hp: 20,
+      hp: 16,
       tactics: [{ activeSkillId, useWhen: [] }],
       reactiveSkillIds: [],
       passiveSkillIds,
