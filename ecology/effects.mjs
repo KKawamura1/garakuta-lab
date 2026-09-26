@@ -582,7 +582,7 @@ function afterSkillLevel(rawAmount, ctx) {
 }
 
 function afterRearFalloff(rawAmount, ctx, effect) {
-  if (effect.amount?.scalingStat !== "might") return rawAmount;
+  if (effect.amount?.scalingStat !== "might" || effect.reach !== "melee") return rawAmount;
   const owner = ctx.owner;
   if (!owner || POSITION_ROW[owner.position] !== "rear") return rawAmount;
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
