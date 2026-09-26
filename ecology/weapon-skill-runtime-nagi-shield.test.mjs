@@ -90,6 +90,7 @@ const ENEMY_AREA_ATTACK = {
     scope: "enemies",
     filters: [{ type: "alive" }],
     sort: ["position_asc"],
+    take: "all",
   },
   effects: [{
     ...ENEMY_SINGLE_ATTACK.effects[0],
