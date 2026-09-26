@@ -22,6 +22,54 @@ export const WEAPON_SKILL_KIND_LABELS = Object.freeze({
   passive: "パッシブ",
 });
 
+const CONDITION_LABEL_RULES = Object.freeze([
+  [/反応窓/, "反応窓"],
+  [/(?:攻撃|行動)(?:の)?開始時|攻撃開始時/, "攻撃開始"],
+  [/攻撃後|行動後|攻撃終了後/, "攻撃後"],
+  [/最終hit/, "最終hit"],
+  [/(?:第?1hit|1hit目|初撃).*命中/, "初撃命中"],
+  [/命中/, "命中時"],
+  [/攻撃対象.*(?:時|とき)|狙われ/, "対象時"],
+  [/HPダメージ.*受けた時|被弾/, "被弾時"],
+  [/防壁.*(?:壊|0)|受け構え.*減/, "防御崩し"],
+  [/撃破/, "撃破時"],
+  [/ラウンド.*開始/, "開始時"],
+  [/ラウンド.*終了/, "終了時"],
+  [/付与.*(?:時|たび)/, "付与時"],
+  [/解除.*(?:時|たび)/, "解除時"],
+]);
+
+export function weaponSkillPrototypeSignals(node) {
+  const contract = String(node?.implementationContract ?? "");
+  const firstSentence = contract.split("。", 1)[0].trim();
+  const costs = [];
+  const seen = new Set();
+  for (const match of contract.matchAll(/\b(AP|RP|HP)\s*(\d+)(?=\s*(?:を(?:一度)?(?:追加)?(?:消費|支払|払)|で))/g)) {
+    const label = `${match[1]}${match[2]}`;
+    if (!seen.has(label)) {
+      seen.add(label);
+      costs.push(label);
+    }
+  }
+
+  const hasTriggerLanguage = /(?:時|とき|場合|たび|につき|反応窓|直後|攻撃後|行動後)/.test(firstSentence);
+  const shouldShowCondition = node?.kind === "reactive"
+    || ((node?.kind === "passive" || node?.kind === "target") && hasTriggerLanguage);
+  let condition = null;
+  if (shouldShowCondition && firstSentence) {
+    const rule = CONDITION_LABEL_RULES.find(([pattern]) => pattern.test(firstSentence));
+    condition = Object.freeze({
+      label: rule?.[1] ?? "条件",
+      detail: firstSentence,
+    });
+  }
+
+  return Object.freeze({
+    condition,
+    costs: Object.freeze(costs),
+  });
+}
+
 const POSITIONS = Object.freeze({
   root: ["R"],
   A: ["A1", "A2", "A3"],
