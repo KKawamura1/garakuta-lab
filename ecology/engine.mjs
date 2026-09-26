@@ -1321,6 +1321,9 @@ function performAction(state, actor, choice) {
       state.parentEventId = previousParent;
     }
 
+    // Action-effect after-reactions belong to the action, so they complete
+    // before action_resolved opens the action-end reaction window.
+    drainAfterQueue(state);
     emit(state, {
       type: "action_resolved",
       sourceActorId: actor.instanceId,
@@ -1330,6 +1333,8 @@ function performAction(state, actor, choice) {
       tags: skill.tags,
       values: { targetCount: frame.targetActorIds.length },
     });
+    // Reactions raised by action_resolved are the final part of this action.
+    drainAfterQueue(state);
   } finally {
     state.currentPendingAction = null;
   }
