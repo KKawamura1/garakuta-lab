@@ -34,6 +34,29 @@ assert.equal(registry.entries["long_spear:A1"].definition.displayName, "遠間�
 
 const SPEAR_R = weaponSkillRuntimeId("long_spear:R");
 const SPEAR_A1 = weaponSkillRuntimeId("long_spear:A1");
+const MELEE_PROBE = {
+  id: "stage5d_rear_melee_probe",
+  displayName: "rear melee falloff probe",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 11_000 },
+    hitCount: 1,
+    reach: "melee",
+    tags: ["attack", "weapon"],
+  }],
+  tags: ["attack", "weapon"],
+};
+
 const SEQUENCE_PROBE = {
   id: "stage5d_distance_sequence_probe",
   displayName: "three-hit distance probe",
@@ -117,6 +140,13 @@ assert.equal(farHit.values.distance, 2,
   "distance uses the row and column of the two board positions");
 assert.equal(farHit.values.amount, 110,
   "the long spear keeps its 110% Might strike at long range");
+
+const rearMelee = run(MELEE_PROBE.id, "rear_center", "front_right", {
+  extraActiveSkills: { [MELEE_PROBE.id]: MELEE_PROBE },
+});
+const rearMeleeHit = proposals(rearMelee, MELEE_PROBE.id)[0];
+assert.equal(rearMeleeHit.values.amount, 44,
+  "rear melee keeps its 40% falloff while long-reach attacks do not");
 
 const farBoosted = run(SPEAR_R, "rear_center", "front_right", {
   passiveSkillIds: [SPEAR_A1],
