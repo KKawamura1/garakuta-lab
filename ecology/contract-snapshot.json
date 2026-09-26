@@ -14548,18 +14548,6 @@
      "debuff"
     ]
    },
-   "ultimate_spent": {
-    "id": "ultimate_spent",
-    "displayName": "必殺",
-    "polarity": "neutral",
-    "maxStacks": 1,
-    "duration": "battle",
-    "rules": [],
-    "tags": [
-     "playable",
-     "mark"
-    ]
-   },
    "lured": {
     "id": "lured",
     "displayName": "誘引",
@@ -14644,6 +14632,18 @@
     "tags": [
      "playable",
      "guard"
+    ]
+   },
+   "ultimate_spent": {
+    "id": "ultimate_spent",
+    "displayName": "必殺",
+    "polarity": "neutral",
+    "maxStacks": 1,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark"
     ]
    }
   },
@@ -16052,8 +16052,8 @@
   "staggered": "怯み",
   "warded": "守勢",
   "bleeding": "裂傷",
-  "ultimate_spent": "必殺",
   "lured": "誘引",
+  "ultimate_spent": "必殺",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
   "still_husk": "動かない灰殻",
