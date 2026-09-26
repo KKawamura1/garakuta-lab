@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0・Stage 1・Stage 2
 
-更新日: 2026-09-25  
-状態: **Stage 0・Stage 1完了。Stage 2（共通解決順とActionPlan）の実装完了。PR #299 → #300 → #301 の順で積んであり、各PRは前段のbranchをbaseにする。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、PR #295で同一効果列に含まれる複数の直接ダメージを一つのActionPlanへ束ねた。PR #296で対象前の移動反応を解決順へ接続し、移動後に対象を再選択した。PR #297では対象選択後のafter反応を先に完了し、最終対象・行動者の生存・APを再確認してから、主効果とActionPlan固定の前に攻撃開始時のinterruptを解決した。PR #298で単体攻撃の副対象拡張反応を主行動のActionPlanへ接続した。PR #299で追加hit/RPを統合し、PR #300で防御崩しと各hit後の反応を次hitの前に解決する。PR #301で主効果のafter反応と `action_resolved` の境界を閉じる。武器別player registry、未実装技能の取得制御、ロードアウト・進行・UI切替、190節の実装は依存順序表の後続段階。
+更新日: 2026-09-26  
+状態: **Stage 0・Stage 1完了。Stage 2（共通解決順とActionPlan）はdevで完了。#299〜#302の変更を#303で統合し、#304で最後の防御崩し反応窓を追加した。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、PR #295で同一効果列に含まれる複数の直接ダメージを一つのActionPlanへ束ねた。PR #296で対象前の移動反応を解決順へ接続し、移動後に対象を再選択した。PR #297では対象選択後のafter反応を先に完了し、最終対象・行動者の生存・APを再確認してから、主効果とActionPlan固定の前に攻撃開始時のinterruptを解決した。PR #298で単体攻撃の副対象拡張反応を主行動のActionPlanへ接続した。PR #299で追加hit/RPを統合し、PR #300で防御崩しと各hit後の反応を次hitの前に解決する。PR #301で主効果のafter反応と `action_resolved` の境界を閉じる。PR #302で新武器技能の個別レベル廃止と旧level依存の切替条件を記録し、PR #303で#300〜#302をdevへ統合した。PR #304で監査項目6aの攻撃前防御崩しを実装し、7bのhit後防御崩しと `defense_reduced` 反応窓を共有した。武器別player registry、未実装技能の取得制御、ロードアウト・進行・UI切替、190節の実装は依存順序表の後続段階。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -98,4 +98,10 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] action effect・準備開始が発生させたafter反応を `action_resolved` より先に完了し、そのイベント固有のafter反応をaction end処理として最後に行う。順序を `ecology/engine.test.mjs` のevent traceで固定する。
 - [x] PR #295のActionPlan基礎でPR #293の単独の効果単位計画を包含し、PR #293をsupersededとして閉じた。別系統の計画は並行して残さない。
 
-Stage 2の共通解決順は完了。PRは #299 → #300 → #301 の依存順でレビュー・統合する。以降は依存順序表のStage 3〜7（ロードアウトと取得・UI・本体切替・残り170節・最終統合）へ進み、各境界を個別PRと同じsimulation/replay経路で検証する。
+- [x] PR #302で、新しい武器技能に個別レベルを設けない方針と、旧runtimeの `skillLevels` / `afterSkillLevel` 依存を新runtimeへ持ち込まない切替条件を台帳に記録した。
+- [x] PR #303で、すでにdevにあったPR #299の後ろへPR #300〜#302の累積差分を統合した。
+- [x] PR #304で監査項目6a「攻撃前防御崩し→反応→ダメージ」を実装した。`reduce_defenses` で防壁の割合減少・受け構えの全解除を扱い、防御が減った対象ごとに一度 `defense_reduced` を発生させ、次の対象・効果へ進む前に反応を解決する。防壁解除はdamage/hitとして記録しない。hit後の7bも同じ反応窓を使い、受け構えが減った時または防壁が0になった時に反応する。反応で得た状態は以後の未処理hitに適用する。
+
+Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行してdevへマージ済みで、PR #300〜#302は [PR #303](https://github.com/KKawamura1/garakuta-lab/pull/303) で統合、最後の防御崩し窓は [PR #304](https://github.com/KKawamura1/garakuta-lab/pull/304) で追加された。devの統合commitは `0341d850655b5b99bf1671e107881c787bba8754`。このcommitの [Current implementation checks](https://github.com/KKawamura1/garakuta-lab/actions/runs/36208047199) と [deployed expedition trial](https://github.com/KKawamura1/garakuta-lab/actions/runs/36208047165) はsuccess。
+
+以降は依存順序表のStage 3〜7（ロードアウトと取得・UI・本体切替・残り170節・最終統合）へ進み、各境界を個別PRと同じsimulation/replay経路で検証する。
