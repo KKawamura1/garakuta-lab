@@ -582,7 +582,7 @@ function afterSkillLevel(rawAmount, ctx) {
 }
 
 function afterRearFalloff(rawAmount, ctx, effect) {
-  if (effect.amount?.scalingStat !== "might") return rawAmount;
+  if (effect.amount?.scalingStat !== "might" || effect.reach !== "melee") return rawAmount;
   const owner = ctx.owner;
   if (!owner || POSITION_ROW[owner.position] !== "rear") return rawAmount;
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
@@ -741,6 +741,13 @@ function addActionDamage(rt, ctx) {
   window.frame.actionDamageExpansion = ctx.preparedActionDamage;
 }
 
+function gridDistance(from, to) {
+  const rowDistance = POSITION_ROW[from.position] === POSITION_ROW[to.position] ? 0 : 1;
+  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[from.position]);
+  const toColumn = COLUMNS.indexOf(POSITION_COLUMN[to.position]);
+  return rowDistance + Math.abs(fromColumn - toColumn);
+}
+
 function dealOneInstance(
   rt,
   ctx,
@@ -771,6 +778,7 @@ function dealOneInstance(
         amount: proposed,
         hitIndex,
         hitCount,
+        ...(ctx.owner ? { distance: gridDistance(ctx.owner, target) } : {}),
         ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
       },
     },
