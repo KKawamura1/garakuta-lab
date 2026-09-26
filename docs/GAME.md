@@ -364,7 +364,7 @@ Stage 0 を初めて遊ぶときだけ、**本当に負ける配置**で始ま�
 
 予測が完全なので、組み替えの自由度を二つに分けてあります。
 
-このdevブランチの現行runtimeは引き続き従来の技能pack/level方式を使う。移行用の `ecology/content/weapon-skill-bindings.mjs` はPR #288由来のID・前提と監査状態を記録するだけで、runtimeから参照されず、戦闘や取得可能な技能を変えない。`ecology/weapon-loadout.mjs` と `ecology/weapon-progression.mjs` は新しいロードアウト・取得状態の契約だけを定義しており、現行の戦闘・保存・画面・Manifestにはまだ接続されていない。未監査節の対応や旧treeの種別も、新しいゲーム仕様としては扱わない。
+このdevブランチの現行runtimeは引き続き従来の技能pack/level方式を使う。移行用の `ecology/content/weapon-skill-bindings.mjs` はPR #288由来のID・前提と監査状態を記録するだけで、runtimeから参照されず、戦闘や取得可能な技能を変えない。`ecology/weapon-loadout.mjs`、`ecology/weapon-progression.mjs`、`ecology/weapon-pack-manifest.mjs` は新しいロードアウト・取得・skill packとequipment packの境界だけを定義しており、現行の戦闘・保存・画面・Manifestにはまだ接続されていない。未監査節の対応や旧treeの種別も、新しいゲーム仕様としては扱わない。
 
 - **技能** … 一度取得した技能は忘れられず、使った技能点も戻りません。技能枠に上限は
   無いので、**取得した技能はその場で装着され、すぐ回り始めます**（取得と装着は別の手順では
