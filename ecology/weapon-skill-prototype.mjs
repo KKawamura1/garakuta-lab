@@ -1,6 +1,12 @@
 import { WEAPON_SKILL_SPECIFICATIONS } from "./content/weapon-specifications.mjs";
 import { weaponSkillNodeKey } from "./weapon-loadout.mjs";
-import { weaponSkillPrerequisiteKeys } from "./weapon-progression.mjs";
+import {
+  cancelWeaponSkillReservation,
+  freshWeaponSkillProgression,
+  grantWeaponSkillPointsForClear,
+  reserveWeaponSkill,
+  weaponSkillPrerequisiteKeys,
+} from "./weapon-progression.mjs";
 import {
   addWeaponPrioritySkill,
   freshWeaponSkillLoadout,
@@ -74,6 +80,7 @@ export function weaponSkillPrototypeSignals(node) {
     costs: Object.freeze(costs),
   });
 }
+
 
 
 const POSITIONS = Object.freeze({
@@ -163,4 +170,68 @@ export function createWeaponSkillLoadoutPrototypeFixture(weaponId = "warhammer")
     targetNodes: byKind("target"),
     passiveNodes: byKind("passive"),
   };
+}
+
+export function createWeaponSkillReservationPrototypeFixture(weaponId = "warhammer") {
+  const nodes = listWeaponSkillPrototypeNodes(weaponId);
+  const availableSkillNodeKeys = new Set(nodes.map((node) => node.key));
+  const characterId = "prototype-character";
+  const startingSkillKeys = [weaponSkillNodeKey(weaponId, "R"), weaponSkillNodeKey(weaponId, "A1")];
+  return {
+    characterId,
+    weaponId,
+    availableSkillNodeKeys,
+    startingSkillKeys,
+    rewardCount: 0,
+    targetKey: weaponSkillNodeKey(weaponId, "AA1"),
+    progression: freshWeaponSkillProgression([characterId], {
+      startingSkillKeysByCharacter: { [characterId]: startingSkillKeys },
+      startingSkillPointsByCharacter: 0,
+      availableSkillNodeKeys,
+    }),
+  };
+}
+
+export function reserveWeaponSkillPrototypeTarget(fixture, skillKey) {
+  const result = reserveWeaponSkill(
+    fixture.progression,
+    fixture.characterId,
+    skillKey,
+    fixture.availableSkillNodeKeys,
+  );
+  return result.ok
+    ? { ok: true, fixture: { ...fixture, progression: result.progression, targetKey: skillKey }, result }
+    : { ok: false, fixture, result };
+}
+
+export function grantWeaponSkillPrototypePoint(fixture) {
+  const clearKey = `prototype-clear-${fixture.rewardCount + 1}`;
+  const result = grantWeaponSkillPointsForClear(
+    fixture.progression,
+    clearKey,
+    1,
+    fixture.availableSkillNodeKeys,
+  );
+  return result.ok
+    ? { ok: true, fixture: { ...fixture, progression: result.progression, rewardCount: fixture.rewardCount + 1 }, result }
+    : { ok: false, fixture, result };
+}
+
+export function cancelWeaponSkillPrototypeTarget(fixture) {
+  const result = cancelWeaponSkillReservation(fixture.progression, fixture.characterId);
+  return result.ok
+    ? { ok: true, fixture: { ...fixture, progression: result.progression }, result }
+    : { ok: false, fixture, result };
+}
+
+export function getWeaponSkillPrototypePrerequisiteChain(skillKey) {
+  if (!SPECIFICATION_BY_KEY.has(skillKey)) return [];
+  const chain = [];
+  let current = skillKey;
+  while (current) {
+    if (chain.includes(current)) throw new Error(`武器技能前提に循環があります: ${skillKey}`);
+    chain.unshift(current);
+    current = weaponSkillPrerequisiteKeys(current)?.[0] ?? null;
+  }
+  return chain.map((key) => getWeaponSkillPrototypeNode(key));
 }
