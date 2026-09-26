@@ -1,7 +1,7 @@
 # Stage 5 — 本編runtime切替
 
 更新日: 2026-09-26  
-状態: Stage 5aのruntime registry境界、Stage 5bのゴウ4節、Stage 5cのツグミ4節、Stage 5dのナギ4節、Stage 5eのヒバナ鉤縄・双刃R/A1をPRスタックで実装中。初期20節の16節がruntime定義済みで、本編切替は未完了。
+状態: Stage 5a〜5fで初期20節のruntime定義をPRスタックへ実装済み。新RunからのBattleInput、本編UI・保存、切替は未完了。
 
 ## 現状と目的
 

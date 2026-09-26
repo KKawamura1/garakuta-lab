@@ -549,6 +549,7 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.resource`, effect.resource, RESOURCE_NAMES, "unknown_resource");
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "add_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);

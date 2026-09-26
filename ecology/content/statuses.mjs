@@ -35,6 +35,7 @@ export const STATUS_NAMES = {
   lured: "誘引",
   bleeding: "裂傷",
   ultimate_spent: "必殺",
+  banner_order_used: "号令済み",
 };
 
 const statuses = renamed("statuses", STATUS_NAMES);
@@ -257,6 +258,18 @@ statuses.ultimate_spent = {
   tags: ["playable", "mark"],
 };
 
+// Stage 5f — a banner bearer may give an ally an action point once per round.
+// This marker carries only that round's use; it is not a combat buff.
+statuses.banner_order_used = {
+  id: "banner_order_used",
+  displayName: STATUS_NAMES.banner_order_used,
+  polarity: "neutral",
+  maxStacks: 1,
+  duration: "round",
+  rules: [],
+  tags: ["playable", "mark"],
+};
+
 export const STATUSES = statuses;
 
 // ---------------------------------------------------------------- 画面へ出す説明（issue #176）
@@ -276,6 +289,7 @@ const STATUS_SUMMARIES = {
   lured: "次に味方へ向かう敵の単体攻撃を自分へ引き受け、1段消費する。範囲攻撃と自分が元から対象の攻撃では消費しない。",
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
+  banner_order_used: "このラウンドに号旗のAP付与主軸を使用した印。次のラウンド開始時に消える。",
 };
 
 const DURATION_TEXT = { round: "次のラウンド開始時に消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };

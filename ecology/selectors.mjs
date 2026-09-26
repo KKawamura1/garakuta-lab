@@ -96,6 +96,8 @@ function sortValue(actor, sortType, ctx) {
     case "hp_percent_desc": return -hpPercentBps(actor);
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
+    case "action_points_asc": return actor.actionPoints;
+    case "is_preparing_desc": return actor.preparation ? 0 : 1;
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
     case "distance_asc": return ctx.owner ? gridDistance(ctx.owner, actor) : 0;
@@ -130,4 +132,3 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   });
   return query.take === 1 ? sorted.slice(0, 1) : sorted;
 }
-

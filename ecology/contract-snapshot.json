@@ -14645,6 +14645,18 @@
      "playable",
      "mark"
     ]
+   },
+   "banner_order_used": {
+    "id": "banner_order_used",
+    "displayName": "号令済み",
+    "polarity": "neutral",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark"
+    ]
    }
   },
   "enemyActors": {
@@ -16054,6 +16066,7 @@
   "bleeding": "裂傷",
   "lured": "誘引",
   "ultimate_spent": "必殺",
+  "banner_order_used": "号令済み",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
   "still_husk": "動かない灰殻",
