@@ -1197,7 +1197,10 @@ function performAction(state, actor, choice) {
         sourceDefinitionId: actor.definitionId,
         skillId: skill.id,
         tags: skill.tags,
-        values: { targetCount: frame.targetActorIds.length },
+        values: {
+          targetCount: frame.targetActorIds.length,
+          singleTarget: skill.targetQuery.take === 1,
+        },
       },
       frame,
     );
