@@ -30,6 +30,7 @@ smokes=(
   analysis/ecology-skill-catalog-smoke.mjs
   analysis/ecology-canonical-numbers-smoke.mjs
   analysis/ecology-skill-tree-smoke.mjs
+  analysis/weapon-skill-prototype-ui-smoke.mjs
   analysis/ecology-ultimate-smoke.mjs
   analysis/ecology-enemy-tactics-smoke.mjs
   analysis/ecology-stage3-builds.mjs
