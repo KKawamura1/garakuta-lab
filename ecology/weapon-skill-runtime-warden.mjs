@@ -79,7 +79,7 @@ export const WARDEN_STARTER_WEAPON_SKILL_NODE_KEYS = Object.freeze([
 
 export const WARDEN_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY = makeWeaponSkillRuntimeRegistry({
   "warhammer:R": activeSkill("warhammer:R", "槌打ち", 10_000),
-  "warhammer:A1": passiveSkill("warhammer:A1", "重い頭", [1], 15),
+  "warhammer:A1": passiveSkill("warhammer:A1", "重い頭", [0], 15),
   "gauntlets:R": activeSkill("gauntlets:R", "正拳", 9_000),
-  "gauntlets:A1": passiveSkill("gauntlets:A1", "握り込み", [2, 3, 4, 5, 6, 7, 8], 10),
+  "gauntlets:A1": passiveSkill("gauntlets:A1", "握り込み", [1, 2, 3, 4, 5, 6, 7], 10),
 });
