@@ -1,7 +1,7 @@
 # Stage 5 — 本編runtime切替
 
 更新日: 2026-09-26  
-状態: Stage 5a〜5fで初期20節のruntime定義をPRスタックへ実装済み。新RunからのBattleInput、本編UI・保存、切替は未完了。
+状態: Stage 5a〜5gで初期20節のruntime定義と新Run→BattleInput経路をPRスタックへ実装済み。本編UI・保存接続、切替は未完了。
 
 ## 現状と目的
 
@@ -42,7 +42,7 @@ Stage 5の目的は、新しい武器技能を本編の取得・編成・戦闘�
 2. **Stage 5b — ゴウの初期4節。** 戦槌・格闘具のR / A1を新runtime IDで登録し、既存の共通engine bundleへ投影して戦闘イベントで検証する。hit番号ごとのパッシブは該当する一撃だけに発火する。
 3. **Stage 5c — ツグミの初期4節。** 射出器・医療具のR / A1を新runtime IDで登録し、遠隔初撃、低HP割合への防壁、医療具A1の被弾後回復と実損失上限をイベント列で検証する。
 4. **Stage 5d〜5f — ナギ、ヒバナ、ゲンゾウの初期12節。** 各人物の代表武器R / A1を小PRで追加し、初期20節すべての定義を共通engineで確かめる。
-5. **Stage 5g — 新stateからBattleInputを構築。** run・formation・装備・Manifest・取得済み技能・loadoutを検証し、同じengine bundleへ接続する。予測と本番で入力と結果が一致する境界を固定する。
+5. **Stage 5g — 新stateからBattleInputを構築。** run・formation・装備・Manifest・取得済み技能・loadoutを検証し、同じengine bundleへ接続する。予測と本番で入力と結果が一致する境界を固定する。Run v2はformation、装備instanceと耐久、人物ごとの現在HPを保存する。
 6. **Stage 5h — 本編UI・保存接続。** Stage 4で整えた表示を実run stateへ接続し、初期技能、取得、予約、主軸、リアクティブ／ターゲット優先列を保存・再読込する。表示される操作は本編で有効な挙動と対応させる。
 7. **Stage 5i — 本編切替と旧経路撤去。** 新規runの作成から戦闘・予測・replay・セーブ再開までを切り替える。旧player技能registry、旧skill tree / level / skill pack参照は置換範囲の検査後に削除する。敵registryは維持する。
 

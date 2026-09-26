@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0〜5初期進捗
 
 更新日: 2026-09-26  
-状態: **Stage 0〜4完了。Stage 5は実装中。** Stage 0〜4はdevへ統合済み。Stage 5では #319〜#323 の計画・runtime registry境界に続き、#321でゴウ、Stage 5cでツグミ、Stage 5dでナギ、Stage 5eでヒバナ、Stage 5fでゲンゾウの代表武器R / A1を共通engineへ接続する。初期20節の定義は揃ったが、現行BattleInput・画面・保存は未接続。残り170節は本Stageの実行範囲外で、registryの外に保つ。
+状態: **Stage 0〜4完了。Stage 5は実装中。** Stage 0〜4はdevへ統合済み。Stage 5では #319〜#323の計画・runtime registry境界、#321のゴウ、#324のツグミ、#325〜#327のナギ、#328〜#329のヒバナ、#330のゲンゾウに続き、#331で初期20節の新Run→BattleInput adapterを実装する。Run v2には編成、装備instanceと耐久、現在HPを保持する。現行本編UI・save接続・切替は未完了。残り170節は本Stageの実行範囲外で、registryの外に保つ。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -13,7 +13,8 @@
 - Stage 5d: ナギの長槍・大盾のR / A1を登録。長射程攻撃、距離2以上の各hit強化、誘引による単体攻撃の対象変更、防壁受け手への+15を共有engineで検証。
 - Stage 5e: ヒバナの鉤縄・双刃R / A1を登録。鉤縄の最短敵選択・1マス引きと塞がれた移動先での全hit +15、双刃の2hit攻撃と武器不問の全hit +10を共有engineで検証。
 - Stage 5f: ゲンゾウの号旗・重弩R / A1を登録。号令の最小AP・準備中優先、号旗主軸のラウンド制限、声を通すの対象限定、装填射の準備後ダメージと武器不問+20を共有engineで検証。
-- 未完了: run stateからBattleInputを作る経路、本編UI、save/reload、preview/replay、本編runtimeの切替。初期20節以外はregistryで拒否する。
+- Stage 5g: 5人のengine actor IDと4節ずつの初期取得を対応づけるregistry aggregatorを追加。Run v2のformation・装備instance/耐久・現在HPと、Manifest・取得済みnode・primary/reactive loadoutからBattleInputを作り、content / input validationを通す。初期20以外の取得済みnodeとtarget優先列はBattleInput境界で拒否し、本番・forecastを同じsimulateBattle経路へ揃えた。
+- 未完了: 本編UI、save/reload接続、live Runへのpreview/replay統合、本編runtimeの切替と旧player経路の撤去。初期20節以外は取得操作からも実装registryで拒否する。
 
 ## 基準スナップショット
 
