@@ -2,6 +2,7 @@ import {
   WEAPON_SKILL_PROTOTYPE_WEAPONS,
   WEAPON_SKILL_KIND_LABELS,
   buildWeaponSkillPrototypeTree,
+  createWeaponSkillForecastPrototypeReadout,
   createWeaponSkillLoadoutPrototypeFixture,
   createWeaponSkillReservationPrototypeFixture,
   cancelWeaponSkillPrototypeTarget,
@@ -34,6 +35,8 @@ const loadoutScreen = document.querySelector("#loadout-screen");
 const loadoutContent = document.querySelector("#loadout-content");
 const reservationScreen = document.querySelector("#reservation-screen");
 const reservationContent = document.querySelector("#reservation-content");
+const forecastScreen = document.querySelector("#forecast-screen");
+const forecastContent = document.querySelector("#forecast-content");
 const weaponTabs = document.querySelector("#weapon-tabs");
 const treeControls = document.querySelector("#tree-controls");
 const tree = document.querySelector("#skill-tree");
@@ -377,6 +380,41 @@ function renderReservation() {
   </div>`;
 }
 
+function renderForecast() {
+  const forecast = createWeaponSkillForecastPrototypeReadout();
+  const metrics = [
+    ["勝敗", forecast.result],
+    ["ラウンド", forecast.roundsUsed],
+    ["味方HP損失", forecast.allyHpLost],
+    ["敵HP損失", forecast.enemyHpLost],
+  ];
+  forecastContent.innerHTML = `<div class="forecast-page">
+    <section class="card">
+      <div class="loadout-title"><div><p class="eyebrow">BATTLE FORECAST</p><h2>戦闘予測</h2></div><span class="demo-mark">表示枠のみ</span></div>
+      <div class="forecast-status"><b>新武器技能の試映</b><span>${forecast.connected ? "接続済み" : "未接続"}</span></div>
+      <p class="forecast-copy">仮の勝敗・ラウンド・HP値は表示しません。本番と同じengine event列につながるまで予測値は空欄です。</p>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="forecast-output-title">
+      <h3 id="forecast-output-title">投影される読み値</h3>
+      <p class="section-note">engine接続後に表示</p>
+      <div class="forecast-metrics">${metrics.map(([label, value]) => `<div class="forecast-metric"><span>${escapeHtml(label)}</span><b>${value === null ? "—" : escapeHtml(value)}</b></div>`).join("")}</div>
+    </section>
+
+    <section class="card loadout-section" aria-labelledby="forecast-input-title">
+      <h3 id="forecast-input-title">予測につなぐ境界</h3>
+      <p class="section-note">本編とは別の予測経路を作らない</p>
+      <ul class="forecast-boundaries">
+        <li class="forecast-boundary"><b>Manifest / Run</b><span>新しい保存契約に未接続</span></li>
+        <li class="forecast-boundary"><b>BattleInput</b><span>新ロードアウトに未接続</span></li>
+        <li class="forecast-boundary"><b>試映と実戦</b><span>同じengine event列を使用</span></li>
+      </ul>
+    </section>
+
+    <button class="forecast-action" type="button" disabled aria-label="新武器技能の試映はengine接続後に利用できます">試映 · engine接続後</button>
+  </div>`;
+}
+
 function renderScreenNavigation() {
   for (const tab of screenTabs.querySelectorAll("[data-screen]")) {
     const selected = tab.dataset.screen === state.screen;
@@ -386,6 +424,7 @@ function renderScreenNavigation() {
   treeScreen.hidden = state.screen !== "tree";
   loadoutScreen.hidden = state.screen !== "loadout";
   reservationScreen.hidden = state.screen !== "reservation";
+  forecastScreen.hidden = state.screen !== "forecast";
 }
 
 function render() {
@@ -396,8 +435,10 @@ function render() {
     renderTree();
   } else if (state.screen === "loadout") {
     renderLoadout();
-  } else {
+  } else if (state.screen === "reservation") {
     renderReservation();
+  } else {
+    renderForecast();
   }
 }
 

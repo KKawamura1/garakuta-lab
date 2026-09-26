@@ -118,7 +118,7 @@ h3 { margin: 0; font-size: 13px; }
 
 .screen-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 5px;
   margin: 0 0 12px;
   padding: 4px;
@@ -265,6 +265,53 @@ h3 { margin: 0; font-size: 13px; }
 .reservation-step.is-through { border-color: rgba(145, 203, 213, .36); }
 .reservation-arrow { color: #7d9290; font-size: 11px; text-align: center; }
 .reservation-hint { margin: 8px 0 0; color: var(--muted); font-size: 10px; }
+
+.forecast-page { display: grid; gap: 12px; }
+.forecast-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(229, 162, 107, .45);
+  border-radius: 12px;
+  background: rgba(229, 162, 107, .07);
+}
+.forecast-status b { font-size: 13px; }
+.forecast-status span { color: var(--orange); font-size: 10px; font-weight: 800; }
+.forecast-copy { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.forecast-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.forecast-metric {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #151f21;
+}
+.forecast-metric span { display: block; color: var(--muted); font-size: 10px; }
+.forecast-metric b { display: block; margin-top: 4px; color: #879692; font-size: 14px; }
+.forecast-boundaries { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.forecast-boundary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #151f21;
+  font-size: 11px;
+}
+.forecast-boundary span { color: var(--muted); text-align: right; }
+.forecast-action {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #293638;
+  font-weight: 800;
+}
+.forecast-action:disabled { opacity: .55; cursor: default; }
 
 .picker { margin-bottom: 10px; }
 .picker-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }

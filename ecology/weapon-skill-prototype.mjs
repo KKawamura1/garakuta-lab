@@ -83,6 +83,7 @@ export function weaponSkillPrototypeSignals(node) {
 
 
 
+
 const POSITIONS = Object.freeze({
   root: ["R"],
   A: ["A1", "A2", "A3"],
@@ -234,4 +235,14 @@ export function getWeaponSkillPrototypePrerequisiteChain(skillKey) {
     current = weaponSkillPrerequisiteKeys(current)?.[0] ?? null;
   }
   return chain.map((key) => getWeaponSkillPrototypeNode(key));
+}
+
+export function createWeaponSkillForecastPrototypeReadout() {
+  return Object.freeze({
+    connected: false,
+    result: null,
+    roundsUsed: null,
+    allyHpLost: null,
+    enemyHpLost: null,
+  });
 }
