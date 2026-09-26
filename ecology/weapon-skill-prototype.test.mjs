@@ -4,8 +4,12 @@ import {
   WEAPON_SKILL_PROTOTYPE_WEAPONS,
   buildWeaponSkillPrototypeTree,
   createWeaponSkillLoadoutPrototypeFixture,
+  createWeaponSkillReservationPrototypeFixture,
   getWeaponSkillPrototypeNode,
+  getWeaponSkillPrototypePrerequisiteChain,
+  grantWeaponSkillPrototypePoint,
   listWeaponSkillPrototypeNodes,
+  reserveWeaponSkillPrototypeTarget,
 } from "./weapon-skill-prototype.mjs";
 
 assert.equal(WEAPON_SKILL_PROTOTYPE_WEAPONS.length, 10);
@@ -43,4 +47,22 @@ assert.equal(loadoutFixture.loadout.primarySkillByCharacter[characterId], "warha
 assert.deepEqual(loadoutFixture.loadout.reactivePriorityByCharacter[characterId], ["warhammer:A2", "warhammer:AB1"]);
 assert.deepEqual(loadoutFixture.loadout.targetPriorityByCharacter[characterId], ["warhammer:B1"]);
 assert.equal("passiveByCharacter" in loadoutFixture.loadout, false, "passives do not have a per-skill equipment list");
+
+let reservationFixture = createWeaponSkillReservationPrototypeFixture("warhammer");
+assert.deepEqual(getWeaponSkillPrototypePrerequisiteChain("warhammer:AA1").map((node) => node.position), ["R", "A1", "A2", "A3", "AA1"]);
+const reservation = reserveWeaponSkillPrototypeTarget(reservationFixture, "warhammer:AA1");
+assert.equal(reservation.ok, true);
+reservationFixture = reservation.fixture;
+assert.equal(reservationFixture.progression.skillReservationByCharacter[reservationFixture.characterId], "warhammer:AA1");
+for (let index = 0; index < 3; index += 1) {
+  const point = grantWeaponSkillPrototypePoint(reservationFixture);
+  assert.equal(point.ok, true);
+  reservationFixture = point.fixture;
+}
+assert.deepEqual(
+  reservationFixture.progression.unlockedSkillKeysByCharacter[reservationFixture.characterId],
+  ["warhammer:R", "warhammer:A1", "warhammer:A2", "warhammer:A3", "warhammer:AA1"],
+);
+assert.equal(reservationFixture.progression.skillReservationByCharacter[reservationFixture.characterId], null);
+assert.ok(listWeaponSkillPrototypeNodes("warhammer").every((node) => node.canAcquire === false));
 console.log("weapon skill prototype: all catalogue nodes remain view-only until runtime support exists");
