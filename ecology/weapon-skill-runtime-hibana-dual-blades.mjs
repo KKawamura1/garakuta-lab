@@ -1,4 +1,5 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 
 const CLOSEST_ENEMY = {
   scope: "enemies",
@@ -44,7 +45,7 @@ function twinSlash() {
 
 function twoHitDamageBonus() {
   const id = weaponSkillRuntimeId("dual_blades:A1");
-  const rules = Array.from({ length: 31 }, (_, hitIndex) => ({
+  const rules = Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, hitIndex) => ({
     id: id + ".two_hit_attack_hit_" + hitIndex,
     listenTo: "damage_proposed",
     timing: "interrupt",
