@@ -1,14 +1,14 @@
-// Stage 6a — exact executable set: Stage 5's starter twenty plus the first
-// warhammer A2/A3 pair. Unmigrated catalog entries stay fail-closed.
+// Stage 6 — exact executable set: Stage 5's starter twenty plus the complete
+// warhammer track. Unmigrated catalog entries stay fail-closed.
 
 import { STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS, makeWeaponSkillRuntimeRegistry } from "./weapon-skill-runtime.mjs";
 import { STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage5.mjs";
-import { STAGE_6A_WARHAMMER_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-warhammer.mjs";
+import { STAGE_6_WARHAMMER_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-warhammer.mjs";
 
 const definitions = {};
 for (const registry of [
   STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
-  STAGE_6A_WARHAMMER_SKILL_RUNTIME_REGISTRY,
+  STAGE_6_WARHAMMER_SKILL_RUNTIME_REGISTRY,
 ]) {
   for (const entry of Object.values(registry.entries)) {
     if (Object.hasOwn(definitions, entry.nodeKey)) {

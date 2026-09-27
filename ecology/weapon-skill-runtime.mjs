@@ -25,6 +25,11 @@ export const STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS = Object.freeze([
   ...STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
   "warhammer:A2",
   "warhammer:A3",
+  "warhammer:AA1", "warhammer:AA2", "warhammer:AA3",
+  "warhammer:AB1", "warhammer:AB2", "warhammer:AB3",
+  "warhammer:B1", "warhammer:B2", "warhammer:B3",
+  "warhammer:BA1", "warhammer:BA2", "warhammer:BA3",
+  "warhammer:BB1", "warhammer:BB2", "warhammer:BB3",
 ]);
 const IMPLEMENTED_NODE_KEY_SET = new Set(STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS);
 
@@ -282,9 +287,9 @@ const RUNTIME_CONTENT_SECTION_BY_KIND = Object.freeze({
   passive: "passiveSkills",
 });
 
-// Stage 5 adapter: materialize registered definitions through the existing
-// battle engine's player content sections. Target-priority nodes stay outside
-// this adapter until the new BattleInput builder owns their selection semantics.
+// Materialize action and reaction definitions through the engine's content
+// sections. Target-priority nodes remain in the versioned registry and are
+// applied by the BattleInput builder to each character's selected main skill.
 export function compileWeaponSkillRuntimeContent(contentBundle, registry) {
   const validation = validateWeaponSkillRuntimeRegistry(registry);
   if (!validation.valid) {
@@ -297,6 +302,7 @@ export function compileWeaponSkillRuntimeContent(contentBundle, registry) {
   const next = { ...contentBundle };
   const projectedSections = {};
   for (const [nodeKey, entry] of Object.entries(registry.entries)) {
+    if (entry.kind === "target") continue;
     const section = RUNTIME_CONTENT_SECTION_BY_KIND[entry.kind];
     if (!section) {
       throw new TypeError("runtime node kind cannot be projected to engine content yet: " + entry.kind);

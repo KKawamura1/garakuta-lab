@@ -55,10 +55,8 @@ function checkedRun(run, profile, registry) {
     for (const key of run.loadout.reactivePriorityByCharacter[characterId]) {
       if (!executable.has(key)) throw new TypeError(`未実装のreactive技能は装備できません: ${characterId}.${key}`);
     }
-    // Initial R/A1 has no target-priority node. Keep the save vocabulary for
-    // later stages, but fail closed until a target node has engine semantics.
-    if (run.loadout.targetPriorityByCharacter[characterId].length) {
-      throw new TypeError(`Stage 5初期範囲ではtarget優先列を実行できません: ${characterId}`);
+    for (const key of run.loadout.targetPriorityByCharacter[characterId]) {
+      if (!executable.has(key)) throw new TypeError(`未実装のtarget技能は装備できません: ${characterId}.${key}`);
     }
   }
   return executable;
@@ -99,6 +97,36 @@ function newRunPrimaryAndPassives(run, characterId) {
   return { activeSkillId, passiveSkillIds, reactiveSkillIds };
 }
 
+function withTargetPriority(content, characterId, targetNodeKeys, activeSkillIds, runtimeRegistry) {
+  if (targetNodeKeys.length === 0) return { content, skillIds: activeSkillIds };
+  const prioritySorts = targetNodeKeys.flatMap((nodeKey) => {
+    const query = runtimeRegistry.entries[nodeKey]?.definition?.query;
+    if (!query || query.scope !== "enemies") {
+      throw new TypeError(`target技能のruntime queryがありません: ${characterId}.${nodeKey}`);
+    }
+    return (query.sort ?? []).map((sort) => sort.type ?? sort);
+  });
+  const activeSkills = { ...content.activeSkills };
+  const skillIds = activeSkillIds.map((skillId) => {
+    const source = activeSkills[skillId];
+    if (!source?.targetQuery) throw new TypeError(`target優先を適用できるactive技能がありません: ${skillId}`);
+    const targetedId = `${skillId}.target_${characterId}`;
+    activeSkills[targetedId] = {
+      ...source,
+      id: targetedId,
+      targetQuery: {
+        ...source.targetQuery,
+        sort: [...prioritySorts, ...(source.targetQuery.sort ?? []).map((sort) => sort.type ?? sort)],
+      },
+    };
+    return targetedId;
+  });
+  return {
+    content: Object.freeze({ ...content, activeSkills: Object.freeze(activeSkills) }),
+    skillIds,
+  };
+}
+
 export function buildWeaponBattleInput({
   run,
   profile,
@@ -122,10 +150,31 @@ export function buildWeaponBattleInput({
     return [[characterId, candidate]];
   }));
   const compiledBaseContent = compileWeaponSkillRuntimeContent(contentBundle, runtimeRegistry);
-  const compiledContent = withUltimates(
+  let compiledContent = withUltimates(
     compiledBaseContent,
     Object.values(armedUltimates).map(({ runtimeSkillId }) => runtimeSkillId),
   );
+  const activeSkillIdsByCharacter = {};
+  const ultimateSkillIdsByCharacter = {};
+  for (const characterId of partyCharacterIds) {
+    const primaryId = weaponSkillRuntimeId(run.loadout.primarySkillByCharacter[characterId]);
+    const ultimate = armedUltimates[characterId];
+    const actionSkillIds = [
+      ...(ultimate?.kind === "active" ? [ultimate.ultimateSkillId] : []),
+      primaryId,
+    ];
+    const targeted = withTargetPriority(
+      compiledContent,
+      characterId,
+      run.loadout.targetPriorityByCharacter[characterId],
+      actionSkillIds,
+      runtimeRegistry,
+    );
+    compiledContent = targeted.content;
+    let cursor = 0;
+    if (ultimate?.kind === "active") ultimateSkillIdsByCharacter[characterId] = targeted.skillIds[cursor++];
+    activeSkillIdsByCharacter[characterId] = targeted.skillIds[cursor];
+  }
   const loadout = emptyLegacyLoadout(partyCharacterIds);
   const currentHp = {};
   for (const characterId of partyCharacterIds) {
@@ -170,10 +219,10 @@ export function buildWeaponBattleInput({
     }
     ally.tactics = ultimate?.kind === "active"
       ? [
-        { activeSkillId: ultimate.ultimateSkillId, useWhen: [] },
-        { activeSkillId, useWhen: [] },
+        { activeSkillId: ultimateSkillIdsByCharacter[characterId], useWhen: [] },
+        { activeSkillId: activeSkillIdsByCharacter[characterId], useWhen: [] },
       ]
-      : [{ activeSkillId, useWhen: [] }];
+      : [{ activeSkillId: activeSkillIdsByCharacter[characterId], useWhen: [] }];
     ally.passiveSkillIds = passiveSkillIds;
     ally.reactiveSkillIds = reactiveSkillIds;
     ally.equipment = newRunEquipment(run, characterId, compiledContent).map(({ slot, ...item }) => item);

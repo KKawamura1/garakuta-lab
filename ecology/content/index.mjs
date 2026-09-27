@@ -215,14 +215,15 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // 0.19は公開技能の対象選択を変えた。0.20は敵専用技能を分けてIDをnamespace化し、
   // battle eventのskillId/ruleIdを変えるが、敵の戦闘結果は保つ。
   // PR #327 / Stage 5d で誘引状態の規則と盾のR/A1を追加し、0.21へ上げる。
-// PR #332 / Stage 5 review でhit上限と多段状態の適用範囲を変更し、0.22へ上げる。
+  // PR #332 / Stage 5 review でhit上限と多段状態の適用範囲を変更し、0.22へ上げる。
+  // Stage 6で破甲・堅牢のstatusとラウンド減衰を追加し、0.23へ上げる。
   //
   // 0.19で変わったこと: 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
   //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
   // 以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.19以前のreplay・Blueprint・遠征記録は、このbuildでは技能参照を読み替えない。
-  contentVersion: "ecology-playable-full-0.22",
+  contentVersion: "ecology-playable-full-0.23",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

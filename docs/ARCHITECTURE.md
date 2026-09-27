@@ -33,23 +33,23 @@
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁、必殺印の勘定 |
 | `weapon-loadout.mjs` | 新しい武器技能loadout。取得済みnode keyから主軸1つ、リアクティブ／ターゲット優先列を検証する。 |
 | `weapon-progression.mjs` | 新しい武器技能progression。取得済みnode・人物別技能点・一人一件の予約を管理し、skill levelは持たない。 |
-| `weapon-pack-manifest.mjs` | 新しい武器技能pack manifestと装備affix packを別ID・Profile欄・抽選domainで扱う。現在の22実行可能nodeを返す。 |
+| `weapon-pack-manifest.mjs` | 新しい武器技能pack manifestと装備affix packを別ID・Profile欄・抽選domainで扱う。現在の37実行可能nodeを返す。 |
 | `weapon-save.mjs` | 本編が使うstrictな新Profile / Run保存境界。weapon Run v4は独立schemaとしてManifest・取得・loadout・BattleState・必殺台帳を検証し、未対応version・未知field・Profile/Run間の不整合を拒否する。 |
 | `weapon-run-battle-state.mjs` | weapon Runの編成位置、装備instance ID・耐久、人物別現在HPをstrictに検証する。 |
 | `weapon-stage5-run.mjs` | 本編の新Run操作。初期技能、加入、主軸・反応優先列、技能点、予約、自動取得を結び、各操作後にweapon Runを検証する。 |
 | `weapon-stage5-ultimate.mjs` | 人物ごとの必殺node選択・構え・遠征使用済みを持つ。実際に発動した勝利だけ使用済みにする。 |
-| `weapon-skill-runtime.mjs` | 全190節のnode keyからengine IDを可逆に導き、明示した実装済み22節だけをManifestとexecutable registryの積集合から返す。未実装節はBattleInput境界でも拒否する。 |
+| `weapon-skill-runtime.mjs` | 全190節のnode keyからengine IDを可逆に導き、明示した実装済み37節だけをManifestとexecutable registryの積集合から返す。未実装節はBattleInput境界でも拒否する。 |
 | `weapon-skill-runtime-stage5.mjs` | 本編5人の初期4 node keyと既定primaryを束ねるregistry aggregator。初期20節以外を含まないことを起動時に確認する。 |
-| `weapon-skill-runtime-stage6.mjs` | Stage 5初期20節と戦槌A2/A3を束ね、22節の実装allowlistと完全一致することを起動時に確認する。 |
+| `weapon-skill-runtime-stage6.mjs` | Stage 5初期20節と戦槌の全19節を束ね、37節の実装allowlistと完全一致することを起動時に確認する。 |
 | `weapon-skill-runtime-warden.mjs` / `weapon-skill-runtime-warden.test.mjs` | Stage 5b のゴウ初期4節。戦槌・格闘具のactive / passive定義を新runtime IDで登録し、共通engineへ投影してhit番号ごとの補正eventを検証する |
-| `weapon-skill-runtime-warhammer.mjs` / `weapon-skill-runtime-warhammer.test.mjs` | Stage 6aの戦槌A2/A3。攻撃全体のhit順で一度だけRPを払い最大2対象へ怯みを付ける反応技能と、距離順に選んで腕力170%を与える主軸を登録し、単体多段・複数対象・RP不足をevent列で確認する |
+| `weapon-skill-runtime-warhammer.mjs` / `weapon-skill-runtime-warhammer.test.mjs` | Stage 6で戦槌の残り17節を追加。攻撃内hit補正、隣接拡張、列攻撃、対象優先、反撃、防御破砕、強化解除と堅牢連携を登録し、単体・多段・複数対象・RP不足・状態推移をevent列で確認する |
 | `weapon-skill-runtime-tsugumi.mjs` / `weapon-skill-runtime-tsugumi.test.mjs` | Stage 5c のツグミ初期4節。射出器・医療具のactive / passive / reactive定義を新runtime IDで登録し、遠隔初撃、低HP割合選択、防壁、被弾後回復の実挙動を検証する |
 | `weapon-skill-runtime-nagi-spear.mjs` / `weapon-skill-runtime-nagi-spear.test.mjs` | Stage 5d のナギ長槍R/A1。長射程の貫き突きと、距離2以上で各hitを強化する遠間の読みを新runtime IDで登録し、盤面距離イベントを共通engineで検証する |
 | `weapon-skill-runtime-nagi-shield.mjs` / `weapon-skill-runtime-nagi-shield.test.mjs` | Stage 5d のナギ大盾R/A1。守りを引くの防壁・誘引、単体多段攻撃の対象変更、防壁受け手への+15を共通engineで検証する |
 | `weapon-skill-runtime-hibana-grappling.mjs` / `weapon-skill-runtime-hibana-grappling.test.mjs` | Stage 5e のヒバナ鉤縄R/A1。距離順選択と1マス引き、移動先が塞がれていても各hitに働く+15を共通engineで検証する |
 | `weapon-skill-runtime-hibana-dual-blades.mjs` / `weapon-skill-runtime-hibana-dual-blades.test.mjs` | Stage 5e のヒバナ双刃R/A1。最短敵への2hitと、武器不問の2hit以上+10%を共通engineで検証する |
 | `weapon-skill-runtime-genzo-banner.mjs` / `weapon-skill-runtime-genzo-heavy-crossbow.mjs` / `weapon-skill-runtime-stage5f.test.mjs` | Stage 5f のゲンゾウ初期4節。号令の最小AP・準備中優先とラウンド制限、声を通すの対象限定、装填射の準備完了ダメージと準備攻撃への武器不問+20%を共有engineで検証する |
-| `weapon-battle-input.mjs` / `weapon-battle-input.test.mjs` | 本編live / forecast共通のBattleInput builder。Manifestで有効な取得nodeとprimary/reactive loadoutを検証し、新Runの編成・装備・現在HPを反映する。未実装node、未定義装備、未対応target優先列はfail-closedにし、同じengine関数へ渡す |
+| `weapon-battle-input.mjs` / `weapon-battle-input.test.mjs` | 本編live / forecast共通のBattleInput builder。Manifestで有効な取得nodeとprimary/reactive/target loadoutを検証し、新Runの編成・装備・現在HPを反映する。ターゲット技能の選択規則を人物ごとの実行技能へ適用し、未実装nodeや未定義装備はfail-closedにして同じengine関数へ渡す |
 | `weapon-skill-prototype.html` / `weapon-skill-prototype.js` / `weapon-skill-prototype.mjs` / `weapon-skill-prototype.css` | Stage 4 の独立UIプレビュー。190節をPR #289の地図／一覧・役割丸記号・効果バッジ・効果のみの詳細盤で表示し、固定loadout fixtureとStage 3 APIを使う予約デモも示す。予測値はengine未接続中はnullとし、内部位置名を画面へ出さず、本編の取得・保存・報酬・戦闘には接続しない |
 | `ultimates.mjs` | 必殺技変換規則。weapon Runが選んだ実行可能nodeだけを変換し、本番・予測の共通content bundleへ混ぜる。使用回数台帳は `weapon-stage5-ultimate.mjs` が持つ。 |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
@@ -123,9 +123,9 @@ Profileとの不整合を読み込み口で拒否します。旧skill tree / lev
 
 `weapon-stage5-run.mjs` は本編UIが使う取得・予約・主軸・反応優先順位の純操作をまとめます。
 勝利後は現在の参加者へ各1点を一度だけ付け、予約があれば取得可能な入口から自動取得します。
-アクティブ取得は主軸へ、リアクティブ取得は優先列へ入り、パッシブは取得済みなら常時適用です。
+アクティブ取得は主軸へ、リアクティブとターゲット取得は各優先列へ入り、パッシブは取得済みなら常時適用です。
 `syncStage5WeaponParty()` は既存参加者の状態を残し、新参加者の初期4節と既定loadoutを用意します。
-現在の実装範囲22節外の取得・予約・BattleInputはfail-closedです。
+現在の実装範囲37節外の取得・予約・BattleInputはfail-closedです。
 
 `weapon-battle-input.mjs` の同じbuilderがlive battleとforecast双方のBattleInputを構築し、
 `simulateWeaponBattle()` が同じcontent bundle・共通engineへ渡します。戦闘前予測はRunを変更しません。
@@ -195,7 +195,7 @@ Weapon Manifestをまとめた新weapon Runを作ります。初期技能点は0
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 本編第1戦の勝利後はStage 5の武器技能チュートリアルへ進みます。`skillLessonStep()` はタブ・人物・初期20 nodeの選択・取得・予約・同行者への引き渡しを順に案内し、操作先は `select-weapon-node` / `acquire-weapon-skill` / `reserve-weapon-skill` を使います。Stage 6の追加nodeは通常の取得一覧へ出し、チュートリアルの教示対象だけは初期20節に固定します。予約後の引き渡し済み状態を画面stateへ記録し、選び直しでチュートリアルが戻らないようにします。
 
-Stage 1最初の戦闘では、`ultimateLessonStep()` が人物選択・武器技能カードの長押し・遠征tabへの移動を案内します。両方の手引きは `tutorialGate()` → `applyTutorialGate()` → `tutorialAllows()` を共有します。`tutorialNoteCard()` は現在の一手を一枚にまとめ、`focusTutorialSpot()` は段が変わったときだけ押し先を表示窓へ寄せます。武器技能画面は実装済み22節を使い、旧skill treeの節選択や旧操作盤には依存しません。
+Stage 1最初の戦闘では、`ultimateLessonStep()` が人物選択・武器技能カードの長押し・遠征tabへの移動を案内します。両方の手引きは `tutorialGate()` → `applyTutorialGate()` → `tutorialAllows()` を共有します。`tutorialNoteCard()` は現在の一手を一枚にまとめ、`focusTutorialSpot()` は段が変わったときだけ押し先を表示窓へ寄せます。武器技能画面は実装済み37節を使い、旧skill treeの節選択や旧操作盤には依存しません。
 
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -407,9 +407,10 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 印を持たない古い save のために `scriptOfClearedEncounter()` が一つだけ読み替えます——
 導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
 作り直すので、灰の門を飛ばす経路がありません）。
-Stage 6aの `renderSkills()` は選択中の人物に対する実装済み22節を武器別に折り畳み表示します。
+Stage 6の `renderSkills()` は選択中の人物に対する実装済み37節を武器別に折り畳み表示します。
 節カードは種別・効果・前提・取得済み／予約状態を出し、アクティブは主軸、リアクティブは
-優先列、パッシブは自動適用として扱います。未実装の168節やターゲット優先の操作は表示しません。
+反応・ターゲット技能はそれぞれ優先列、パッシブは自動適用として扱います。未実装の153節は
+取得候補に出しません。ターゲット優先列は鎧を指すが取得済みの場合に設定できます。
 人物切替はキャンプ上端の共通盤面だけで行い、skill tab固有の人物タブはありません。
 
 `skillLessonStep()` はStage 0の一戦後に取得・予約・人物間引き渡しを順に教えます。
@@ -535,8 +536,8 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 `weapon-stage5-run.mjs` は本編UIが使う取得・主軸選択・反応追加／削除／並べ替え・予約の操作を
 純関数で持ちます。各成功結果はStrictなweapon Run validationを通り、失敗では元のRunを返します。
 取得したアクティブは主軸に入り、リアクティブは優先列へ入り、パッシブはロードアウト欄を持たず
-取得済みなら常に適用されます。ターゲット優先列APIはschemaで予約していますが、実装済み22節には
-対象nodeがないため本編画面には操作を出しません。
+取得済みなら常に適用されます。鎧を指すを取得した場合はターゲット優先列へ追加し、各アクティブの
+対象選択で防御を持つ敵を優先します。
 
 `syncStage5WeaponParty()` はRun参加者の累積進行を保ちます。既存人物の技能・予約・必殺台帳を
 残したままBattleStateの現在隊へ揃え、初参加者だけに初期4節と既定loadoutを作ります。
@@ -544,7 +545,7 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 自動取得します。人物の増減・再読込でstarter stateを二重に作らないことを
 `ecology/weapon-stage5-run.test.mjs` とsave / UI試行で確認します。
 
-`analysis/ecology-screens-smoke.mjs` は現行のweapon Run操作、実装済み22節の画面、同期経路、
+`analysis/ecology-screens-smoke.mjs` は現行のweapon Run操作、実装済み37節の画面、同期経路、
 旧skill tree handlerが戻らないことを確認します。browser trialはStage5の一覧とTutorialの操作を
 Playwrightで通します。
 

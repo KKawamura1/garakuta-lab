@@ -15,6 +15,7 @@ import {
 import { buildWeaponBattleInput, forecastWeaponBattle, simulateWeaponBattle } from "./weapon-battle-input.mjs";
 import { weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
 import { selectStage5Primary, toggleStage5WeaponUltimate } from "./weapon-stage5-run.mjs";
+import { STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage6.mjs";
 
 const characterIds = Object.keys(STAGE_5_STARTER_SKILL_KEYS_BY_CHARACTER);
 const profile = freshWeaponProfile({
@@ -110,6 +111,33 @@ assert.ok(built.battleInput.allies.every((ally) =>
   [...ally.tactics.map(({ activeSkillId }) => activeSkillId), ...ally.reactiveSkillIds, ...ally.passiveSkillIds]
     .every((id) => id.startsWith("weapon."))));
 assert.ok(built.battleInput.allies.every((ally) => !Object.hasOwn(ally, "skillLevels")));
+
+const b1SkillPoints = {
+  ...run.skillProgression,
+  skillPointsByCharacter: { ...run.skillProgression.skillPointsByCharacter, warden: 1 },
+};
+const b1Unlocked = unlockWeaponSkill(
+  b1SkillPoints,
+  "warden",
+  "warhammer:B1",
+  Object.keys(STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY.entries),
+);
+assert.equal(b1Unlocked.ok, true);
+const b1Priority = addWeaponPrioritySkill(
+  run.loadout,
+  "warden",
+  "warhammer:B1",
+  b1Unlocked.progression.unlockedSkillKeysByCharacter,
+);
+assert.equal(b1Priority.ok, true);
+const b1Run = { ...run, skillProgression: b1Unlocked.progression, loadout: b1Priority.loadout };
+const b1Built = buildWeaponBattleInput({ run: b1Run, profile, composed: prologueEncounter() });
+const b1Warden = b1Built.battleInput.allies.find(({ characterId }) => characterId === "warden");
+const b1ActiveId = b1Warden.tactics[0].activeSkillId;
+assert.match(b1ActiveId, /\.target_warden$/);
+assert.deepEqual(b1Built.contentBundle.activeSkills[b1ActiveId].targetQuery.sort.slice(0, 3), [
+  "defense_priority_desc", "block_desc", "distance_asc",
+]);
 
 const firstLive = simulateWeaponBattle({ run, profile, composed: prologueEncounter() });
 const secondLive = simulateWeaponBattle({ run, profile, composed: prologueEncounter() });

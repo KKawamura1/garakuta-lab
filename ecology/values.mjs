@@ -54,6 +54,31 @@ export function evaluateValue(state, ctx, valueDef) {
       base = actor ? statusStacks(actor, valueDef.statusId) : 0;
       break;
     }
+    case "event_value_stacks_percent": {
+      const raw = ctx.event ? ctx.event.values[valueDef.key] : undefined;
+      const stacks = ctx.event ? ctx.event.values[valueDef.stacksKey] : undefined;
+      if (!Number.isSafeInteger(raw) || raw <= 0 || !Number.isSafeInteger(stacks) || stacks <= 0) break;
+      const numeratorBig = BigInt(raw) * BigInt(stacks) * BigInt(valueDef.percentPerStack);
+      const denominatorBig = BigInt(valueDef.denominator ?? 100);
+      const scaledBig = numeratorBig / denominatorBig;
+      base = Number(scaledBig > BigInt(Number.MAX_SAFE_INTEGER)
+        ? BigInt(Number.MAX_SAFE_INTEGER)
+        : scaledBig);
+      break;
+    }
+    case "event_status_stacks_percent": {
+      const raw = ctx.event ? ctx.event.values[valueDef.key] : undefined;
+      const snapshot = ctx.event ? ctx.event.values[valueDef.stacksKey] : undefined;
+      const stacks = snapshot && snapshot[valueDef.statusId];
+      if (!Number.isSafeInteger(raw) || raw <= 0 || !Number.isSafeInteger(stacks) || stacks <= 0) break;
+      const numeratorBig = BigInt(raw) * BigInt(stacks) * BigInt(valueDef.percentPerStack);
+      const denominatorBig = BigInt(valueDef.denominator ?? 100);
+      const scaledBig = numeratorBig / denominatorBig;
+      base = Number(scaledBig > BigInt(Number.MAX_SAFE_INTEGER)
+        ? BigInt(Number.MAX_SAFE_INTEGER)
+        : scaledBig);
+      break;
+    }
     default:
       throw new Error(`unimplemented value type: ${valueDef.type}`);
   }
@@ -61,4 +86,3 @@ export function evaluateValue(state, ctx, valueDef) {
   const scaled = Math.floor((base * numerator) / denominator);
   return scaled > 0 ? scaled : 0;
 }
-

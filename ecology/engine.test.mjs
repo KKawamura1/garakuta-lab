@@ -583,9 +583,15 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const started = of(result, "action_started").find(
     (event) => event.sourceActorId === "a_warden" && event.skillId === "strike",
   );
-  const prepared = of(result, "status_added").find(
+  const statusProposal = of(result, "status_proposed").find(
     (event) => event.sourceActorId === "e_start_focus"
       && event.parentEventId === selected?.id
+      && event.targetActorIds[0] === "a_warden"
+      && event.values.statusId === "exposed",
+  );
+  const prepared = of(result, "status_added").find(
+    (event) => event.sourceActorId === "e_start_focus"
+      && event.parentEventId === statusProposal?.id
       && event.targetActorIds[0] === "a_warden"
       && event.values.statusId === "exposed",
   );
@@ -602,9 +608,9 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     (event) => event.sourceActorId === "a_warden" && event.targetActorIds[0] === "e_start_focus",
   );
 
-  check(started && selected && prepared && spent && focused && proposed && taken,
+  check(started && selected && statusProposal && prepared && spent && focused && proposed && taken,
     "target-selection after-reactions settle before the attack-start response and attack");
-  check(selected.sequence < prepared.sequence && prepared.sequence < started.sequence
+  check(selected.sequence < statusProposal.sequence && statusProposal.sequence < prepared.sequence && prepared.sequence < started.sequence
     && started.sequence < spent.sequence,
   "target-selection after-reactions finish before action_started interrupts");
   check(spent.sequence < focused.sequence && focused.sequence < proposed.sequence,
@@ -1349,11 +1355,17 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const started = of(result, "action_started").find(
     (event) => event.sourceActorId === "a_warden" && event.skillId === "action_end_trace",
   );
-  const effectStatus = of(result, "status_added").find(
+  const effectStatusProposal = of(result, "status_proposed").find(
     (event) => event.sourceActorId === "a_warden"
       && event.targetActorIds[0] === "a_warden"
       && event.values.statusId === "exposed"
       && event.parentEventId === started?.id,
+  );
+  const effectStatus = of(result, "status_added").find(
+    (event) => event.sourceActorId === "a_warden"
+      && event.targetActorIds[0] === "a_warden"
+      && event.values.statusId === "exposed"
+      && event.parentEventId === effectStatusProposal?.id,
   );
   const effectReactionStatus = of(result, "status_added").find(
     (event) => event.ruleId === "warden_reacts_to_action_effect_status",
@@ -1365,9 +1377,10 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     (event) => event.ruleId === "warden_reacts_to_action_resolved",
   );
 
-  check(started && effectStatus && effectReactionStatus && actionResolved && actionEndStatus,
+  check(started && effectStatusProposal && effectStatus && effectReactionStatus && actionResolved && actionEndStatus,
     "both effect and action-end after-reactions resolve");
-  check(started.sequence < effectStatus.sequence
+  check(started.sequence < effectStatusProposal.sequence
+    && effectStatusProposal.sequence < effectStatus.sequence
     && effectStatus.sequence < effectReactionStatus.sequence
     && effectReactionStatus.sequence < actionResolved.sequence
     && actionResolved.sequence < actionEndStatus.sequence,

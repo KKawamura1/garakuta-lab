@@ -38,6 +38,8 @@ export const STATUS_NAMES = {
   ultimate_spent: "必殺",
   banner_order_used: "号令済み",
   echoing_iron_armed: "響く鉄",
+  armor_broken: "破甲",
+  fortified: "堅牢",
 };
 
 const statuses = renamed("statuses", STATUS_NAMES);
@@ -151,6 +153,66 @@ statuses.staggered = {
   }),
   tags: ["playable", "debuff"],
 };
+
+function guardStackRules(statusId, operation) {
+  return [{
+    id: `${statusId}_guard_rule`,
+    listenTo: "damage_proposed",
+    timing: "interrupt",
+    priority: 44,
+    predicates: [
+      SELF_IS_EVENT_TARGET,
+      { type: "has_status", subject: "self", statusId, op: "gte", value: 1 },
+    ],
+    costs: [],
+    effects: [{
+      type: "modify_pending_guard",
+      operation,
+      amount: { type: "status_stacks_scaled", subject: "self", statusId },
+    }],
+    limit: { owner: "actor-instance + rule", scope: "event", count: 1 },
+  }];
+}
+
+function decayingGuardStatus(id, displayName, polarity, tags, guardOperation) {
+  return {
+    id,
+    displayName,
+    polarity,
+    // `null` denotes a mechanic whose stack count has no content-level cap.
+    maxStacks: null,
+    duration: "battle",
+    rules: [
+      ...guardStackRules(id, guardOperation),
+      {
+        id: `${id}_round_decay_rule`,
+        listenTo: "round_ended",
+        timing: "after",
+        priority: 50,
+        predicates: [],
+        costs: [],
+        effects: [{
+          type: "scale_status_stacks",
+          target: SELF_TARGET,
+          statusId: id,
+          numerator: 1,
+          denominator: 2,
+        }],
+        limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+      },
+    ],
+    tags,
+  };
+}
+
+// 破甲 reduces the target's effective guard by one per stack on every hit;
+// 堅牢 adds one. Both decay by half at the end of each round and have no cap.
+statuses.armor_broken = decayingGuardStatus(
+  "armor_broken", STATUS_NAMES.armor_broken, "negative", ["playable", "debuff"], "decrease",
+);
+statuses.fortified = decayingGuardStatus(
+  "fortified", STATUS_NAMES.fortified, "positive", ["playable", "guard", "buff"], "increase",
+);
 
 // 守勢 — 持ち主が受ける各hitを、1段につき20%軽くする。
 // **防壁・受け構えと三つ巴になる。**防壁は総量を、受け構えは回数を、
@@ -271,7 +333,7 @@ statuses.banner_order_used = {
   tags: ["playable", "mark"],
 };
 
-// Stage 6a — short-lived marker for the second hit funded by 響く鉄.
+// Stage 6 — short-lived marker for the second hit funded by 響く鉄.
 // The reactive skill removes it at the next hit or at action_resolved; round
 // duration is only a final cleanup boundary if an action is interrupted.
 statuses.echoing_iron_armed = {
@@ -299,6 +361,8 @@ const STATUS_SUMMARIES = {
   exposed: "受けるダメージが1段につき20%増える。多段の各hitへ効き、付けるのも払うのも技能でできる。",
   focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
   staggered: "その相手が**出す**ダメージが1段につき20%減る。多段の各hitへ効き、倒さずに攻撃を細くする。",
+  armor_broken: "受ける各hitのguardを1段につき1減らす。段数に上限はなく、各ラウンド終わりに半減する。",
+  fortified: "受ける各hitのguardを1段につき1増やす。段数に上限はなく、各ラウンド終わりに半減する。",
   warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
   lured: "次に味方へ向かう敵の単体攻撃を自分へ引き受け、1段消費する。範囲攻撃と自分が元から対象の攻撃では消費しない。",
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",

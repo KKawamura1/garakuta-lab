@@ -430,8 +430,12 @@ function firedCount(map, key) {
   return map.get(key) ?? 0;
 }
 
-function ruleAvailable(state, entry) {
+function ruleAvailable(state, entry, event) {
   const key = firingKey(entry);
+  if (entry.rule.limit.scope === "event") {
+    const eventKey = `${event?.id ?? event?.type ?? "~event"}|${key}`;
+    return firedCount(state.chain.eventRuleFirings, eventKey) < entry.rule.limit.count;
+  }
   if (firedCount(state.chain.ruleFirings, key) >= 1) return false;
   const limit = entry.rule.limit;
   if (limit.scope === "round" && firedCount(state.roundFirings, key) >= limit.count) return false;
@@ -513,7 +517,7 @@ function dispatchRules(state, event, timing, pendingFrame) {
     if (entry.rule.listenTo !== event.type) continue;
     if (entry.rule.timing !== timing) continue;
     if (!ruleSourceIntact(state, entry)) continue;
-    if (!ruleAvailable(state, entry)) continue;
+    if (!ruleAvailable(state, entry, event)) continue;
     candidates.push({
       ...entry,
       initiativeRank: entry.owner ? entry.owner.initiativeRank : Number.MAX_SAFE_INTEGER,
@@ -537,7 +541,7 @@ function fireRule(state, event, entry, pendingFrame) {
   // §5.7 — everything is re-checked immediately before firing, because an
   // earlier reaction in this same window may have removed the reason to fire.
   if (!ruleSourceIntact(state, entry)) return false;
-  if (!ruleAvailable(state, entry)) return false;
+  if (!ruleAvailable(state, entry, event)) return false;
   if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return false;
 
   const rt = makeRuntime(state);
@@ -560,7 +564,12 @@ function fireRule(state, event, entry, pendingFrame) {
   if (actionDamageAddition && !canAddActionDamage(rt, ctx, actionDamageAddition)) return false;
 
   const key = firingKey(entry);
-  state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
+  if (entry.rule.limit.scope === "event") {
+    const eventKey = `${event.id}|${key}`;
+    state.chain.eventRuleFirings.set(eventKey, firedCount(state.chain.eventRuleFirings, eventKey) + 1);
+  } else {
+    state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
+  }
   state.roundFirings.set(key, firedCount(state.roundFirings, key) + 1);
   state.battleFirings.set(key, firedCount(state.battleFirings, key) + 1);
   if (entry.owner) bumpHistory(entry.owner, "reactive_actions", 1);
@@ -1241,6 +1250,12 @@ function performAction(state, actor, choice) {
       values: { apCost: skill.apCost, actionPoints: actor.actionPoints },
     });
 
+    frame.startingStatusStacks = Object.freeze(Object.fromEntries(
+      [...actor.statuses]
+        .sort((a, b) => (a.statusId < b.statusId ? -1 : a.statusId > b.statusId ? 1 : 0))
+        .map((status) => [status.statusId, status.stacks]),
+    ));
+    frame.actionStarted = true;
     const started = emit(state, {
       type: "action_started",
       sourceActorId: actor.instanceId,
@@ -1248,7 +1263,10 @@ function performAction(state, actor, choice) {
       sourceDefinitionId: actor.definitionId,
       skillId: skill.id,
       tags: skill.tags,
-      values: { targetCount: frame.targetActorIds.length },
+      values: {
+        targetCount: frame.targetActorIds.length,
+        startingStatusStacks: frame.startingStatusStacks,
+      },
     });
 
     // Settle the attack-start responses and their after-reactions before the
@@ -1360,11 +1378,12 @@ function cancelAction(state, actor, skill, frame, reason) {
     targetActorIds: [...frame.targetActorIds],
     sourceDefinitionId: actor.definitionId,
     skillId: skill.id,
-    tags: [],
+    tags: skill.tags ?? [],
     values: {
       reason,
       byRuleId: frame.cancelReason ? frame.cancelReason.ruleId : null,
       byActorId: frame.cancelReason ? frame.cancelReason.ownerId : null,
+      actionStarted: frame.actionStarted === true,
     },
   });
   return undefined;

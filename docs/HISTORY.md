@@ -2843,3 +2843,9 @@ Stage 5の初期20節を残し、戦槌A2「響く鉄」とA3「大槌打ち」�
 「響く鉄」は攻撃の最初のhitでRP1を払い怯み1、次のhitにも怯み1を付ける。共通ActionPlanから各damage proposalへ`actionHitOrdinal`を渡すようにし、複数対象・複数damage効果でも攻撃全体のhit順を判別できる。通し番号は弱参照mapへ置きActionPlanはimmutableのまま保つ。Reactive skillは複数ruleを持てるようになり、RP不足時に発動しないこと、3hit目へ作用しないこと、単発攻撃のmarkerがaction解決後に消えることを個別testで固定した。
 
 「大槌打ち」は最も近い生存敵1体へ腕力170%を与える。距離順の対象選択とdamage提案を専用registryで登録し、複数敵のうち近い敵を選ぶことを確認した。live / forecast / ultimate候補のregistry、技能一覧、取得操作も同じ22節allowlistへ切り替えた。Stage 1技能チュートリアルは初期20節の教示対象を維持する。
+
+### Stage 6 — 戦槌ツリー全体のruntime移行（2026-09-27）
+
+Stage 5の初期20節を保ち、戦槌の未実装17節を加えて戦槌ツリー全19節を実行可能にした。合計37節が本編の一覧・取得・予約・loadout・必殺候補・BattleInputへつながり、残り153節は引き続きfail-closedにする。
+
+単一技能PRを重ねる進め方を改め、戦槌ツリーと必要な共通機構をPR #336にまとめた。ActionPlanの通しhit番号、damage/status proposal、イベント単位のrule上限、受け補正、状態の無制限段数と減衰、対象優先を共通runtimeへ加えた。技能別のevent testは初撃・多段・複数対象・RP・反撃・防御除去・強化解除・堅牢の引継ぎを確認する。

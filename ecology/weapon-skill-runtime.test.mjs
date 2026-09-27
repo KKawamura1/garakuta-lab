@@ -121,7 +121,7 @@ assert.deepEqual(availableExecutableWeaponSkillNodeKeys(manifest, registry), imp
 assert.equal(availableExecutableWeaponSkillNodeKeys(manifest, EMPTY_WEAPON_SKILL_RUNTIME_REGISTRY).length, 0,
   "catalog entries without runtime definitions are not exposed as executable");
 
-const nonInitialNodeKey = "warhammer:AA1";
+const nonInitialNodeKey = "gauntlets:AA1";
 assert.ok(!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nonInitialNodeKey));
 assert.throws(
   () => makeWeaponSkillRuntimeRegistry({ [nonInitialNodeKey]: schemaValidDefinitionFixture(nonInitialNodeKey) }),

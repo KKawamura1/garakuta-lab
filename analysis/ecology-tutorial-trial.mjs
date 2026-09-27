@@ -492,7 +492,7 @@ try {
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
   const stage5Nodes = page.locator(".stage5-skill-card");
-  note("実装済み22節だけが技能一覧に出る", await stage5Nodes.count() === 22,
+  note("実装済み37節だけが技能一覧に出る", await stage5Nodes.count() === 37,
     `節 ${await stage5Nodes.count()}`);
   note("Stage 5の主軸・反応・常時の区分が出る",
     await page.locator(".stage5-kind.kind-active").count() > 0
@@ -1262,7 +1262,7 @@ try {
       && await lessonRow.first().evaluate((row) => row.classList.contains("tutorial-spot")));
     note("必殺にできるカードは長押し可能", await page.locator(
       `.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-skill-select[data-longpress="toggle-stage5-ultimate"]`).count() === 1);
-    note("Stage 1の技能一覧に実装済み22節を出す", await page.locator(".stage5-skill-card").count() === 22);
+    note("Stage 1の技能一覧に実装済み37節を出す", await page.locator(".stage5-skill-card").count() === 37);
     if (await lessonRow.count()) {
       await pressDown(lessonRow.first());
       // CSSの進行値は幅で測る。帯はJSの450msと揃い、タップを長押しと誤判定しない。

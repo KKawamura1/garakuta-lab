@@ -767,7 +767,7 @@ expectRejected(
 );
 
 // The non-listenable records refuse a listener rather than sitting dead.
-for (const eventType of ["resource_refreshed", "pending_amount_modified", "damage_absorbed", "damage_skipped"]) {
+for (const eventType of ["resource_refreshed", "pending_amount_modified", "pending_guard_modified", "status_stacks_changed", "damage_absorbed", "damage_skipped"]) {
   expectRejected(
     content((bundle) => {
       bundle.reactiveSkills.counter_blow.rule.listenTo = eventType;

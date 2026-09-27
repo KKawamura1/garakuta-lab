@@ -1,7 +1,8 @@
 # dev移行台帳 — Stage 0〜6初期進捗
 
 更新日: 2026-09-27
-状態: **Stage 0〜5はdevへ統合済み（Stage 5g後続修正#332、本編切替#333、Playwright修正#334）。Stage 6aは最新devをbaseに戦槌A2/A3を実装し、実行範囲を22節へ広げる。残り168節は未移行のままregistry外に保つ。** unit試験・全体検査は#332/#333の統合後devで確認し、390×844 branch previewはPR上で確認する。
+
+状態: **Stage 0〜5はdevへ統合済み。Stage 6では戦槌19節を実装し、初期20節を含む37節を実行可能にする。残る153節はfail-closed。戦槌全体をPR #336でレビュー中。**
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -145,8 +146,6 @@ Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stag
 
 ## Stage 6の移行範囲
 
-Stage 6は残り170節をカタログ順に移し、共通機構は再利用可能な小さな変更にまとめ、武器ごとの技能は縦切りで登録・試験する。現ブランチの6aではカタログ先頭の戦槌A2「響く鉄」とA3「大槌打ち」を本編の取得・loadout・BattleInput・live / forecast・必殺候補へ接続する。実行範囲は初期20節を保ったまま22節になり、残る168節は取得・表示・BattleInputから閉じている。
+Stage 6は武器単位に移行する。一つの武器の技能・共通engine機構・取得/UI/BattleInput・event testを同じPRでレビュー可能にする。戦槌ではStage 5初期20節にA2〜BB3の17節を足し、19節の武器ツリー全体を実装した。初期節を含む実行範囲は37節、残る153節は取得・表示・BattleInputから閉じている。
 
-「響く鉄」は共通ActionPlanへ攻撃内通し番号を載せ、複数対象・複数damage効果でも第1hitと次のhitを区別する。Reactive skill一つに複数ruleを登録できるようにし、最初のhitでRP1を払い怯みを付与し、2hit目で次の怯みを付与する。単発攻撃でも印が残らないよう`action_resolved`で清掃する。「大槌打ち」は既存の`distance_asc`対象選択とdamage効果で腕力170%を与える。
-
-追加した`ecology/weapon-skill-runtime-warhammer.test.mjs`は単体3hit、1hit×2対象、RP不足、marker清掃、最近敵選択、170% damageをevent列・actor stateで固定する。Stage 6の残りは[Stage 6技能移行計画](18-stage6-skill-migration.md)を参照する。
+戦槌runtime testは攻撃内通し番号、複数hit/対象の倍率、隣接拡張、反撃、対象優先、防御破砕、状態の追加・除去・減衰、攻撃開始時の堅牢snapshotをevent列・actor stateで固定する。Stage 6の残りは[Stage 6技能移行計画](18-stage6-skill-migration.md)を参照する。

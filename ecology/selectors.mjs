@@ -101,6 +101,10 @@ function sortValue(actor, sortType, ctx) {
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
     case "distance_asc": return ctx.owner ? gridDistance(ctx.owner, actor) : 0;
+    case "block_desc": return -(actor.block ?? 0);
+    case "defense_priority_desc": return -((actor.block ?? 0) > 0
+      ? 2
+      : totalBarrier(actor) > 0 ? 1 : 0);
     default: return 0;
   }
 }

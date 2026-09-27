@@ -3661,6 +3661,7 @@ function renderSkills() {
   const reservation = weaponRun.skillProgression.skillReservationByCharacter[characterId];
   const active = weaponRun.loadout.primarySkillByCharacter[characterId];
   const reactive = weaponRun.loadout.reactivePriorityByCharacter[characterId] ?? [];
+  const targetPriority = weaponRun.loadout.targetPriorityByCharacter[characterId] ?? [];
   const passive = acquired.filter((key) => WEAPON_SKILL_NODES[key]?.kind === "passive");
   const weaponLabels = {
     warhammer: "戦槌", gauntlets: "格闘具", launcher: "射出器", medical_kit: "医療具",
@@ -3694,6 +3695,7 @@ function renderSkills() {
         const selected = state.selectedSkillNode === node.key;
         const isPrimary = active === node.key;
         const isReactive = reactive.includes(node.key);
+        const isTargetPriority = targetPriority.includes(node.key);
         const ultimate = stage5UltimateRowState(characterId, node);
         let controls = "";
         if (isAcquired && node.kind === "active") {
@@ -3704,6 +3706,10 @@ function renderSkills() {
         } else if (isAcquired && node.kind === "reactive") {
           controls = button(isReactive ? "優先列から外す" : "反応優先列へ追加",
             isReactive ? "remove-weapon-priority" : "add-weapon-reactive", false, "tiny-button",
+            "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
+        } else if (isAcquired && node.kind === "target") {
+          controls = button(isTargetPriority ? "対象優先から外す" : "対象優先へ追加",
+            isTargetPriority ? "remove-weapon-priority" : "add-weapon-target", false, "tiny-button",
             "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
         } else if (!isAcquired) {
           if (!missing.length && points > 0) {
@@ -3748,12 +3754,22 @@ function renderSkills() {
         "aria-label=\"優先順位を下げる\" data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-delta=\"1\"")
       + "</div>";
   }).join("");
+  const targetRows = targetPriority.map((key, index) => {
+    const node = WEAPON_SKILL_NODES[key];
+    return "<div class=\"stage5-priority-row\"><span>" + (index + 1) + "</span><b>"
+      + esc(node?.displayName ?? "") + "</b>"
+      + button("↑", "move-weapon-priority", index === 0, "tiny-button icon-button",
+        "aria-label=\"対象優先を上げる\" data-character=\"" + characterId + "\" data-kind=\"target\" data-index=\"" + index + "\" data-delta=\"-1\"")
+      + button("↓", "move-weapon-priority", index === targetPriority.length - 1, "tiny-button icon-button",
+        "aria-label=\"対象優先を下げる\" data-character=\"" + characterId + "\" data-kind=\"target\" data-index=\"" + index + "\" data-delta=\"1\"")
+      + "</div>";
+  }).join("");
   const reservationNode = reservation ? WEAPON_SKILL_NODES[reservation] : null;
   const summary = "<div class=\"stage5-loadout-summary\"><span><small>主軸</small><b>"
     + esc(WEAPON_SKILL_NODES[active]?.displayName ?? "未設定") + "</b></span><span><small>反応優先列</small><b>"
     + (reactive.length ? reactive.map((key) => esc(WEAPON_SKILL_NODES[key]?.displayName ?? "")).join(" → ") : "なし")
     + "</b></span><span><small>常時</small><b>" + passive.length + "節</b></span></div>";
-  const targetNote = "対象指定技能: 現在実装済みの節にありません。";
+  const targetNote = "鎧を指すを対象優先列へ入れると、受け構え・防壁のある敵を優先します。";
   return "<section class=\"card skill-build-card\">" + sectionHeading("WEAPON SKILLS", "武器技能",
       "<span class=\"stage\" data-fx-watch=\"skill-points\">技能点 " + points + "</span>")
     + "<p class=\"context-line\">この遠征で使える実装済み技能 " + STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS.length + "節のみ表示します。技能レベルはありません。</p>"
@@ -3764,6 +3780,7 @@ function renderSkills() {
     + summary + "<p class=\"stage5-target-note\">" + targetNote + "</p></section>"
     + "<section class=\"card stage5-skill-catalog\"><h3>実装済みの武器節</h3>" + groupHtml + "</section>"
     + (reactiveRows ? "<section class=\"card stage5-priority-list\"><h3>反応優先順位</h3>" + reactiveRows + "</section>" : "")
+    + (targetRows ? "<section class=\"card stage5-priority-list\"><h3>対象優先順位</h3>" + targetRows + "</section>" : "")
     + helpDetails("stage5-skill-rules", "技能のルール", ruleGrid([
       { glyph: "skill", title: "取得", value: "1点につき1節", line: "取得したアクティブは主軸に入り、リアクティブは優先列に加わります。" },
       { glyph: "flag", title: "取得予約", value: "前提から自動取得", line: "戦闘勝利で参加中の全員へ技能点が1点入り、予約は前提から順に進みます。" },
@@ -5368,6 +5385,7 @@ function eventText(event) {
     defense_reduced: target + "の防御が減少"
       + (values.barrierRemoved > 0 ? "（防壁 -" + values.barrierRemoved + "）" : "")
       + (values.blockRemoved > 0 ? "（受け構え -" + values.blockRemoved + "）" : ""),
+    pending_guard_modified: target + "の受けが" + (values.before ?? 0) + "→" + (values.after ?? 0),
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
@@ -5383,6 +5401,10 @@ function eventText(event) {
     round_ended: "ラウンド" + round + "終了",
     barrier_expired: target + "の防壁が切れた",
     status_removed: target + "の" + (statusInfo(values.statusId)?.displayName ?? "状態") + "が消えた",
+    status_proposed: target + "へ" + (statusInfo(values.statusId)?.displayName ?? "状態")
+      + " " + (values.stacks ?? "") + "段を提案",
+    status_stacks_changed: target + "の" + (statusInfo(values.statusId)?.displayName ?? "状態")
+      + "が" + (values.before ?? "") + "→" + (values.after ?? "") + "段",
     pending_amount_modified: "値が" + number + "へ変わった",
     damage_proposed: arrow + target + " へ " + number + " ダメージを提案",
     healing_proposed: arrow + target + " へ " + number + " 回復を提案",
@@ -8098,15 +8120,17 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "add-weapon-reactive" || action === "remove-weapon-priority") {
+  if (action === "add-weapon-reactive" || action === "add-weapon-target" || action === "remove-weapon-priority") {
     const { character: characterId, node: nodeKey } = element.dataset;
-    const result = action === "add-weapon-reactive"
+    const addingPriority = action === "add-weapon-reactive" || action === "add-weapon-target";
+    const result = addingPriority
       ? addStage5Reactive(state.run.weaponRun, characterId, nodeKey)
       : removeStage5Priority(state.run.weaponRun, characterId, nodeKey);
     if (!result.ok) state.error = result.reason;
     else {
       state.run = { ...state.run, weaponRun: result.run };
-      record(action === "add-weapon-reactive" ? "weapon_reactive_added" : "weapon_priority_removed",
+      record(action === "add-weapon-target" ? "weapon_target_priority_added"
+        : action === "add-weapon-reactive" ? "weapon_reactive_added" : "weapon_priority_removed",
         { characterId, nodeKey });
     }
     saveState();
@@ -8120,7 +8144,7 @@ function handleAction(event) {
     const result = moveStage5Priority(
       state.run.weaponRun,
       characterId,
-      "reactive",
+      element.dataset.kind === "target" ? "target" : "reactive",
       fromIndex,
       fromIndex + Number(element.dataset.delta),
     );

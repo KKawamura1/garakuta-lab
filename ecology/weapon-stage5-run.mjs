@@ -211,6 +211,10 @@ function applyAutomaticActions(run, actions) {
       const equipped = addWeaponPrioritySkill(loadout, action.characterId, action.skillKey,
         run.skillProgression.unlockedSkillKeysByCharacter);
       if (equipped.ok) loadout = equipped.loadout;
+    } else if (node.kind === "target") {
+      const equipped = addWeaponPrioritySkill(loadout, action.characterId, action.skillKey,
+        run.skillProgression.unlockedSkillKeysByCharacter);
+      if (equipped.ok) loadout = equipped.loadout;
     }
   }
   let next = { ...run, loadout };
