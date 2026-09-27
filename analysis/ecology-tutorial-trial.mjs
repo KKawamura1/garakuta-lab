@@ -571,7 +571,7 @@ try {
   // 負ける配置を作り直すと隊列チュートリアルの錠が戻ってしまうので、敗北画面だけを
   // 保存へ置いて入る（見たいのは再挑戦の値段であって、負け方ではない）。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.run) return;
     saved.phase = "defeat";
@@ -807,7 +807,7 @@ try {
     // 二戦目の再挑戦も、手引きより前なので補給を取らない（3回負けてから勝つと
     // 補給0で手引きへ着く、という三つ目の道を塞いである）。敗北画面だけを置いて見る。
     await page.evaluate(() => {
-      const key = "exp18-r10-auto-v02";
+      const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
       if (!saved?.run) return;
       saved.phase = "defeat";
@@ -926,7 +926,7 @@ try {
       // まで進めて、そこで候補が出ること、iPhone 16e の画面にスクロールなしで
       // 収まること、拾った品が持ち物へ入ることを順に見る。
       await page.evaluate(() => {
-        const key = "exp18-r10-auto-v02";
+        const key = "exp18-r10-auto-v04";
         const saved = JSON.parse(localStorage.getItem(key) || "null");
         if (!saved?.run) return;
         saved.run.encounterIndex = 4;
@@ -1020,7 +1020,7 @@ try {
   // 画面を踏む場所でもある。2人編成の Stage 0 では第12戦に実際には勝てないので、
   // 結果画面の状態を直接置いて画面経路だけを通す。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.run) return;
     saved.run.encounterIndex = 12;
@@ -1156,7 +1156,7 @@ try {
   // ---- R11 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
   // （12戦を通すのはこの台本の仕事ではない）。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
@@ -1337,7 +1337,7 @@ try {
       await finishReplay();
       await page.waitForTimeout(400);
       const spentState = await page.evaluate(() => {
-        const saved = JSON.parse(localStorage.getItem("exp18-r10-auto-v02") || "null");
+        const saved = JSON.parse(localStorage.getItem("exp18-r10-auto-v04") || "null");
         const run = saved?.run?.weaponRun;
         return run ? {
           selected: run.ultimateState.selectedSkillKeyByCharacter.lancer,
@@ -1381,7 +1381,7 @@ try {
     // 戦闘不能者が出る場面は通しでは滅多に来ないので、保存を直接いじって
     // 「一人が倒れていて補給がある」状態を作る（第4戦の幕の断片と同じやり方）。
     const revivalFixture = await page.evaluate(() => {
-      const key = "exp18-r10-auto-v02";
+      const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
       if (!saved?.run?.roster?.length || !saved.run.currentHp) return null;
       const restore = { currentHp: { ...saved.run.currentHp }, supplies: saved.run.supplies };
@@ -1419,7 +1419,7 @@ try {
           && suppliesBeforeRevive >= 1 && suppliesAfterRevive === suppliesBeforeRevive - 1);
       // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
       await page.evaluate((fixture) => {
-        const key = "exp18-r10-auto-v02";
+        const key = "exp18-r10-auto-v04";
         const saved = JSON.parse(localStorage.getItem(key) || "null");
         if (!saved?.run) return;
         saved.run.currentHp = fixture.restore.currentHp;
@@ -1437,7 +1437,7 @@ try {
 
     // ---- R12 §4.C — 幕の断片。第4戦の前に入る（再訪でも同じ）。
     await page.evaluate(() => {
-      const key = "exp18-r10-auto-v02";
+      const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
       if (!saved?.run) return;
       saved.run.encounterIndex = 4;
