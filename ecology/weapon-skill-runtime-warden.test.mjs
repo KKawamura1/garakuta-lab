@@ -60,13 +60,15 @@ const THREE_HIT_PROBE = {
   tags: ["attack", "weapon"],
 };
 
-function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null) {
+function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null, extraPassiveSkills = {}) {
   const baseContent = compileWeaponSkillRuntimeContent(FIXTURE_CONTENT, registry);
   const activeSkills = { ...baseContent.activeSkills };
+  const passiveSkills = { ...baseContent.passiveSkills, ...extraPassiveSkills };
   if (extraActiveSkill) activeSkills[extraActiveSkill.id] = extraActiveSkill;
   const content = {
     ...baseContent,
     activeSkills: Object.freeze(activeSkills),
+    passiveSkills: Object.freeze(passiveSkills),
     enemyActors: Object.freeze({
       ...baseContent.enemyActors,
       husk: { ...baseContent.enemyActors.husk, maxHp: 500 },
@@ -135,6 +137,36 @@ const baseAmountByHit = new Map(baseHits.map((event) => [event.values.hitIndex, 
 for (const bonus of gauntletBonuses) {
   assert.equal(bonus.values.after, bonus.values.before + Math.floor(bonus.values.before * 10 / 100));
   assert.equal(bonus.values.before, baseAmountByHit.get(hitByProposalId.get(bonus.values.proposalEventId)));
+}
+
+const COMBINED_PASSIVE_PROBE_ID = "stage5b_combined_passive_probe";
+const combinedSequence = runSkill(
+  THREE_HIT_PROBE.id,
+  [COMBINED_PASSIVE_PROBE_ID],
+  THREE_HIT_PROBE,
+  {
+    [COMBINED_PASSIVE_PROBE_ID]: {
+      ...projected.passiveSkills[WARHAMMER_A1],
+      id: COMBINED_PASSIVE_PROBE_ID,
+      rules: projected.passiveSkills[GAUNTLETS_A1].rules,
+    },
+  },
+);
+const combinedBonuses = passiveModifications(combinedSequence, COMBINED_PASSIVE_PROBE_ID);
+assert.equal(combinedBonuses.length, 3,
+  "a passive carrying both rule and rules executes entries from both fields");
+const combinedHits = attackProposals(combinedSequence, THREE_HIT_PROBE.id);
+const combinedHitByProposalId = new Map(
+  combinedHits.map((event) => [event.id, event.values.hitIndex]),
+);
+assert.deepEqual(
+  combinedBonuses.map((event) => combinedHitByProposalId.get(event.values.proposalEventId)),
+  [0, 1, 2],
+);
+for (const [index, bonus] of combinedBonuses.entries()) {
+  const percent = index === 0 ? 15 : 10;
+  assert.equal(bonus.values.after,
+    bonus.values.before + Math.floor(bonus.values.before * percent / 100));
 }
 
 console.log("weapon runtime warden starters: active damage and per-hit passive events match the catalog");
