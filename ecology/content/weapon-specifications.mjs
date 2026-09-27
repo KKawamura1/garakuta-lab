@@ -1383,7 +1383,7 @@ export const WEAPON_SKILL_SPECIFICATIONS = Object.freeze([
     "position": "A1",
     "kind": "passive",
     "displayName": "声を通す",
-    "implementationContract": "自分の号旗の主軸（号令・進め・総進撃・列進・急かす・前借り命令）が味方へAPを付与した時、対象それぞれへ集中1を付与する。集中は次の主軸のダメージ・回復・防壁+30%。",
+    "implementationContract": "自分の号旗の主軸（号令・進め・総進撃・列進・急かす・前借り命令）が味方へAPを付与した時、対象それぞれへ集中1を付与する。集中は次に発生するダメージ・回復・防壁のいずれか1回を+50%し、適用時に消費する。",
     "displayEffect": "号旗の主軸でAPを渡した味方に集中1。",
     "flavorText": "届く声は、刃より先に背を押す。"
   },
