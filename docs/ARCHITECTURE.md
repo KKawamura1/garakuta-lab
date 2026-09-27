@@ -35,6 +35,7 @@
 | `weapon-progression.mjs` | Stage 3 の移行用Run進行契約。取得済みnode・技能点・一人一件の取得予約だけを保持し、level値は持たない。Manifestや現行runtimeからはまだ参照しない |
 | `weapon-pack-manifest.mjs` | Stage 3 の移行用pack境界。武器別skill packと装備affix family packを別ID・Profile欄・Manifest抽選として扱い、Manifestごとの取得可能技能と装備familyを別関数で返す。現行runtimeからはまだ参照しない |
 | `weapon-save.mjs` | Stage 3 の新Profile/Run保存境界。独立したschema versionでJSON round-tripを検証し、未対応version・未知field・Profile/Run/Manifest/roster間の不整合を理由付きで拒否する。旧save migrationや現行storageへの接続はしない |
+| `weapon-skill-runtime.mjs` | Stage 5a のruntime registry境界。190節のnode keyからengine IDを可逆に導くが、登録できるのは初期20のR/A1だけ。skill定義は共通content validatorで検査し、Manifestとregistryの積集合を返す。本編の取得・loadout・BattleInputにはまだ未接続 |
 | `weapon-skill-prototype.html` / `weapon-skill-prototype.js` / `weapon-skill-prototype.mjs` / `weapon-skill-prototype.css` | Stage 4 の独立UIプレビュー。190節をPR #289の地図／一覧・役割丸記号・効果バッジ・効果のみの詳細盤で表示し、固定loadout fixtureとStage 3 APIを使う予約デモも示す。予測値はengine未接続中はnullとし、内部位置名を画面へ出さず、本編の取得・保存・報酬・戦闘には接続しない |
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
