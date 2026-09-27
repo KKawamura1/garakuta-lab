@@ -162,6 +162,7 @@ import {
   toggleStage5WeaponUltimate,
 } from "./weapon-stage5-run.mjs";
 import { simulateWeaponBattle } from "./weapon-battle-input.mjs";
+import { stage5ContentBundle } from "./weapon-stage5-content.mjs";
 
 const GAME_VERSION = "EXP-18 R10 Campaign 0.9";
 const SAVE_FORMAT_VERSION = 3;
@@ -1035,19 +1036,6 @@ function statsFor(characterId) {
   return characterStats(state.profile, characterId);
 }
 
-function stage5ContentBundle(run) {
-  const equipment = { ...PLAYABLE_CONTENT.equipment };
-  for (const item of Object.values(run?.generatedEquipment ?? {})) {
-    if (item?.definition?.id) equipment[item.definition.id] = item.definition;
-  }
-  return {
-    ...PLAYABLE_CONTENT,
-    activeSkills: {},
-    reactiveSkills: {},
-    passiveSkills: {},
-    equipment,
-  };
-}
 
 function maxHp(characterId) {
   const base = statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
