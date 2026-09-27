@@ -1,4 +1,5 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 
 const SELF = {
   scope: "self",
@@ -42,7 +43,7 @@ function loadedShot() {
 
 function preparedShotBonus() {
   const id = weaponSkillRuntimeId("heavy_crossbow:A1");
-  const rules = Array.from({ length: 8 }, (_, hitIndex) => ({
+  const rules = Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, hitIndex) => ({
     id: `${id}.prepared_hit_${hitIndex}`,
     listenTo: "damage_proposed",
     timing: "interrupt",

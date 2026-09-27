@@ -1,4 +1,5 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 
 const CLOSEST_ENEMY = {
   scope: "enemies",
@@ -47,7 +48,7 @@ function hookStrike() {
 
 function forcedMovementBonus() {
   const id = weaponSkillRuntimeId("grappling_hook:A1");
-  const rules = Array.from({ length: 31 }, (_, hitIndex) => ({
+  const rules = Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, hitIndex) => ({
     id: id + ".forced_move_hit_" + hitIndex,
     listenTo: "damage_proposed",
     timing: "interrupt",

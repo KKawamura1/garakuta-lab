@@ -26,6 +26,7 @@
 // engine・schema・共通registryは変更しない。
 
 import { renamed, scaleFlatAmounts } from "./base.mjs";
+import { MAX_ACTION_HIT_COUNT } from "../schema.mjs";
 
 export const STATUS_NAMES = {
   exposed: "隙",
@@ -63,11 +64,10 @@ const pendingPercent = (percent) => ({
 
 // 一つの status rule で「event amount × status 段数」を直接は書けず、同じruleは
 // chain安全契約により1回しか発火しない。そこで段数とhit番号の排他的な組ごとにruleを
-// 展開する。現行の最大は刻み止め5hit＋連撃affix1hitの6。有限本のまま各hitへ効かせる。
-const MAX_CONTENT_HITS = 6;
+// 展開する。許可される行動hit数と同じ数だけ、有限の規則を用意する。
 function pendingPercentRules({ statusId, maxStacks, subjectPredicate, operation, percentPerStack }) {
   return Array.from({ length: maxStacks }, (_, stackIndex) => (
-    Array.from({ length: MAX_CONTENT_HITS }, (_, hitIndex) => {
+    Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, hitIndex) => {
       const stacks = stackIndex + 1;
       return {
         id: stacks === 1 && hitIndex === 0

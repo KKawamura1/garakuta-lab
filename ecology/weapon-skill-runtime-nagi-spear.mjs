@@ -1,4 +1,5 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 
 const ENEMY_TARGET = {
   scope: "enemies",
@@ -40,10 +41,9 @@ function longSpearStrike() {
 
 function distanceBonus(nodeKey) {
   const id = weaponSkillRuntimeId(nodeKey);
-  // The catalog reaches 30 hits; reserve one more slot for the existing
-  // single-hit expansion rules. Each hit index needs its own rule ID because
-  // the shared engine limits one rule to one firing per chain.
-  const rules = Array.from({ length: 31 }, (_, hitIndex) => ({
+  // The shared cap covers base and added hits; keep one once-per-chain rule
+  // for every legal hit index.
+  const rules = Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, hitIndex) => ({
     id: id + ".distance_hit_" + hitIndex,
     listenTo: "damage_proposed",
     timing: "interrupt",

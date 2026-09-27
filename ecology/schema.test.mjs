@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import {
   PREDICATE_TYPES,
+  MAX_ACTION_HIT_COUNT,
   TARGET_FILTER_TYPES,
   SUBJECTS,
   USE_WHEN_PREDICATE_TYPES,
@@ -62,6 +63,18 @@ for (const section of ["activeSkills", "reactiveSkills", "equipment", "statuses"
     checks += 1;
   }
 }
+
+// ---- shared action hit ceiling --------------------------------------------
+
+expectValid(
+  content((bundle) => { bundle.activeSkills.strike.effects[0].hitCount = MAX_ACTION_HIT_COUNT; }),
+  "an active action at the shared hit ceiling",
+);
+expectRejected(
+  content((bundle) => { bundle.activeSkills.strike.effects[0].hitCount = MAX_ACTION_HIT_COUNT + 1; }),
+  "out_of_range",
+  "an active action beyond the shared hit ceiling",
+);
 
 // ---- unknown vocabulary ----------------------------------------------------
 
@@ -530,7 +543,7 @@ expectRejected(
     bundle.reactiveSkills.cover_ally.rule.listenTo = "action_hits_expanding";
     bundle.reactiveSkills.cover_ally.rule.effects = [{
       type: "add_action_hit",
-      hitCount: 9,
+      hitCount: MAX_ACTION_HIT_COUNT + 1,
       amount: { type: "constant", value: 2 },
     }];
   }),

@@ -11,6 +11,7 @@
 
 import {
   ACTION_HIT_EXPANSION_EVENT_TYPES,
+  LIMITS,
   COLUMNS,
   POSITION_COLUMN,
   POSITION_ORDER,
@@ -650,7 +651,7 @@ export function canAddActionHit(rt, ctx, effect) {
   if (!window) return false;
   const existingHits = (window.frame.actionHitAdditions ?? [])
     .reduce((sum, addition) => sum + addition.hitCount, 0);
-  if (window.frame.baseHitCount + existingHits + effect.hitCount > 8) return false;
+  if (window.frame.baseHitCount + existingHits + effect.hitCount > LIMITS.maxActionHitCount) return false;
   const amount = actionHitAmount(rt, ctx, window, effect);
   if (amount <= 0) return false;
   ctx.preparedActionHit = Object.freeze({

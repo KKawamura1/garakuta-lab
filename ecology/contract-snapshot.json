@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.21",
+ "contentVersion": "ecology-playable-full-0.22",
  "content": {
   "schemaVersion": "ecology-content-8",
-  "contentVersion": "ecology-playable-full-0.21",
+  "contentVersion": "ecology-playable-full-0.22",
   "characters": {
    "warden": {
     "id": "warden",
@@ -12697,6 +12697,1230 @@
       }
      },
      {
+      "id": "exposed_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "exposed_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -12981,6 +14205,1230 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
        }
       ],
       "costs": [],
@@ -13476,6 +15924,1230 @@
       }
      },
      {
+      "id": "staggered_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "staggered_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -13760,6 +17432,1230 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
        }
       ],
       "costs": [],
@@ -14101,6 +18997,1230 @@
       }
      },
      {
+      "id": "warded_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "warded_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -14385,6 +20505,1230 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_8_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 8
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_9_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 9
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_10_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 10
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_11_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 11
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_12_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 12
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_13_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 13
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_14_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 14
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_15_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 15
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_16_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 16
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_17_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 17
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_18_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 18
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_19_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 19
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_20_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 20
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_21_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 21
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_22_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 22
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_23_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 23
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_24_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 24
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_25_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_26_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 26
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_27_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 27
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_28_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 28
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_29_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 29
        }
       ],
       "costs": [],
@@ -31403,7 +38747,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -31779,7 +39123,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -32124,7 +39468,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -32354,7 +39698,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -32657,7 +40001,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -32932,7 +40276,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -33138,7 +40482,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -33370,7 +40714,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -33603,7 +40947,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -33809,7 +41153,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -34018,7 +41362,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -34262,7 +41606,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -34522,7 +41866,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -34723,7 +42067,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -34955,7 +42299,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -35208,7 +42552,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -35450,7 +42794,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -35719,7 +43063,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -35959,7 +43303,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -36187,7 +43531,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -36397,7 +43741,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -36582,7 +43926,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -36786,7 +44130,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -37017,7 +44361,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -37245,7 +44589,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -37483,7 +44827,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -37816,7 +45160,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -38275,7 +45619,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -38660,7 +46004,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -39069,7 +46413,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -39509,7 +46853,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -39817,7 +47161,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -40041,7 +47385,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -40256,7 +47600,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -40488,7 +47832,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -40715,7 +48059,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

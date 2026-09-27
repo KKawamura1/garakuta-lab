@@ -3,7 +3,7 @@ import { weaponSkillRuntimeId, makeWeaponSkillRuntimeRegistry } from "./weapon-s
 const ENEMY_TARGET = {
   scope: "enemies",
   filters: [{ type: "alive" }],
-  sort: ["position_asc"],
+  sort: ["distance_asc"],
   take: 1,
 };
 const EVENT_TARGET = {

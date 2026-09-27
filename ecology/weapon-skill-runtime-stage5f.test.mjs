@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
+import { BATTLE_SCHEMA_VERSION, MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 import { CORE_BATTLE } from "./fixtures.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import { STATUSES } from "./content/statuses.mjs";
@@ -140,16 +140,40 @@ assert.equal(bannerRoundLimitBattle.events.filter((event) =>
   event.type === "resource_gained" && event.skillId === BANNER_R).length, 1,
 "号令 can grant AP only once in a round even when the actor has another activation");
 
-// When AP ties, a preparing ally wins before formation order. The one-action
-// round limit leaves its preparation pending until the banner's next turn.
+// Preparation wins even when another ally has fewer AP. The one-action
+// round limit leaves the preparing ally pending until the banner's next turn.
 const prepPriorityBattle = simulateBattle(battle("stage5f_banner_prep_priority", [
   ally("a_genzo", "mender", "front_left", BANNER_R, [BANNER_A1]),
   ally("a_preparing", "warden", "front_center", CROSSBOW_R),
   ally("a_not_preparing", "lancer", "front_right", null),
-], 2), contentFor(), { maxActivationsPerActorPerRound: 1 });
+], 2), contentFor({ characterAp: { warden: 2, lancer: 0 } }), { maxActivationsPerActorPerRound: 1 });
 const roundTwoGrant = prepPriorityBattle.events.find((event) =>
   event.type === "resource_gained" && event.skillId === BANNER_R && event.round === 2);
 assert.deepEqual(roundTwoGrant?.targetActorIds, ["a_preparing"]);
+
+// 号令 resolves by preparation status, then lowest AP, then stable actor ID.
+const fixedActorOrderBattle = simulateBattle(battle("stage5f_banner_actor_order", [
+  ally("a_genzo", "mender", "front_left", BANNER_R),
+  ally("z_person", "warden", "front_center", null),
+  ally("a_person", "lancer", "front_right", null),
+]), contentFor({ characterAp: { warden: 0, lancer: 0 } }));
+const fixedActorOrderGrant = fixedActorOrderBattle.events.find((event) =>
+  event.type === "resource_gained" && event.skillId === BANNER_R && event.round === 1);
+assert.deepEqual(fixedActorOrderGrant?.targetActorIds, ["a_person"],
+  "equal AP and preparation status use stable actor order, not formation");
+
+// Per-hit passives need one rule for every legal hit slot.
+for (const skillRegistry of [
+  NAGI_LONG_SPEAR_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  HIBANA_GRAPPLING_HOOK_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  HIBANA_DUAL_BLADES_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  GENZO_HEAVY_CROSSBOW_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+]) {
+  const perHitPassive = Object.values(skillRegistry.entries)
+    .find(({ definition }) => Array.isArray(definition.rules));
+  assert.equal(perHitPassive?.definition.rules.length, MAX_ACTION_HIT_COUNT,
+    "per-hit passive rules cover the shared legal action hit count");
+}
 
 // Heavy crossbow R waits for one activation, then fires the nearest living
 // target for 200% might. A1 boosts prepared damage regardless of weapon.
