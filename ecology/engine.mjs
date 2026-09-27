@@ -361,7 +361,10 @@ function ruleEntriesFor(state, actor) {
   // （validator は rule として同じ検査を通す）。
   for (const skillId of actor.passiveSkillIds ?? []) {
     const passive = passiveSkills?.[skillId];
-    const rules = passive?.rules ?? (passive?.rule ? [passive.rule] : []);
+    const rules = [
+      ...(passive?.rule ? [passive.rule] : []),
+      ...(passive?.rules ?? []),
+    ];
     for (const rule of rules) {
       entries.push({
         rule,
