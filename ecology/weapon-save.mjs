@@ -15,9 +15,13 @@ import {
   freshWeaponSkillProgression,
   validateWeaponSkillProgression,
 } from "./weapon-progression.mjs";
+import {
+  freshWeaponRunBattleState,
+  validateWeaponRunBattleState,
+} from "./weapon-run-battle-state.mjs";
 
 export const WEAPON_PROFILE_SCHEMA_VERSION = "ecology-weapon-profile-1";
-export const WEAPON_RUN_SCHEMA_VERSION = "ecology-weapon-run-1";
+export const WEAPON_RUN_SCHEMA_VERSION = "ecology-weapon-run-2";
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -84,6 +88,10 @@ export function freshWeaponRun({
   manifest,
   startingSkillKeysByCharacter = {},
   startingSkillPointsByCharacter = 0,
+  battleState,
+  formationByCharacter,
+  equipmentByCharacter,
+  currentHpByCharacter,
 } = {}) {
   const profileValidation = validateWeaponProfile(profile);
   if (!profileValidation.valid) throw new TypeError(profileValidation.errors[0].message);
@@ -100,6 +108,13 @@ export function freshWeaponRun({
     startingSkillPointsByCharacter,
     availableSkillNodeKeys: available,
   });
+  const runBattleState = battleState ?? freshWeaponRunBattleState(characterIds, {
+    formationByCharacter,
+    equipmentByCharacter,
+    currentHpByCharacter,
+  });
+  const battleStateValidation = validateWeaponRunBattleState(runBattleState, { characterIds });
+  if (!battleStateValidation.valid) throw new TypeError(battleStateValidation.errors[0].message);
   return {
     schemaVersion: WEAPON_RUN_SCHEMA_VERSION,
     runId,
@@ -108,6 +123,7 @@ export function freshWeaponRun({
     manifest: runManifest,
     skillProgression,
     loadout: freshWeaponSkillLoadout(characterIds),
+    battleState: runBattleState,
   };
 }
 
@@ -142,6 +158,7 @@ export function validateWeaponRun(run, { profile } = {}) {
   }
   const allowedFields = new Set([
     "schemaVersion", "runId", "profileId", "characterIds", "manifest", "skillProgression", "loadout",
+    "battleState",
   ]);
   for (const field of Object.keys(run)) {
     if (!allowedFields.has(field)) addError(errors, "unknown_run_field", field, "このweapon Run形式にない欄です。");
@@ -173,6 +190,13 @@ export function validateWeaponRun(run, { profile } = {}) {
   }
 
   if (hasUniqueRoster(run.characterIds) && manifestValidation.valid) {
+    const battleStateValidation = validateWeaponRunBattleState(run.battleState, {
+      characterIds: run.characterIds,
+    });
+    errors.push(...battleStateValidation.errors.map((error) => ({
+      ...error,
+      path: `battleState.${error.path}`,
+    })));
     const available = availableWeaponSkillNodeKeys(run.manifest);
     const progressionValidation = validateWeaponSkillProgression(run.skillProgression, {
       characterIds: run.characterIds,

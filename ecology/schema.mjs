@@ -299,6 +299,8 @@ export const TARGET_SORT_TYPES = freeze([
   "hp_percent_desc",
   "barrier_asc",
   "barrier_desc",
+  "action_points_asc",
+  "is_preparing_desc",
   "position_asc",
   "position_desc",
   "distance_asc",
