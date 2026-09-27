@@ -125,7 +125,8 @@ import { spawnImpactMark, spawnStrikeLine } from "./battle-fx.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 import { validateWeaponProfile, validateWeaponRun } from "./weapon-save.mjs";
-import { WEAPON_SKILL_NODES, weaponSkillPrerequisiteKeys } from "./weapon-loadout.mjs";
+import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
+import { weaponSkillPrerequisiteKeys } from "./weapon-progression.mjs";
 import { WEAPON_SKILL_PACKS } from "./weapon-pack-manifest.mjs";
 import {
   STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
