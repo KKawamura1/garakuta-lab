@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
+import { validateContentBundle } from "./validate.mjs";
+import { stage5ContentBundle } from "./weapon-stage5-content.mjs";
 import {
   availableWeaponSkillNodeKeys,
   freshWeaponPackProfile,
@@ -10,6 +12,7 @@ import {
   STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
   WEAPON_SKILL_RUNTIME_REGISTRY_SCHEMA_VERSION,
   availableExecutableWeaponSkillNodeKeys,
+  compileWeaponSkillRuntimeContent,
   makeWeaponSkillRuntimeRegistry,
   validateWeaponSkillRuntimeRegistry,
   weaponSkillNodeKeyFromRuntimeId,
@@ -115,6 +118,21 @@ const definitions = Object.fromEntries(implementedNodeKeys.map((nodeKey) => [
   schemaValidDefinitionFixture(nodeKey),
 ]));
 const registry = makeWeaponSkillRuntimeRegistry(definitions);
+const stage5Content = stage5ContentBundle();
+const coreActionIds = Object.values(stage5Content.coreActions)
+  .flatMap((byReach) => Object.values(byReach));
+assert.deepEqual(
+  Object.keys(stage5Content.activeSkills).sort(),
+  [...new Set(coreActionIds)].sort(),
+  "Stage 5 keeps the engine's generic core actions but strips legacy player actives",
+);
+assert.ok(!Object.hasOwn(stage5Content.activeSkills, "steady_cut"));
+const compiledStage5Content = compileWeaponSkillRuntimeContent(stage5Content, registry);
+assert.deepEqual(
+  validateContentBundle(compiledStage5Content),
+  [],
+  "projecting the initial weapon skills leaves all core action references valid",
+);
 assert.equal(validateWeaponSkillRuntimeRegistry(registry).valid, true);
 assert.deepEqual(availableExecutableWeaponSkillNodeKeys(manifest, registry), implementedNodeKeys,
   "only initial-scope nodes with engine-schema-valid definitions and unlocked packs are available");

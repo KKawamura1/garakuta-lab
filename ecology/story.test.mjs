@@ -257,7 +257,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(on.verdict, "win", "必殺を構えると勝てる");
   equal(on.enemiesAlive, 0, "構えれば敵を倒しきる");
   equal(on.survivors, roster.length, "構えた側では誰も落ちない");
-  check(on.rounds < off.rounds, "構えたほうが早く終わる");
+  check(off.rounds === composed.maxRounds && on.rounds <= composed.maxRounds,
+    "必殺なし側は上限で敗れ、構えた側は上限内に勝つ");
   assert.deepEqual(on.fired, [goal.characterId], "放つのは教えた一人だけ");
   equal(on.cutIns, 1, "必殺の拍（カットイン）が一つだけ出る");
   equal(
