@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "./content/index.mjs";
 import { prologueEncounter, ultimateLessonEncounter } from "./playable-battles.mjs";
+import { isValidId } from "./schema.mjs";
 import { WEAPON_SKILL_NODES, weaponSkillNodeKey } from "./weapon-loadout.mjs";
 import { WEAPON_SKILL_PACKS, makeWeaponPackManifest } from "./weapon-pack-manifest.mjs";
 import { freshWeaponProfile, freshWeaponRun, serializeWeaponRun, deserializeWeaponRun } from "./weapon-save.mjs";
@@ -72,6 +73,24 @@ assert.equal(roundTrip.ok, true, roundTrip.reason);
 assert.deepEqual(deserializeWeaponRun(roundTrip.json, { profile }), { ok: true, run });
 
 const built = buildWeaponBattleInput({ run, profile, composed: prologueEncounter() });
+const longSeedRun = structuredClone(run);
+longSeedRun.runId = "run_" + "r".repeat(48);
+longSeedRun.manifest = { ...longSeedRun.manifest, seed: "seed_" + "s".repeat(48) };
+const longSeedBattle = buildWeaponBattleInput({
+  run: longSeedRun,
+  profile,
+  composed: prologueEncounter(),
+}).battleInput;
+assert.ok(isValidId(longSeedBattle.battleId));
+assert.ok(longSeedBattle.battleId.length <= 64);
+const samePrefixRun = structuredClone(longSeedRun);
+samePrefixRun.manifest = { ...samePrefixRun.manifest, seed: "seed_" + "s".repeat(48) + "_alternate" };
+const samePrefixBattle = buildWeaponBattleInput({
+  run: samePrefixRun,
+  profile,
+  composed: prologueEncounter(),
+}).battleInput;
+assert.notEqual(longSeedBattle.battleId, samePrefixBattle.battleId);
 assert.deepEqual(built.battleInput.allies.map(({ characterId, position }) => [characterId, position]), [
   ["warden", "front_left"],
   ["mender", "rear_right"],
