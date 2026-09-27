@@ -14,7 +14,7 @@ import {
   compileWeaponSkillRuntimeContent,
   weaponSkillRuntimeId,
 } from "./weapon-skill-runtime.mjs";
-import { STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage5.mjs";
+import { STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage6.mjs";
 import { ultimateFirings, withUltimates } from "./ultimates.mjs";
 import { stage5UltimateCandidate } from "./weapon-stage5-ultimate.mjs";
 
@@ -105,7 +105,7 @@ export function buildWeaponBattleInput({
   composed,
   statsFor,
   contentBundle = PLAYABLE_CONTENT,
-  runtimeRegistry = STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  runtimeRegistry = STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY,
 } = {}) {
   const executable = checkedRun(run, profile, runtimeRegistry);
   if (!composed || !Number.isSafeInteger(composed.index) || !Number.isSafeInteger(composed.maxRounds)

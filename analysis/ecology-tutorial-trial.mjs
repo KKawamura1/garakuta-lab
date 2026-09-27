@@ -486,13 +486,13 @@ try {
 
   // Stage 5 h — 390px 幅で人物ごとの武器技能一覧を確認する。
   // 旧skill tree / level / pack UIはすでに切り替え済みなので、今の武器Run操作と
-  // 初期20節の表示境界、そしてStage 0で必殺を見せないことを実際のDOMで確かめる。
+  // 実装済み技能だけの表示境界、そしてStage 0で必殺を見せないことを実際のDOMで確かめる。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillHelp = page.locator('details[data-help="stage5-skill-rules"]');
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
   const stage5Nodes = page.locator(".stage5-skill-card");
-  note("初期20節だけが技能一覧に出る", await stage5Nodes.count() === 20,
+  note("実装済み22節だけが技能一覧に出る", await stage5Nodes.count() === 22,
     `節 ${await stage5Nodes.count()}`);
   note("Stage 5の主軸・反応・常時の区分が出る",
     await page.locator(".stage5-kind.kind-active").count() > 0
@@ -1262,7 +1262,7 @@ try {
       && await lessonRow.first().evaluate((row) => row.classList.contains("tutorial-spot")));
     note("必殺にできるカードは長押し可能", await page.locator(
       `.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-skill-select[data-longpress="toggle-stage5-ultimate"]`).count() === 1);
-    note("Stage 1の技能一覧に初期20節を保つ", await page.locator(".stage5-skill-card").count() === 20);
+    note("Stage 1の技能一覧に実装済み22節を出す", await page.locator(".stage5-skill-card").count() === 22);
     if (await lessonRow.count()) {
       await pressDown(lessonRow.first());
       // CSSの進行値は幅で測る。帯はJSの450msと揃い、タップを長押しと誤判定しない。

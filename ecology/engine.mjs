@@ -348,13 +348,17 @@ function ruleEntriesFor(state, actor) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
   for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
-    entries.push({
-      rule: reactiveSkills[skillId].rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "reactive_skill",
-      skillOrder,
-    });
+    const skill = reactiveSkills[skillId];
+    const rules = skill.rules ?? (skill.rule ? [skill.rule] : []);
+    for (const rule of rules) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "reactive_skill",
+        skillOrder,
+      });
+    }
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
   // **反応権を払わない**ので、costs は content 側で空にしてある

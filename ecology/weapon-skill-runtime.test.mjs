@@ -121,12 +121,12 @@ assert.deepEqual(availableExecutableWeaponSkillNodeKeys(manifest, registry), imp
 assert.equal(availableExecutableWeaponSkillNodeKeys(manifest, EMPTY_WEAPON_SKILL_RUNTIME_REGISTRY).length, 0,
   "catalog entries without runtime definitions are not exposed as executable");
 
-const nonInitialNodeKey = "warhammer:A2";
+const nonInitialNodeKey = "warhammer:AA1";
 assert.ok(!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nonInitialNodeKey));
 assert.throws(
   () => makeWeaponSkillRuntimeRegistry({ [nonInitialNodeKey]: schemaValidDefinitionFixture(nonInitialNodeKey) }),
-  /outside the Stage 5 initial node scope/,
-  "out-of-scope nodes cannot be registered even when their pack is enabled",
+  /outside the implemented Stage 6 node scope/,
+  "unimplemented nodes cannot be registered even when their pack is enabled",
 );
 const outOfScopeRegistry = {
   ...registry,
@@ -141,7 +141,7 @@ const outOfScopeRegistry = {
   },
 };
 assert.ok(validateWeaponSkillRuntimeRegistry(outOfScopeRegistry).errors
-  .some((error) => error.code === "runtime_node_outside_initial_scope"));
+  .some((error) => error.code === "runtime_node_outside_implemented_scope"));
 
 const medicalProfile = freshWeaponPackProfile({
   unlockedSkillPackIds: ["skill:medical_kit"],

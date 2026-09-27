@@ -37,6 +37,7 @@ export const STATUS_NAMES = {
   bleeding: "裂傷",
   ultimate_spent: "必殺",
   banner_order_used: "号令済み",
+  echoing_iron_armed: "響く鉄",
 };
 
 const statuses = renamed("statuses", STATUS_NAMES);
@@ -270,6 +271,19 @@ statuses.banner_order_used = {
   tags: ["playable", "mark"],
 };
 
+// Stage 6a — short-lived marker for the second hit funded by 響く鉄.
+// The reactive skill removes it at the next hit or at action_resolved; round
+// duration is only a final cleanup boundary if an action is interrupted.
+statuses.echoing_iron_armed = {
+  id: "echoing_iron_armed",
+  displayName: STATUS_NAMES.echoing_iron_armed,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "round",
+  rules: [],
+  tags: ["playable", "mark"],
+};
+
 export const STATUSES = statuses;
 
 // ---------------------------------------------------------------- 画面へ出す説明（issue #176）
@@ -290,6 +304,7 @@ const STATUS_SUMMARIES = {
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
   banner_order_used: "このラウンドに号旗のAP付与主軸を使用した印。次のラウンド開始時に消える。",
+  echoing_iron_armed: "「響く鉄」が次の命中へ怯みを重ねる印。次のhit、または攻撃の解決後に消える。",
 };
 
 const DURATION_TEXT = { round: "次のラウンド開始時に消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };
@@ -302,6 +317,8 @@ export const STATUS_GLOSSARY = Object.freeze(Object.entries(statuses)
     polarity: definition.polarity,
     maxStacks: definition.maxStacks,
     duration: definition.duration,
-    durationText: DURATION_TEXT[definition.duration] ?? definition.duration,
+    durationText: id === "echoing_iron_armed"
+      ? "この攻撃の解決後に消える"
+      : DURATION_TEXT[definition.duration] ?? definition.duration,
     summary: STATUS_SUMMARIES[id] ?? "",
   })));

@@ -159,7 +159,7 @@ const lockedButManifestAvailable = unlockWeaponSkill(
     skillPointsByCharacter: { ...run.skillProgression.skillPointsByCharacter, warden: 1 },
   },
   "warden",
-  weaponSkillNodeKey("warhammer", "A2"),
+  weaponSkillNodeKey("gauntlets", "A2"),
   Object.keys(WEAPON_SKILL_NODES),
 );
 assert.equal(lockedButManifestAvailable.ok, true);
@@ -178,4 +178,4 @@ badDefault.loadout.primarySkillByCharacter.tactician = null;
 assert.throws(() => buildWeaponBattleInput({ run: badDefault, profile, composed: prologueEncounter() }), /主軸技能を選んでください/);
 
 assert.equal(Object.keys(STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY.entries).length, 20);
-console.log("weapon battle input: strict new Run → exact Stage 5 registry → shared deterministic engine path");
+console.log("weapon battle input: strict new Run → current executable registry → shared deterministic engine path");

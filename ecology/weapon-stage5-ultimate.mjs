@@ -5,13 +5,13 @@ import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import { ascendSkill, ultimateFirings, ultimateIdFor, ultimateTraitLabels } from "./ultimates.mjs";
 import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
 import { compileWeaponSkillRuntimeContent, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
-import { STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage5.mjs";
+import { STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage6.mjs";
 
 export const STAGE5_ULTIMATE_STATE_SCHEMA_VERSION = "ecology-weapon-stage5-ultimate-1";
 
 const BASE_CONTENT = compileWeaponSkillRuntimeContent(
   PLAYABLE_CONTENT,
-  STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY,
 );
 
 function isRecord(value) {
@@ -35,7 +35,7 @@ export function freshStage5UltimateState(characterIds = []) {
 
 export function stage5UltimateCandidate(run, characterId, skillKey, {
   contentBundle = PLAYABLE_CONTENT,
-  runtimeRegistry = STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  runtimeRegistry = STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY,
 } = {}) {
   const node = WEAPON_SKILL_NODES[skillKey];
   const acquired = run?.skillProgression?.unlockedSkillKeysByCharacter?.[characterId] ?? [];
@@ -45,7 +45,7 @@ export function stage5UltimateCandidate(run, characterId, skillKey, {
     : node?.kind === "reactive" ? reactive.includes(skillKey) : false;
   if (!node || !acquired.includes(skillKey) || !selected) return null;
   const runtimeSkillId = weaponSkillRuntimeId(skillKey);
-  const content = contentBundle === PLAYABLE_CONTENT && runtimeRegistry === STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY
+  const content = contentBundle === PLAYABLE_CONTENT && runtimeRegistry === STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY
     ? BASE_CONTENT
     : compileWeaponSkillRuntimeContent(contentBundle, runtimeRegistry);
   const ascended = ascendSkill(content, runtimeSkillId);

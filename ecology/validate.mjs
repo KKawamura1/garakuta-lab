@@ -847,7 +847,14 @@ export function validateContentBundle(bundle) {
       const path = `${section}.${id}`;
       requireDisplayName(bag, `${path}.displayName`, skill.displayName);
       requireTags(bag, `${path}.tags`, skill.tags);
-      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+      if (skill.rules !== undefined) {
+        if (skill.rule !== undefined) {
+          bag.add(path, "ambiguous_reactive_rules", "use either rule or rules, not both");
+        }
+        validateRules(bag, `${path}.rules`, skill.rules, baseCtx);
+      } else {
+        validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+      }
     }
   }
 

@@ -1,7 +1,7 @@
-# dev移行台帳 — Stage 0〜5初期進捗
+# dev移行台帳 — Stage 0〜6初期進捗
 
 更新日: 2026-09-27
-状態: **Stage 0〜4はdevへ統合済み。Stage 5a〜5gはPR #331まで。Stage 5h/5iはローカル実装済み・未コミット。** 5h/5iで本編UI、weapon Run v4の保存・再開、live / forecast / Replayを初期20節のruntimeへ切り替え、アプリの旧player tree / level / pack / runtime依存を外した。390×844ブラウザtrialはこの環境のChromium起動クラッシュで未確認。残り170節は本Stageの実行範囲外で、registryの外に保つ。
+状態: **Stage 0〜5はdevへ統合済み（Stage 5g後続修正#332、本編切替#333、Playwright修正#334）。Stage 6aは最新devをbaseに戦槌A2/A3を実装し、実行範囲を22節へ広げる。残り168節は未移行のままregistry外に保つ。** unit試験・全体検査は#332/#333の統合後devで確認し、390×844 branch previewはPR上で確認する。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -141,6 +141,12 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 
 ## Stage 5切替の現在状態
 
-Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stage 5a〜5gはPR #331までで、5h/5iの実装はこのローカル作業にある。初期20節は本編の取得・装備・BattleInputに接続し、未実装170節は取得・表示・戦闘入力から閉じている。
+Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stage 5a〜5gはPR #331までで、Stage 5g後続修正PR #332と5h/5i本編切替PR #333もdevへ統合された。PR #334のPlaywright headless shell修正は#333へ取り込まれた。Stage 5切替計画と受け入れ範囲は[Stage 5切替計画](17-stage5-runtime-cutover.md)を参照する。
 
-変更内容・順序・旧player経路の撤去条件・環境上未確認の試験は[Stage 5切替計画](17-stage5-runtime-cutover.md)を参照。次の検証可能な残作業は、利用可能なChromium環境で390×844のbrowser trialを通すこと。
+## Stage 6の移行範囲
+
+Stage 6は残り170節をカタログ順に移し、共通機構は再利用可能な小さな変更にまとめ、武器ごとの技能は縦切りで登録・試験する。現ブランチの6aではカタログ先頭の戦槌A2「響く鉄」とA3「大槌打ち」を本編の取得・loadout・BattleInput・live / forecast・必殺候補へ接続する。実行範囲は初期20節を保ったまま22節になり、残る168節は取得・表示・BattleInputから閉じている。
+
+「響く鉄」は共通ActionPlanへ攻撃内通し番号を載せ、複数対象・複数damage効果でも第1hitと次のhitを区別する。Reactive skill一つに複数ruleを登録できるようにし、最初のhitでRP1を払い怯みを付与し、2hit目で次の怯みを付与する。単発攻撃でも印が残らないよう`action_resolved`で清掃する。「大槌打ち」は既存の`distance_asc`対象選択とdamage効果で腕力170%を与える。
+
+追加した`ecology/weapon-skill-runtime-warhammer.test.mjs`は単体3hit、1hit×2対象、RP不足、marker清掃、最近敵選択、170% damageをevent列・actor stateで固定する。Stage 6の残りは[Stage 6技能移行計画](18-stage6-skill-migration.md)を参照する。

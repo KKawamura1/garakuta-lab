@@ -32,6 +32,13 @@ import { resolveTargets } from "./selectors.mjs";
 import { BPS, evaluateValue, roundHalfUpDiv } from "./values.mjs";
 
 const DURATION_RANK = { round: 0, battle: 1 };
+const NEXT_ACTION_HIT_ORDINAL_BY_PLAN = new WeakMap();
+
+function nextActionHitOrdinal(actionPlan) {
+  const ordinal = NEXT_ACTION_HIT_ORDINAL_BY_PLAN.get(actionPlan) ?? 0;
+  NEXT_ACTION_HIT_ORDINAL_BY_PLAN.set(actionPlan, ordinal + 1);
+  return ordinal;
+}
 
 function sourceFields(ctx) {
   return {
@@ -307,9 +314,10 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
   });
 }
 
-function actionPlanEventValues(actionPlan, effectPlan) {
+function actionPlanEventValues(actionPlan, effectPlan, actionHitOrdinal) {
   return {
     actionPlanId: actionPlan.id,
+    ...(actionHitOrdinal === undefined ? {} : { actionHitOrdinal }),
     ...(effectPlan.effectIndex === undefined
       ? { actionDamageExpansionIndex: effectPlan.actionDamageExpansionIndex }
       : { effectIndex: effectPlan.effectIndex }),
@@ -367,6 +375,7 @@ function resolveActionDamageExpansion(rt, ctx, actionPlan) {
       undefined,
       actionPlan,
       effectPlan,
+      nextActionHitOrdinal(actionPlan),
     );
   }
 }
@@ -518,6 +527,7 @@ function dealDamage(rt, ctx, effect) {
       hitSlot.amount,
       actionPlan,
       effectPlan,
+      nextActionHitOrdinal(actionPlan),
     );
     // Each damage instance is its own reaction boundary: defense-break and
     // other after rules settle before the next planned recipient/hit starts.
@@ -766,6 +776,7 @@ function dealOneInstance(
   proposedOverride,
   actionPlan = null,
   effectPlan = null,
+  actionHitOrdinal = undefined,
 ) {
   const proposed = proposedOverride === undefined
     ? effectPlan
@@ -787,7 +798,7 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         ...(ctx.owner ? { distance: gridDistance(ctx.owner, target) } : {}),
-        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
+        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan, actionHitOrdinal) : {}),
       },
     },
     frame,

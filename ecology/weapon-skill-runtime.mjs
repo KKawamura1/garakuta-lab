@@ -18,14 +18,22 @@ export const STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS = Object.freeze([
   "banner:R", "banner:A1",
   "heavy_crossbow:R", "heavy_crossbow:A1",
 ]);
-const STAGE_5_INITIAL_NODE_KEY_SET = new Set(STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS);
+// Stage 6 opens only nodes whose catalog behavior has been implemented and
+// tested. Keep the Stage 5 starter contract separately so its 20-node boundary
+// remains explicit while weapon tracks are migrated one at a time.
+export const STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS = Object.freeze([
+  ...STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
+  "warhammer:A2",
+  "warhammer:A3",
+]);
+const IMPLEMENTED_NODE_KEY_SET = new Set(STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS);
 
 const RUNTIME_DEFINITION_FIELDS_BY_KIND = Object.freeze({
   active: new Set([
     "id", "displayName", "apCost", "actionMode", "intrinsicPredicates",
     "targetQuery", "effects", "preparation", "tags",
   ]),
-  reactive: new Set(["id", "displayName", "tags", "rule"]),
+  reactive: new Set(["id", "displayName", "tags", "rule", "rules"]),
   passive: new Set(["id", "displayName", "tags", "rule", "rules", "statBonus"]),
   target: new Set(["id", "displayName", "query"]),
 });
@@ -69,9 +77,9 @@ function hasExecutablePayload(definition, kind) {
         && definition.preparation.completionEffects.length > 0);
   }
   if (kind === "reactive") {
-    return isRecord(definition.rule)
-      && Array.isArray(definition.rule.effects)
-      && definition.rule.effects.length > 0;
+    const rules = definition.rules ?? (definition.rule ? [definition.rule] : []);
+    return Array.isArray(rules)
+      && rules.some((rule) => isRecord(rule) && Array.isArray(rule.effects) && rule.effects.length > 0);
   }
   if (kind === "passive") {
     return (isRecord(definition.statBonus) && Object.keys(definition.statBonus).length > 0)
@@ -140,8 +148,8 @@ export function makeWeaponSkillRuntimeRegistry(definitions = {}) {
   for (const [nodeKey, definition] of Object.entries(definitions)) {
     const node = Object.hasOwn(WEAPON_SKILL_NODES, nodeKey) ? WEAPON_SKILL_NODES[nodeKey] : null;
     if (!node) throw new TypeError(`unknown weapon skill node: ${nodeKey}`);
-    if (!STAGE_5_INITIAL_NODE_KEY_SET.has(nodeKey)) {
-      throw new TypeError(`runtime definition is outside the Stage 5 initial node scope: ${nodeKey}`);
+    if (!IMPLEMENTED_NODE_KEY_SET.has(nodeKey)) {
+      throw new TypeError(`runtime definition is outside the implemented Stage 6 node scope: ${nodeKey}`);
     }
     if (!isRecord(definition)) {
       throw new TypeError(`runtime definition for ${nodeKey} must be an object.`);
@@ -192,8 +200,8 @@ export function validateWeaponSkillRuntimeRegistry(registry) {
       addError(errors, "unknown_runtime_node", path, "node key is not in the weapon catalog.");
       continue;
     }
-    if (!STAGE_5_INITIAL_NODE_KEY_SET.has(nodeKey)) {
-      addError(errors, "runtime_node_outside_initial_scope", path, "only the Stage 5 initial R/A1 nodes may be registered.");
+    if (!IMPLEMENTED_NODE_KEY_SET.has(nodeKey)) {
+      addError(errors, "runtime_node_outside_implemented_scope", path, "only explicitly implemented weapon nodes may be registered.");
       continue;
     }
     if (!isRecord(entry)) {

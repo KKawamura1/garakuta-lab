@@ -22001,6 +22001,18 @@
      "playable",
      "mark"
     ]
+   },
+   "echoing_iron_armed": {
+    "id": "echoing_iron_armed",
+    "displayName": "響く鉄",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark"
+    ]
    }
   },
   "enemyActors": {
@@ -23411,6 +23423,7 @@
   "lured": "誘引",
   "ultimate_spent": "必殺",
   "banner_order_used": "号令済み",
+  "echoing_iron_armed": "響く鉄",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
   "still_husk": "動かない灰殻",

@@ -2835,3 +2835,11 @@ PR #297の後続として、対象選択・対象反応・攻撃開始反応が�
 fixture検査では、RP不足候補からのfallback、行・隣列・列の対象範囲、主対象を含む重複排除、複数候補が
 積み重ならないこと、追加damage片が同じActionPlanへ属することを確認した。実際の振り幅・貫通・炸裂筒
 などの技能定義と個別対象条件は、武器別registryへ移植する段階に残す。
+
+### Stage 6a — 戦槌A2/A3の本編runtime移行（2026-09-27）
+
+Stage 5の初期20節を残し、戦槌A2「響く鉄」とA3「大槌打ち」を加えた22節を本編runtimeで実行できるようにした。ほかの168節はUI・取得・BattleInputから引き続き閉じる。
+
+「響く鉄」は攻撃の最初のhitでRP1を払い怯み1、次のhitにも怯み1を付ける。共通ActionPlanから各damage proposalへ`actionHitOrdinal`を渡すようにし、複数対象・複数damage効果でも攻撃全体のhit順を判別できる。通し番号は弱参照mapへ置きActionPlanはimmutableのまま保つ。Reactive skillは複数ruleを持てるようになり、RP不足時に発動しないこと、3hit目へ作用しないこと、単発攻撃のmarkerがaction解決後に消えることを個別testで固定した。
+
+「大槌打ち」は最も近い生存敵1体へ腕力170%を与える。距離順の対象選択とdamage提案を専用registryで登録し、複数敵のうち近い敵を選ぶことを確認した。live / forecast / ultimate候補のregistry、技能一覧、取得操作も同じ22節allowlistへ切り替えた。Stage 1技能チュートリアルは初期20節の教示対象を維持する。

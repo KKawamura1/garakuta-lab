@@ -29,8 +29,8 @@ import {
 import {
   STAGE_5_DEFAULT_PRIMARY_SKILL_BY_CHARACTER,
   STAGE_5_STARTER_SKILL_KEYS_BY_CHARACTER,
-  STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
 } from "./weapon-skill-runtime-stage5.mjs";
+import { STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage6.mjs";
 import { freshWeaponRunBattleState } from "./weapon-run-battle-state.mjs";
 import {
   clearUnavailableStage5Ultimate,
@@ -43,7 +43,7 @@ const EXECUTABLE_NODE_KEYS = Object.freeze(availableExecutableWeaponSkillNodeKey
   seed: "stage5-runtime-allowlist",
   enabledSkillPackIds: WEAPON_SKILL_PACKS.map(({ id }) => id),
   enabledEquipmentPackIds: [],
-}, STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY));
+}, STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY));
 
 function copyProgression(progression) {
   return {
@@ -221,9 +221,9 @@ function applyAutomaticActions(run, actions) {
 }
 
 export function acquireStage5WeaponSkill(run, characterId, skillKey) {
-  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const acquired = unlockWeaponSkill(run.skillProgression, characterId, skillKey,
-    availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY));
+    availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY));
   if (!acquired.ok) return acquired;
   let next = { ...run, skillProgression: acquired.progression };
   next = applyAutomaticActions(next, [{ characterId, skillKey, target: true }]);
@@ -231,9 +231,9 @@ export function acquireStage5WeaponSkill(run, characterId, skillKey) {
 }
 
 export function reserveStage5WeaponSkill(run, characterId, skillKey) {
-  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const reserved = reserveWeaponSkill(run.skillProgression, characterId, skillKey,
-    availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY));
+    availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY));
   if (!reserved.ok) return reserved;
   let next = { ...run, skillProgression: reserved.progression };
   next = applyAutomaticActions(next, reserved.actions);
@@ -246,7 +246,7 @@ export function cancelStage5WeaponSkillReservation(run, characterId) {
 }
 
 export function selectStage5Primary(run, characterId, skillKey) {
-  if (skillKey !== null && !EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (skillKey !== null && !EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const result = selectPrimaryWeaponSkill(run.loadout, characterId, skillKey,
     run.skillProgression.unlockedSkillKeysByCharacter);
   if (!result.ok) return result;
@@ -255,14 +255,14 @@ export function selectStage5Primary(run, characterId, skillKey) {
 }
 
 export function addStage5Reactive(run, characterId, skillKey) {
-  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const result = addWeaponPrioritySkill(run.loadout, characterId, skillKey,
     run.skillProgression.unlockedSkillKeysByCharacter);
   return result.ok ? { ok: true, run: { ...run, loadout: result.loadout } } : result;
 }
 
 export function removeStage5Priority(run, characterId, skillKey) {
-  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (!EXECUTABLE_NODE_KEYS.includes(skillKey)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const result = removeWeaponPrioritySkill(run.loadout, characterId, skillKey);
   if (!result.ok) return result;
   const next = clearUnavailableStage5Ultimate({ ...run, loadout: result.loadout }, characterId);
@@ -275,14 +275,14 @@ export function toggleStage5WeaponUltimate(run, characterId, skillKey) {
 
 export function moveStage5Priority(run, characterId, kind, fromIndex, toIndex) {
   const key = run.loadout[`${kind}PriorityByCharacter`]?.[characterId]?.[fromIndex];
-  if (!EXECUTABLE_NODE_KEYS.includes(key)) return fail("この段階で実行できるのは初期20節だけです。", "skill_not_executable");
+  if (!EXECUTABLE_NODE_KEYS.includes(key)) return fail("この節はまだ実行できません。", "skill_not_executable");
   const result = moveWeaponPrioritySkill(run.loadout, characterId, kind, fromIndex, toIndex);
   return result.ok ? { ok: true, run: { ...run, loadout: result.loadout } } : result;
 }
 
 export function grantStage5SkillPointsForClear(run, clearKey, amount = 1) {
   const activeIds = new Set(run.battleState.partyCharacterIds);
-  const available = availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY);
+  const available = availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY);
   const grant = grantWeaponSkillPointsForClear(run.skillProgression, clearKey, amount, available);
   if (!grant.ok) return grant;
   if (!grant.granted) return { ...grant, run };
@@ -301,7 +301,7 @@ export function grantStage5SkillPointsForClear(run, clearKey, amount = 1) {
 
 export function fulfillStage5SkillReservations(run) {
   const activeIds = new Set(run.battleState.partyCharacterIds);
-  const available = availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY);
+  const available = availableExecutableWeaponSkillNodeKeys(run.manifest, STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY);
   const prior = run.skillProgression;
   const fulfilled = fulfillWeaponSkillReservations(prior, available);
   if (!fulfilled.ok) return fulfilled;

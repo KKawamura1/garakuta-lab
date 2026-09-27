@@ -90,7 +90,7 @@ const displayContracts = [
   // 形が変わったので、見る文字列もその段の綴りへ合わせる。
   ["装備常時効果の耐久説明", app, 'title: "能力値補正", value: "耐久を使わない"'],
   ["Stage 5の技能画面", app, "function renderSkills()"],
-  ["初期20節以外を技能画面に出さない", app, "for (const key of STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS)"],
+  ["実装済み節だけを技能画面に出す", app, "for (const key of STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS)"],
   ["技能取得操作", app, '"acquire-weapon-skill"'],
   ["技能取得予約", app, '"reserve-weapon-skill"'],
   ["取得予約の取消", app, '"cancel-weapon-reservation"'],

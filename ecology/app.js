@@ -129,11 +129,12 @@ import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
 import { weaponSkillPrerequisiteKeys } from "./weapon-progression.mjs";
 import { WEAPON_SKILL_PACKS } from "./weapon-pack-manifest.mjs";
 import {
+  STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS,
   STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
   compileWeaponSkillRuntimeContent,
   weaponSkillNodeKeyFromRuntimeId,
 } from "./weapon-skill-runtime.mjs";
-import { STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage5.mjs";
+import { STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage6.mjs";
 import { weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
 import {
   ULTIMATE_AMOUNT_MULTIPLIER,
@@ -1060,7 +1061,7 @@ function maxHp(characterId) {
   }));
   return maxHpWithStaticBonuses(
     base,
-    compileWeaponSkillRuntimeContent(stage5ContentBundle(state.run), STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY),
+    compileWeaponSkillRuntimeContent(stage5ContentBundle(state.run), STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY),
     passiveSkillIds,
     equipment,
   );
@@ -2221,7 +2222,7 @@ function renderExpeditionPlan() {
   const sequence = state.selectedCampaignStageSequence;
   const stage = CAMPAIGN_STAGES[sequence];
   const campaignStages = availableCampaignStages(state.profile);
-  const executableNodes = new Set(STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS);
+  const executableNodes = new Set(STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS);
   const packs = WEAPON_SKILL_PACKS.filter((pack) => manifest.enabledSkillPackIds.includes(pack.id));
   const packRows = packs.map((pack) => {
     const nodeNames = pack.nodeKeys.filter((key) => executableNodes.has(key))
@@ -2234,7 +2235,7 @@ function renderExpeditionPlan() {
   const launch = "<section class=\"card launch-card\">"
     + "<div class=\"plan-stage\"><b>" + esc(stage?.displayName ?? "") + "</b></div>"
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary")
-    + helpDetails("run-packs", "初期20節の技能パック " + packs.length,
+    + helpDetails("run-packs", "実装済み技能パック " + packs.length,
       "<div class=\"pack-list\">" + packRows + "</div>")
     + "</section>";
   // 選べる先が一つしか無い回（第一部の入口）には、選び直しの節を出さない。
@@ -3668,7 +3669,7 @@ function renderSkills() {
   };
   const kindLabels = { active: "主軸", reactive: "反応", passive: "常時", target: "対象" };
   const groups = new Map();
-  for (const key of STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS) {
+  for (const key of STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS) {
     const node = WEAPON_SKILL_NODES[key];
     if (!groups.has(node.weaponId)) groups.set(node.weaponId, []);
     groups.get(node.weaponId).push(node);
@@ -3752,10 +3753,10 @@ function renderSkills() {
     + esc(WEAPON_SKILL_NODES[active]?.displayName ?? "未設定") + "</b></span><span><small>反応優先列</small><b>"
     + (reactive.length ? reactive.map((key) => esc(WEAPON_SKILL_NODES[key]?.displayName ?? "")).join(" → ") : "なし")
     + "</b></span><span><small>常時</small><b>" + passive.length + "節</b></span></div>";
-  const targetNote = "対象指定技能: Stage 5の実装対象にありません。";
+  const targetNote = "対象指定技能: 現在実装済みの節にありません。";
   return "<section class=\"card skill-build-card\">" + sectionHeading("WEAPON SKILLS", "武器技能",
       "<span class=\"stage\" data-fx-watch=\"skill-points\">技能点 " + points + "</span>")
-    + "<p class=\"context-line\">この遠征で使える初期20節のみ表示します。技能レベルはありません。</p>"
+    + "<p class=\"context-line\">この遠征で使える実装済み技能 " + STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS.length + "節のみ表示します。技能レベルはありません。</p>"
     + "<div class=\"stage5-member-line\"><b>" + esc(characterName(characterId)) + "</b><span>取得済み " + acquired.length
     + "節 · 未使用 " + points + "点</span></div>"
     + (reservationNode ? "<p class=\"stage5-reservation\" role=\"status\">予約: "
@@ -3767,7 +3768,7 @@ function renderSkills() {
       { glyph: "skill", title: "取得", value: "1点につき1節", line: "取得したアクティブは主軸に入り、リアクティブは優先列に加わります。" },
       { glyph: "flag", title: "取得予約", value: "前提から自動取得", line: "戦闘勝利で参加中の全員へ技能点が1点入り、予約は前提から順に進みます。" },
       { glyph: "retry", title: "反応優先列", value: "上から順に判定", line: "矢印で順番を変え、不要な反応は列から外せます。" },
-      { glyph: "cross", title: "対象優先", value: "対象指定nodeなし", line: "初期20節には対象優先を変える操作がありません。", tone: "quiet" },
+      { glyph: "cross", title: "対象優先", value: "対象指定nodeなし", line: "実装済み技能には対象優先を変える操作がありません。", tone: "quiet" },
     ])) + ultimateHelp() + statusGlossaryHelp() + "</section>";
 }
 
@@ -5802,7 +5803,7 @@ function restartAnimation(element, className) {
 // 攻撃の型（腕力＝斬撃／技術＝銃撃）。表は content から一度だけ組む。
 // 読み方は ecology/attack-style.mjs にあり、engine も拍も触らない。
 const ATTACK_STYLE_INDEX = buildAttackStyleIndex(compileWeaponSkillRuntimeContent(
-  stage5ContentBundle(state.run), STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY,
+  stage5ContentBundle(state.run), STAGE_6_WEAPON_SKILL_RUNTIME_REGISTRY,
 ));
 
 // 一撃の重さ。**最大HPに対する割合**で三段に分ける。同じ50でも、HP110の人と
@@ -8019,7 +8020,7 @@ function handleAction(event) {
 
   if (action === "select-weapon-node") {
     const nodeKey = element.dataset.node;
-    if (!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nodeKey)) return;
+    if (!STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS.includes(nodeKey)) return;
     state.selectedSkillNode = state.selectedSkillNode === nodeKey ? null : nodeKey;
     saveState();
     render();
