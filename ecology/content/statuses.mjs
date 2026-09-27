@@ -154,7 +154,7 @@ statuses.staggered = {
   tags: ["playable", "debuff"],
 };
 
-function guardStackRules(statusId, operation) {
+function guardStackRules(statusId, operation, modifierPerStack = 1) {
   return [{
     id: `${statusId}_guard_rule`,
     listenTo: "damage_proposed",
@@ -168,13 +168,13 @@ function guardStackRules(statusId, operation) {
     effects: [{
       type: "modify_pending_guard",
       operation,
-      amount: { type: "status_stacks_scaled", subject: "self", statusId },
+      amount: { type: "status_stacks_scaled", subject: "self", statusId, numerator: modifierPerStack },
     }],
     limit: { owner: "actor-instance + rule", scope: "event", count: 1 },
   }];
 }
 
-function decayingGuardStatus(id, displayName, polarity, tags, guardOperation) {
+function decayingGuardStatus(id, displayName, polarity, tags, guardOperation, modifierPerStack = 1) {
   return {
     id,
     displayName,
@@ -183,7 +183,7 @@ function decayingGuardStatus(id, displayName, polarity, tags, guardOperation) {
     maxStacks: null,
     duration: "battle",
     rules: [
-      ...guardStackRules(id, guardOperation),
+      ...guardStackRules(id, guardOperation, modifierPerStack),
       {
         id: `${id}_round_decay_rule`,
         listenTo: "round_ended",
@@ -205,13 +205,13 @@ function decayingGuardStatus(id, displayName, polarity, tags, guardOperation) {
   };
 }
 
-// 破甲 reduces the target's effective guard by one per stack on every hit;
-// 堅牢 adds one. Both decay by half at the end of each round and have no cap.
+// 破甲 lowers effective guard by one per stack; 堅牢 raises it by two.
+// Both decay by half at the end of each round and have no cap; effective guard cannot drop below zero.
 statuses.armor_broken = decayingGuardStatus(
   "armor_broken", STATUS_NAMES.armor_broken, "negative", ["playable", "debuff"], "decrease",
 );
 statuses.fortified = decayingGuardStatus(
-  "fortified", STATUS_NAMES.fortified, "positive", ["playable", "guard", "buff"], "increase",
+  "fortified", STATUS_NAMES.fortified, "positive", ["playable", "guard", "buff"], "increase", 2,
 );
 
 // 守勢 — 持ち主が受ける各hitを、1段につき20%軽くする。
@@ -361,8 +361,8 @@ const STATUS_SUMMARIES = {
   exposed: "受けるダメージが1段につき20%増える。多段の各hitへ効き、付けるのも払うのも技能でできる。",
   focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
   staggered: "その相手が**出す**ダメージが1段につき20%減る。多段の各hitへ効き、倒さずに攻撃を細くする。",
-  armor_broken: "受ける各hitのguardを1段につき1減らす。段数に上限はなく、各ラウンド終わりに半減する。",
-  fortified: "受ける各hitのguardを1段につき1増やす。段数に上限はなく、各ラウンド終わりに半減する。",
+  armor_broken: "受ける各hitのguardを1段につき1下げますが、0が下限です。段数に上限はなく、各ラウンド終わりに半減します。",
+  fortified: "受ける各hitのguardを1段につき2上げます。段数に上限はなく、各ラウンド終わりに半減します。
   warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
   lured: "次に味方へ向かう敵の単体攻撃を自分へ引き受け、1段消費する。範囲攻撃と自分が元から対象の攻撃では消費しない。",
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
