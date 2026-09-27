@@ -13,8 +13,13 @@ import { existsSync } from "node:fs";
 
 const PLAYWRIGHT_MODULE = process.env.PLAYWRIGHT_MODULE
   || "/opt/node22/lib/node_modules/playwright/index.mjs";
-const CHROMIUM_PATH = process.env.CHROMIUM_PATH
-  || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// Playwright が管理する headless shell を既定で使う。sandbox では通常の Chrome が
+// process-singleton socket を作れず落ちることがある。共有 cache がある作業環境では、
+// その場所を Playwright に知らせて対応する headless shell を選ばせる。
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH && existsSync("/opt/pw-browsers")) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = "/opt/pw-browsers";
+}
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH || "";
 const { chromium } = await import(existsSync(PLAYWRIGHT_MODULE) ? PLAYWRIGHT_MODULE : "playwright");
 
 const PORT = Number(process.env.ECOLOGY_TUTORIAL_PORT || 8946);
@@ -40,7 +45,9 @@ const note = (label, ok, extra = "") => {
 let browser;
 let errs = [];
 try {
-  browser = await chromium.launch(existsSync(CHROMIUM_PATH) ? { executablePath: CHROMIUM_PATH } : {});
+  browser = await chromium.launch(CHROMIUM_PATH && existsSync(CHROMIUM_PATH)
+    ? { executablePath: CHROMIUM_PATH }
+    : {});
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on("pageerror", (e) => errs.push(String(e)));
   page.on("console", (m) => {
