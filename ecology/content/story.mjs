@@ -180,9 +180,10 @@ export const ULTIMATE_LESSON = Object.freeze({
   encounterIndex: 1,
   maxRounds: 7,
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
-  // Stage 5では長槍Rの必殺（全体・量3倍）で同じ問いを教える。旧heavy_swingより
-  // 範囲火力の基準が違うため、盾兵のHPだけを実戦で再調整した。
-  enemyScaling: Object.freeze({ maxHpBps: 4_000, offenseBps: 10_000 }),
+  // Stage 5では長槍Rの必殺（全体・量3倍）で同じ問いを教える。Stage 5の通常攻撃は
+  // 最寄りの敵を選ぶため単体火力が安定する。必殺を構えない編成では期限内に削り切れず、
+  // 構えた編成では複数の盾兵をまとめて崩せるよう、盾兵のHPを実測で合わせている。
+  enemyScaling: Object.freeze({ maxHpBps: 5_000, offenseBps: 10_000 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
