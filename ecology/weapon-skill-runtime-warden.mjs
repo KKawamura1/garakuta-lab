@@ -1,9 +1,10 @@
 import { weaponSkillRuntimeId, makeWeaponSkillRuntimeRegistry } from "./weapon-skill-runtime.mjs";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 
 const ENEMY_TARGET = {
   scope: "enemies",
   filters: [{ type: "alive" }],
-  sort: ["position_asc"],
+  sort: ["distance_asc"],
   take: 1,
 };
 const EVENT_TARGET = {
@@ -81,5 +82,8 @@ export const WARDEN_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY = makeWeaponSkillRunti
   "warhammer:R": activeSkill("warhammer:R", "槌打ち", 10_000),
   "warhammer:A1": passiveSkill("warhammer:A1", "重い頭", [0], 15),
   "gauntlets:R": activeSkill("gauntlets:R", "正拳", 9_000),
-  "gauntlets:A1": passiveSkill("gauntlets:A1", "握り込み", [1, 2, 3, 4, 5, 6, 7], 10),
+  "gauntlets:A1": passiveSkill(
+    "gauntlets:A1", "握り込み",
+    Array.from({ length: MAX_ACTION_HIT_COUNT - 1 }, (_, hitIndex) => hitIndex + 1), 10,
+  ),
 });
