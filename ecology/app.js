@@ -127,6 +127,7 @@ import { BUILD, FINGERPRINT } from "../core/build.mjs";
 import { validateWeaponProfile, validateWeaponRun } from "./weapon-save.mjs";
 import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
 import { weaponSkillPrerequisiteKeys } from "./weapon-progression.mjs";
+import { weaponSkillPrototypeSignals } from "./weapon-skill-prototype.mjs";
 import { WEAPON_SKILL_PACKS } from "./weapon-pack-manifest.mjs";
 import {
   STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
@@ -225,6 +226,9 @@ let battleLayoutKey = null;
 let battleBeats = [];
 let battleBeatsSource = null;
 let longPressClickSuppression = null;
+// Stage 5へ接続したあとも、Stage 4 / PR289 の技能ツリー操作を使う。
+// 人物ごとの武器・見方・選択・横位置は画面状態として保ち、Runの進行データには混ぜない。
+const stage5SkillUiByCharacter = new Map();
 // 画面（phase）が切り替わった render() だけ、ページ先頭へ戻す。**同じ画面内の
 // 操作（タブ選択・技能選択・報酬引き直しなど）では動かさない**——毎回動かすと
 // スクロール位置を保ったまま組み替えたい操作まで壊れる。
@@ -1769,6 +1773,7 @@ function applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged }) {
 
 function render() {
   captureHelpDetails();
+  rememberStage5SkillMapScroll();
   stopReplayTimer();
   stopStoryTimers();
   stopRewindTimers();
@@ -1797,14 +1802,13 @@ function render() {
   lastRenderedGuildTab = state.phase === "expeditionStart" ? state.guildTab : null;
   resetFxMemoryIfRunChanged();
   app.innerHTML = (views[state.phase] ?? renderIntro)();
-  app.querySelectorAll("[data-action]").forEach((element) => {
-    element.addEventListener("click", handleAction);
-  });
+  bindActionHandlers();
   bindStage5LongPress();
   // R11 §5 改 / issue #240 — チュートリアルの錠と光。**描画したあとに一度で掛ける。**
   applyTutorialGate();
   publishCampTopHeight();
   restoreHelpDetails();
+  mountStage5SkillTree();
   // 作者要望 2026-09-14 — 光る先が画面の外なら、こちらから寄せる（段が変わった回だけ）。
   focusTutorialSpot();
   focusLaunchCard();
@@ -3641,91 +3645,362 @@ function ultimateHelp() {
   ]));
 }
 
+const STAGE5_WEAPON_LABELS = Object.freeze({
+  warhammer: "戦槌", gauntlets: "格闘具", launcher: "射出器", medical_kit: "医療具",
+  tower_shield: "大盾", long_spear: "長槍", grappling_hook: "鉤縄", dual_blades: "双刃",
+  banner: "号旗", heavy_crossbow: "重弩",
+});
+const STAGE5_KIND_GLYPHS = Object.freeze({ active: "A", reactive: "R", target: "T", passive: "P" });
+const STAGE5_KIND_LABELS = Object.freeze({
+  active: "主軸", reactive: "反応", passive: "常時", target: "対象",
+});
+
+function stage5SkillUiPreferences(characterId, activeSkillKey = null) {
+  let preferences = stage5SkillUiByCharacter.get(characterId);
+  if (preferences) return preferences;
+  const savedNode = characterId === selectedCharacter()
+    ? WEAPON_SKILL_NODES[state.selectedSkillNode] ?? null
+    : null;
+  const seedNode = savedNode ?? WEAPON_SKILL_NODES[activeSkillKey] ?? null;
+  const firstWeaponId = WEAPON_SKILL_NODES[STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS[0]]?.weaponId ?? "warhammer";
+  preferences = {
+    weaponId: seedNode?.weaponId ?? firstWeaponId,
+    viewByWeapon: {},
+    selectedByWeapon: {},
+    mapScrollByWeapon: {},
+  };
+  if (seedNode) preferences.selectedByWeapon[seedNode.weaponId] = seedNode.key;
+  stage5SkillUiByCharacter.set(characterId, preferences);
+  return preferences;
+}
+
+function stage5SkillTreeGroups() {
+  const groups = new Map();
+  for (const key of STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS) {
+    const node = WEAPON_SKILL_NODES[key];
+    if (!node) continue;
+    if (!groups.has(node.weaponId)) groups.set(node.weaponId, []);
+    groups.get(node.weaponId).push(node);
+  }
+  return groups;
+}
+
+function stage5SkillPointsNeeded(nodeKey, acquired) {
+  let current = nodeKey;
+  let cost = 0;
+  const visited = new Set();
+  while (current) {
+    if (visited.has(current)) break;
+    visited.add(current);
+    if (!acquired.has(current)) cost += 1;
+    current = weaponSkillPrerequisiteKeys(current)?.[0] ?? null;
+  }
+  return cost;
+}
+
+function stage5SkillRoleIcon(kind) {
+  const label = { active: "アクティブ", reactive: "リアクティブ", target: "対象", passive: "パッシブ" }[kind] ?? "技能";
+  return "<span class=\"weapon-kind-icon kind-" + esc(kind) + "\" role=\"img\" aria-label=\""
+    + label + "\" title=\"" + label + "\">" + (STAGE5_KIND_GLYPHS[kind] ?? "•") + "</span>";
+}
+
+function stage5SkillEffectBadges(node) {
+  const text = String(node.displayEffect ?? "");
+  const badges = [];
+  const seen = new Set();
+  const push = (label, tone = "") => {
+    if (!label || seen.has(label) || badges.length >= 3) return;
+    seen.add(label);
+    badges.push("<i class=\"effect-chip " + tone + "\">" + esc(label) + "</i>");
+  };
+  const scaled = text.match(/(腕力|技術|受け|最大HP)\s*([+−-]?\d+%)/);
+  if (scaled) push((({ 腕力: "腕", 技術: "技", 受け: "受", 最大HP: "HP" })[scaled[1]]) + "×" + scaled[2], "scaled");
+  if (/左右/.test(text)) push("左右", "scope");
+  else if (/一列|列の敵/.test(text)) push("一列", "scope");
+  else if (/敵(?:1|一)体|単体/.test(text)) push("単体", "scope");
+  else if (/全員|全体|すべての敵/.test(text)) push("全体", "scope");
+  const pierce = text.match(/(?:防御を(?:合計)?|受け)(\d+)無視/)?.[1];
+  if (pierce) push("貫通" + pierce, "up");
+  const hit = text.match(/(\d+(?:〜\d+)?)\s*hit/i)?.[1];
+  if (hit) push("×" + hit, "hit");
+  const status = text.match(/(怯み|裂傷|破甲|集中標|防壁|守勢|再生薬)(?:を|が)?\s*([+−-]?\d+)/);
+  if (status) push(status[1].replace("防壁", "壁") + status[2], "status");
+  const percent = text.match(/(ダメージ|攻撃|防壁|回復)(?:量|の)?\s*([+−-]\d+%)/);
+  if (percent) {
+    const prefix = { ダメージ: "ダ", 攻撃: "攻", 防壁: "壁", 回復: "癒" }[percent[1]];
+    const down = /[-−]/.test(percent[2]);
+    push((down ? "↓" : "↑") + prefix + percent[2].replace(/^[+−-]/, ""), down ? "down" : "up");
+  }
+  return "<span class=\"weapon-effect-badges\" role=\"img\" aria-label=\"効果: " + esc(text) + "\">"
+    + badges.join("") + "</span>";
+}
+
+function stage5SkillNodeSignals(node) {
+  const { condition, costs } = weaponSkillPrototypeSignals(node);
+  const conditionHtml = condition
+    ? "<i class=\"effect-chip condition\" title=\"" + esc(condition.detail)
+      + "\" aria-label=\"条件: " + esc(condition.detail) + "\">" + esc(condition.label) + "</i>"
+    : "";
+  const costHtml = costs.map((label) => "<i class=\"effect-chip cost "
+    + (label.startsWith("RP") ? "rp" : label.startsWith("HP") ? "hp" : "ap") + "\">"
+    + esc(label) + "</i>").join("");
+  return "<span class=\"weapon-node-signals\"><span class=\"weapon-node-inputs\""
+    + (conditionHtml || costHtml ? " aria-label=\"条件・コスト\"" : "") + ">"
+    + conditionHtml + costHtml + "</span><i class=\"weapon-signal-divider\" aria-hidden=\"true\"></i>"
+    + stage5SkillEffectBadges(node) + "</span>";
+}
+
+function stage5SkillTreePosition(node, compact = false) {
+  if (compact) return { column: node.position === "R" ? 1 : 2, row: 2 };
+  if (node.position === "R") return { column: 1, row: 4 };
+  const trunk = /^(A|B)([1-3])$/.exec(node.position);
+  if (trunk) return { column: Number(trunk[2]) + 1, row: trunk[1] === "A" ? 2 : 6 };
+  const branch = /^(AA|AB|BA|BB)([1-3])$/.exec(node.position);
+  if (branch) return { column: Number(branch[2]) + 4, row: { AA: 1, AB: 3, BA: 5, BB: 7 }[branch[1]] };
+  return { column: 1, row: 4 };
+}
+
+function stage5SkillListLayout(nodes) {
+  const byKey = new Map(nodes.map((node) => [node.key, node]));
+  const children = new Map(nodes.map((node) => [node.key, []]));
+  for (const node of nodes) {
+    for (const key of weaponSkillPrerequisiteKeys(node.key) ?? []) {
+      if (children.has(key)) children.get(key).push(node);
+    }
+  }
+  const roots = nodes.filter((node) => !(weaponSkillPrerequisiteKeys(node.key) ?? [])
+    .some((key) => byKey.has(key)));
+  const result = [];
+  const walk = (node, depth, guides, last) => {
+    const descendants = children.get(node.key) ?? [];
+    result.push({ node, depth, guides, last, hasChildren: descendants.length > 0 });
+    descendants.forEach((child, index) => walk(
+      child, depth + 1, depth === 0 ? [] : [...guides, !last], index === descendants.length - 1,
+    ));
+  };
+  roots.forEach((node, index) => walk(node, 0, [], index === roots.length - 1));
+  return result;
+}
+
+function stage5SkillListGuide(layout) {
+  if (!layout || layout.depth === 0) {
+    return "<span class=\"weapon-list-guide root\" aria-hidden=\"true\"><i></i></span>";
+  }
+  const rails = layout.guides.map((open) => "<i class=\"rail" + (open ? " open" : "") + "\"></i>").join("");
+  return "<span class=\"weapon-list-guide\" aria-hidden=\"true\">" + rails
+    + "<i class=\"elbow" + (layout.last ? " last" : "")
+    + (layout.hasChildren ? " has-children" : "") + "\"></i></span>";
+}
+
+function stage5SkillLessonNodeForStep(step) {
+  if (step === "open" || step === "unlock") return SKILL_LESSON_GOAL?.unlockSkillId ?? null;
+  if (step === "aim" || step === "reserve") return SKILL_LESSON_GOAL?.reserveSkillId ?? null;
+  return null;
+}
+
+function stage5NodeCardAction(characterId, node, context) {
+  const attrs = "data-character=\"" + esc(characterId) + "\" data-node=\"" + esc(node.key) + "\"";
+  if (context.acquired) {
+    if (node.kind === "active") {
+      return context.primary
+        ? "<span class=\"weapon-node-state acquired\" aria-label=\"主軸に設定中\">主軸</span>"
+        : button("主軸", "select-weapon-primary", false, "weapon-node-action-button",
+          attrs + " aria-label=\"" + esc(node.displayName) + "を主軸にする\"");
+    }
+    if (node.kind === "reactive") {
+      return button(context.reactive ? "反応 ✓" : "反応", context.reactive
+        ? "remove-weapon-priority" : "add-weapon-reactive", false, "weapon-node-action-button",
+      attrs + " aria-label=\"" + esc(node.displayName) + (context.reactive ? "を反応優先列から外す" : "を反応優先列へ追加する") + "\"");
+    }
+    if (node.kind === "passive") {
+      return "<span class=\"weapon-node-state acquired\" aria-label=\"取得済み・常時有効\">常時</span>";
+    }
+    return "<span class=\"weapon-node-state acquired\">取得済</span>";
+  }
+  if (context.reserved) {
+    return button("予約中", "cancel-weapon-reservation", false, "weapon-node-action-button quiet",
+      attrs + " aria-label=\"" + esc(node.displayName) + "の取得予約を取り消す\"");
+  }
+  if (!context.missing.length && context.points > 0) {
+    return button("取得", "acquire-weapon-skill", false, "weapon-node-action-button primary",
+      attrs + " aria-label=\"" + esc(node.displayName) + "を技能点1で取得\"");
+  }
+  return button("予約", "reserve-weapon-skill", false, "weapon-node-action-button",
+    attrs + " aria-label=\"" + esc(node.displayName) + "を取得予約\"");
+}
+
+function stage5NodeDetailActions(characterId, node, context) {
+  const attrs = "data-character=\"" + esc(characterId) + "\" data-node=\"" + esc(node.key) + "\"";
+  const controls = [];
+  if (context.acquired) {
+    if (node.kind === "active") {
+      controls.push(context.primary
+        ? "<span class=\"stage5-state\" role=\"status\">主軸に設定中</span>"
+        : button("主軸にする", "select-weapon-primary", false, "tiny-button primary-mini", attrs));
+    } else if (node.kind === "reactive") {
+      controls.push(button(context.reactive ? "優先列から外す" : "反応優先列へ追加",
+        context.reactive ? "remove-weapon-priority" : "add-weapon-reactive", false, "tiny-button", attrs));
+    } else if (node.kind === "passive") {
+      controls.push("<span class=\"stage5-state\" role=\"status\">取得済み · 常時有効</span>");
+    }
+  } else {
+    if (!context.missing.length && context.points > 0) {
+      controls.push(button("取得 · 1点", "acquire-weapon-skill", false, "tiny-button primary-mini", attrs));
+    }
+    controls.push(context.reserved
+      ? button("予約を取り消す", "cancel-weapon-reservation", false, "tiny-button quiet", attrs)
+      : button("取得予約", "reserve-weapon-skill", false, "tiny-button", attrs));
+  }
+  if (context.missing.length) {
+    controls.push("<span class=\"stage5-prerequisite\">前提: "
+      + context.missing.map((key) => esc(WEAPON_SKILL_NODES[key]?.displayName ?? "未取得")).join("、")
+      + "</span>");
+  }
+  return controls.join("");
+}
+
+function stage5SkillNodeContext(characterId, node, acquired, points, reservation, active, reactive) {
+  const acquiredSet = acquired instanceof Set ? acquired : new Set(acquired);
+  const missing = (weaponSkillPrerequisiteKeys(node.key) ?? []).filter((key) => !acquiredSet.has(key));
+  return {
+    acquired: acquiredSet.has(node.key),
+    missing,
+    points,
+    needed: stage5SkillPointsNeeded(node.key, acquiredSet),
+    reserved: reservation === node.key,
+    primary: active === node.key,
+    reactive: reactive.includes(node.key),
+    reactiveIndex: reactive.indexOf(node.key),
+  };
+}
+
+function stage5SkillNodeCard(characterId, node, view, context, selected, layout = null) {
+  const ultimate = stage5UltimateRowState(characterId, node);
+  const position = view === "map"
+    ? stage5SkillTreePosition(node, true)
+    : { depth: layout?.depth ?? 0 };
+  const style = view === "map"
+    ? " style=\"grid-column:" + position.column + ";grid-row:" + position.row + "\""
+    : " style=\"--weapon-depth:" + position.depth + "\"";
+  const stateClasses = (context.acquired ? " acquired" : "")
+    + (context.reserved ? " reserved" : "")
+    + (selected ? " selected" : "")
+    + (ultimate.classes ? " " + ultimate.classes : "");
+  const kind = esc(node.kind);
+  const action = stage5NodeCardAction(characterId, node, context);
+  return "<div class=\"weapon-tree-cell " + view + (selected ? " selected" : "")
+    + (context.needed > 0 && context.needed <= context.points ? " ready" : "")
+    + "\" data-skill-key=\"" + esc(node.key) + "\"" + style + ">"
+    + (view === "list" ? stage5SkillListGuide(layout) : "")
+    + "<article class=\"stage5-skill-card weapon-skill-node role-" + kind + stateClasses
+    + "\" data-node-key=\"" + esc(node.key) + "\">"
+    + "<button type=\"button\" class=\"weapon-node-main stage5-skill-select\" data-action=\"select-weapon-node\""
+    + " data-character=\"" + esc(characterId) + "\" data-node=\"" + esc(node.key)
+    + "\" aria-pressed=\"" + selected + "\""
+    + (ultimate.pressable ? " data-longpress=\"toggle-stage5-ultimate\" title=\"" + esc(ultimate.hint) + "\"" : "") + ">"
+    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-name\">" + stage5SkillRoleIcon(node.kind)
+    + "<b>" + esc(node.displayName) + "</b>" + (ultimate.seal || "") + "</span>"
+    + stage5SkillNodeSignals(node)
+    + (ultimate.traits || (ultimate.pressable && !ultimate.classes
+      ? "<small class=\"stage5-ultimate-prompt\">長押しで必殺 ✹</small>" : ""))
+    + "</span></button><span class=\"weapon-node-action\">" + action + "</span>"
+    + "</article></div>";
+}
+
+function stage5SkillDetailHtml(characterId, node, context) {
+  if (!node) return "";
+  const ultimate = stage5UltimateRowState(characterId, node);
+  const actions = stage5NodeDetailActions(characterId, node, context);
+  const status = context.acquired
+    ? (context.primary ? "主軸" : context.reactive ? "反応優先 " + (context.reactiveIndex + 1) : node.kind === "passive" ? "常時有効" : "取得済み")
+    : context.reserved ? "予約中" : context.needed + "SPで取得";
+  return "<aside class=\"weapon-skill-sheet stage5-skill-detail\" aria-live=\"polite\">"
+    + "<header class=\"weapon-sheet-head\">" + stage5SkillRoleIcon(node.kind)
+    + "<span class=\"weapon-sheet-title\"><b>" + esc(node.displayName) + "</b>"
+    + "<small class=\"weapon-sheet-state\">" + esc(status) + "</small></span>"
+    + "<div class=\"weapon-sheet-action stage5-detail-actions\">" + actions + "</div>"
+    + "<button type=\"button\" class=\"weapon-sheet-close\" data-action=\"clear-stage5-skill-selection\""
+    + " aria-label=\"選択を閉じる\" title=\"閉じる\">×</button></header>"
+    + "<div class=\"weapon-sheet-body\"><p class=\"weapon-detail-effect\">" + esc(node.displayEffect)
+    + "</p>" + (ultimate.traits || "") + "</div></aside>";
+}
+
+function stage5SkillSelectedNode(characterId, weaponId, nodes, active, preferences, lessonStep) {
+  const lessonKey = stage5SkillLessonNodeForStep(lessonStep);
+  if (lessonKey && characterId === SKILL_LESSON_GOAL?.characterId
+    && WEAPON_SKILL_NODES[lessonKey]?.weaponId === weaponId) return lessonKey;
+  if (WEAPON_SKILL_NODES[state.selectedSkillNode]?.weaponId === weaponId) return state.selectedSkillNode;
+  if (Object.hasOwn(preferences.selectedByWeapon, weaponId)) return preferences.selectedByWeapon[weaponId];
+  if (WEAPON_SKILL_NODES[active]?.weaponId === weaponId) return active;
+  return nodes.find((node) => node.position === "R")?.key ?? nodes[0]?.key ?? null;
+}
+
 function renderSkills() {
   const characterId = selectedCharacter();
   const weaponRun = state.run.weaponRun;
   const acquired = weaponRun.skillProgression.unlockedSkillKeysByCharacter[characterId] ?? [];
+  const acquiredSet = new Set(acquired);
   const points = skillPointsFor(characterId);
   const reservation = weaponRun.skillProgression.skillReservationByCharacter[characterId];
   const active = weaponRun.loadout.primarySkillByCharacter[characterId];
   const reactive = weaponRun.loadout.reactivePriorityByCharacter[characterId] ?? [];
   const passive = acquired.filter((key) => WEAPON_SKILL_NODES[key]?.kind === "passive");
-  const weaponLabels = {
-    warhammer: "戦槌", gauntlets: "格闘具", launcher: "射出器", medical_kit: "医療具",
-    tower_shield: "大盾", long_spear: "長槍", grappling_hook: "鉤縄", dual_blades: "双刃",
-    banner: "号旗", heavy_crossbow: "重弩",
-  };
-  const kindLabels = { active: "主軸", reactive: "反応", passive: "常時", target: "対象" };
-  const groups = new Map();
-  for (const key of STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS) {
-    const node = WEAPON_SKILL_NODES[key];
-    if (!groups.has(node.weaponId)) groups.set(node.weaponId, []);
-    groups.get(node.weaponId).push(node);
-  }
+  const groups = stage5SkillTreeGroups();
   const lessonStep = skillLessonStep();
-  const lessonNodeKey = lessonStep === "open" || lessonStep === "unlock"
-    ? SKILL_LESSON_GOAL?.unlockSkillId
-    : lessonStep === "aim" || lessonStep === "reserve"
-      ? SKILL_LESSON_GOAL?.reserveSkillId
-      : null;
-  const groupHtml = [...groups].map(([weaponId, nodes]) => {
-    const open = nodes.some(({ key }) => key === active || key === state.selectedSkillNode)
-      || nodes.some(({ key }) => acquired.includes(key) || key === lessonNodeKey);
-    return "<details class=\"stage5-weapon-group\"" + (open ? " open" : "") + "><summary>"
-      + esc(weaponLabels[weaponId] ?? weaponId) + "<small> "
-      + nodes.filter(({ key }) => acquired.includes(key)).length + " / " + nodes.length + "節</small></summary>"
-      + nodes.map((node) => {
-        const isAcquired = acquired.includes(node.key);
-        const isReserved = reservation === node.key;
-        const parents = weaponSkillPrerequisiteKeys(node.key) ?? [];
-        const missing = parents.filter((key) => !acquired.includes(key));
-        const selected = state.selectedSkillNode === node.key;
-        const isPrimary = active === node.key;
-        const isReactive = reactive.includes(node.key);
-        const ultimate = stage5UltimateRowState(characterId, node);
-        let controls = "";
-        if (isAcquired && node.kind === "active") {
-          controls = isPrimary
-            ? "<span class=\"stage5-state\">主軸に設定中</span>"
-            : button("主軸にする", "select-weapon-primary", false, "tiny-button",
-              "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
-        } else if (isAcquired && node.kind === "reactive") {
-          controls = button(isReactive ? "優先列から外す" : "反応優先列へ追加",
-            isReactive ? "remove-weapon-priority" : "add-weapon-reactive", false, "tiny-button",
-            "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
-        } else if (!isAcquired) {
-          if (!missing.length && points > 0) {
-            controls += button("取得 · 1点", "acquire-weapon-skill", false, "tiny-button primary-mini",
-              "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
-          }
-          if (isReserved) {
-            controls += button("予約を取り消す", "cancel-weapon-reservation", false, "tiny-button quiet",
-              "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
-          } else {
-            controls += button("取得予約", "reserve-weapon-skill", false, "tiny-button",
-              "data-character=\"" + characterId + "\" data-node=\"" + node.key + "\"");
-          }
-        } else if (node.kind === "passive") {
-          controls = "<span class=\"stage5-state\">取得済み · 常時有効</span>";
-        }
-        const prerequisiteText = missing.length
-          ? "前提: " + missing.map((key) => WEAPON_SKILL_NODES[key]?.displayName ?? "未取得").join("、")
-          : "";
-        return "<article class=\"stage5-skill-card" + (isAcquired ? " acquired" : "")
-          + (isReserved ? " reserved" : "") + (selected ? " selected" : "")
-          + (ultimate.classes ? " " + ultimate.classes : "") + "\" data-node-key=\"" + esc(node.key) + "\">"
-          + "<button type=\"button\" class=\"stage5-skill-select\" data-action=\"select-weapon-node\""
-          + " data-character=\"" + characterId + "\" data-node=\"" + esc(node.key) + "\" aria-pressed=\"" + selected + "\""
-          + (ultimate.pressable ? " data-longpress=\"toggle-stage5-ultimate\" title=\"" + esc(ultimate.hint) + "\"" : "") + ">"
-          + "<span class=\"stage5-kind kind-" + esc(node.kind) + "\">" + esc(kindLabels[node.kind] ?? "技能") + "</span>"
-          + "<span class=\"stage5-skill-name\"><b>" + esc(node.displayName) + "</b>"
-          + (ultimate.seal || "") + "</span><small>" + esc(node.displayEffect) + "</small>"
-          + (ultimate.traits || (ultimate.pressable && !ultimate.classes
-            ? "<small class=\"stage5-ultimate-prompt\">長押しで必殺 ✹</small>" : "")) + "</button>"
-          + (prerequisiteText ? "<p class=\"stage5-prerequisite\">" + esc(prerequisiteText) + "</p>" : "")
-          + "<div class=\"stage5-skill-controls\">" + controls + "</div></article>";
-      }).join("") + "</details>";
+  const lessonNodeKey = stage5SkillLessonNodeForStep(lessonStep);
+  const preferences = stage5SkillUiPreferences(characterId, active);
+  const lessonWeaponId = WEAPON_SKILL_NODES[lessonNodeKey]?.weaponId;
+  if (lessonWeaponId && characterId === SKILL_LESSON_GOAL?.characterId) preferences.weaponId = lessonWeaponId;
+  if (!groups.has(preferences.weaponId)) {
+    preferences.weaponId = WEAPON_SKILL_NODES[active]?.weaponId ?? groups.keys().next().value;
+  }
+  const weaponId = preferences.weaponId;
+  const nodes = groups.get(weaponId) ?? [];
+  const view = preferences.viewByWeapon[weaponId] === "list" ? "list" : "map";
+  const selectedKey = stage5SkillSelectedNode(characterId, weaponId, nodes, active, preferences, lessonStep);
+  const selectedNode = selectedKey ? WEAPON_SKILL_NODES[selectedKey] : null;
+  if (selectedNode) preferences.selectedByWeapon[weaponId] = selectedNode.key;
+  const compact = nodes.length <= 2;
+  const treePositions = nodes.map((node) => stage5SkillTreePosition(node, compact));
+  const columns = Math.max(1, ...treePositions.map((position) => position.column));
+  const rows = compact ? 3 : Math.max(7, ...treePositions.map((position) => position.row));
+  const tabHtml = [...groups].map(([id, weaponNodes]) => {
+    const selected = id === weaponId;
+    const ready = weaponNodes.filter((node) => !acquiredSet.has(node.key)
+      && (weaponSkillPrerequisiteKeys(node.key) ?? []).every((key) => acquiredSet.has(key))
+      && points > 0).length;
+    const acquiredCount = weaponNodes.filter((node) => acquiredSet.has(node.key)).length;
+    return "<button type=\"button\" class=\"weapon-tab" + (selected ? " active" : "")
+      + "\" role=\"tab\" aria-selected=\"" + selected + "\" aria-controls=\"stage5-skill-tree\""
+      + " tabindex=\"" + (selected ? "0" : "-1") + "\" data-action=\"select-stage5-skill-weapon\""
+      + " data-weapon=\"" + esc(id) + "\">" + esc(STAGE5_WEAPON_LABELS[id] ?? id)
+      + "<small>" + acquiredCount + " / " + weaponNodes.length + "</small>"
+      + (ready ? "<i class=\"tab-ready\" aria-label=\"いま取得できる技能 " + ready + "件\">" + ready + "</i>" : "")
+      + "</button>";
   }).join("");
+  const viewHtml = "<div class=\"stage5-view-switch\" role=\"group\" aria-label=\"技能ツリーの見方\">"
+    + "<button type=\"button\" class=\"stage5-view-tab" + (view === "map" ? " on" : "")
+    + "\" aria-pressed=\"" + (view === "map") + "\" data-action=\"select-stage5-skill-view\" data-view=\"map\">地図</button>"
+    + "<button type=\"button\" class=\"stage5-view-tab" + (view === "list" ? " on" : "")
+    + "\" aria-pressed=\"" + (view === "list") + "\" data-action=\"select-stage5-skill-view\" data-view=\"list\">一覧</button>"
+    + "</div>";
+  const rowsForList = view === "list" ? stage5SkillListLayout(nodes) : [];
+  const cardHtml = view === "list"
+    ? rowsForList.map((layout) => stage5SkillNodeCard(
+      characterId, layout.node, view,
+      stage5SkillNodeContext(characterId, layout.node, acquiredSet, points, reservation, active, reactive),
+      layout.node.key === selectedKey, layout,
+    )).join("")
+    : nodes.map((node) => stage5SkillNodeCard(
+      characterId, node, view,
+      stage5SkillNodeContext(characterId, node, acquiredSet, points, reservation, active, reactive),
+      node.key === selectedKey,
+    )).join("");
+  const treeHtml = view === "map"
+    ? "<div class=\"weapon-tree-scroll\"><div class=\"weapon-skill-map\" data-weapon=\"" + esc(weaponId)
+      + "\" style=\"--weapon-tree-columns:" + columns + ";--weapon-tree-rows:" + rows + "\">"
+      + "<svg class=\"weapon-tree-lines\" aria-hidden=\"true\"></svg>" + cardHtml + "</div></div>"
+    : "<div class=\"weapon-skill-list\">" + cardHtml + "</div>";
   const reactiveRows = reactive.map((key, index) => {
     const node = WEAPON_SKILL_NODES[key];
     return "<div class=\"stage5-priority-row\"><span>" + (index + 1) + "</span><b>"
@@ -3741,16 +4016,27 @@ function renderSkills() {
     + esc(WEAPON_SKILL_NODES[active]?.displayName ?? "未設定") + "</b></span><span><small>反応優先列</small><b>"
     + (reactive.length ? reactive.map((key) => esc(WEAPON_SKILL_NODES[key]?.displayName ?? "")).join(" → ") : "なし")
     + "</b></span><span><small>常時</small><b>" + passive.length + "節</b></span></div>";
-  const targetNote = "対象指定技能: Stage 5の実装対象にありません。";
+  const context = selectedNode
+    ? stage5SkillNodeContext(characterId, selectedNode, acquiredSet, points, reservation, active, reactive)
+    : null;
   return "<section class=\"card skill-build-card\">" + sectionHeading("WEAPON SKILLS", "武器技能",
       "<span class=\"stage\" data-fx-watch=\"skill-points\">技能点 " + points + "</span>")
-    + "<p class=\"context-line\">この遠征で使える初期20節のみ表示します。技能レベルはありません。</p>"
+    + "<p class=\"context-line\">実行対象の初期20節を表示 · 技能レベルなし</p>"
     + "<div class=\"stage5-member-line\"><b>" + esc(characterName(characterId)) + "</b><span>取得済み " + acquired.length
     + "節 · 未使用 " + points + "点</span></div>"
     + (reservationNode ? "<p class=\"stage5-reservation\" role=\"status\">予約: "
       + esc(reservationNode.displayName) + "</p>" : "")
-    + summary + "<p class=\"stage5-target-note\">" + targetNote + "</p></section>"
-    + "<section class=\"card stage5-skill-catalog\"><h3>実装済みの武器節</h3>" + groupHtml + "</section>"
+    + summary + "</section>"
+    + "<section class=\"card stage5-skill-tree-card\"><div class=\"weapon-tree-title\"><b>"
+    + esc(STAGE5_WEAPON_LABELS[weaponId] ?? weaponId) + "</b><small>技能の派生 · "
+    + nodes.length + "節</small></div>"
+    + "<div class=\"weapon-tree-tabs\" role=\"tablist\" aria-label=\"武器技能\">"
+    + tabHtml + "</div><div class=\"weapon-tree-controls\">" + viewHtml
+    + "<span class=\"count-badge\" aria-label=\"技能点残り " + points + "\">技能点 " + points + "</span></div>"
+    + "<div id=\"stage5-skill-tree\" class=\"skill-tree\" role=\"tabpanel\" aria-label=\""
+    + esc(STAGE5_WEAPON_LABELS[weaponId] ?? weaponId) + "の技能ツリー\">" + treeHtml + "</div>"
+    + (selectedNode ? stage5SkillDetailHtml(characterId, selectedNode, context) : "")
+    + "</section>"
     + (reactiveRows ? "<section class=\"card stage5-priority-list\"><h3>反応優先順位</h3>" + reactiveRows + "</section>" : "")
     + helpDetails("stage5-skill-rules", "技能のルール", ruleGrid([
       { glyph: "skill", title: "取得", value: "1点につき1節", line: "取得したアクティブは主軸に入り、リアクティブは優先列に加わります。" },
@@ -3759,6 +4045,167 @@ function renderSkills() {
       { glyph: "cross", title: "対象優先", value: "対象指定nodeなし", line: "初期20節には対象優先を変える操作がありません。", tone: "quiet" },
     ])) + ultimateHelp() + statusGlossaryHelp() + "</section>";
 }
+
+function stage5SelectedMapCell() {
+  const selected = state.selectedSkillNode;
+  if (!selected) return null;
+  return app.querySelector(".weapon-tree-cell[data-skill-key=\"" + selected.replace(/["\\]/g, "\\$&") + "\"]");
+}
+
+function focusStage5SelectedMapNode(smooth = false) {
+  const scroller = app.querySelector(".stage5-skill-tree-card .weapon-tree-scroll");
+  const selected = stage5SelectedMapCell();
+  if (!scroller || !selected) return;
+  const bounds = scroller.getBoundingClientRect();
+  const node = selected.getBoundingClientRect();
+  if (node.left < bounds.left) scroller.scrollBy({ left: node.left - bounds.left - 8, behavior: smooth ? "smooth" : "auto" });
+  else if (node.right > bounds.right) scroller.scrollBy({ left: node.right - bounds.right + 8, behavior: smooth ? "smooth" : "auto" });
+  const characterId = selectedCharacter();
+  const preferences = stage5SkillUiPreferences(characterId, state.run.weaponRun.loadout.primarySkillByCharacter[characterId]);
+  preferences.mapScrollByWeapon[preferences.weaponId] = scroller.scrollLeft;
+}
+
+function layoutStage5SkillTreeConnectors() {
+  const map = app.querySelector(".stage5-skill-tree-card .weapon-skill-map");
+  const svg = map?.querySelector(".weapon-tree-lines");
+  if (!map || !svg) return;
+  const nodes = [...map.querySelectorAll(".weapon-tree-cell[data-skill-key]")];
+  const byKey = new Map(nodes.map((cell) => [cell.dataset.skillKey, WEAPON_SKILL_NODES[cell.dataset.skillKey]]));
+  const cells = new Map(nodes.map((cell) => [cell.dataset.skillKey, cell]));
+  const mapRect = map.getBoundingClientRect();
+  const anchor = (element) => {
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left - mapRect.left, right: rect.right - mapRect.left, centerY: rect.top - mapRect.top + rect.height / 2 };
+  };
+  const selectedPath = new Set();
+  let parentKey = state.selectedSkillNode;
+  while (parentKey) {
+    const parentNode = WEAPON_SKILL_NODES[parentKey];
+    parentKey = parentNode ? (weaponSkillPrerequisiteKeys(parentKey) ?? [])[0] ?? null : null;
+    if (parentKey) selectedPath.add(parentKey);
+  }
+  const paths = [];
+  for (const [key, child] of byKey) {
+    if (!child) continue;
+    for (const required of weaponSkillPrerequisiteKeys(key) ?? []) {
+      const sourceCell = cells.get(required);
+      const targetCell = cells.get(key);
+      if (!sourceCell || !targetCell) continue;
+      const source = anchor(sourceCell);
+      const target = anchor(targetCell);
+      const busX = source.right + (target.left - source.right) / 2;
+      const selected = key === state.selectedSkillNode || selectedPath.has(key);
+      paths.push("<path class=\"weapon-tree-line" + (selected ? " selected" : "")
+        + "\" d=\"M " + source.right + " " + source.centerY + " H " + busX + " V "
+        + target.centerY + " H " + target.left + "\"></path>");
+    }
+  }
+  svg.setAttribute("viewBox", "0 0 " + map.scrollWidth + " " + map.scrollHeight);
+  svg.innerHTML = paths.join("");
+}
+
+function stage5SkillTreeCardContext() {
+  const characterId = selectedCharacter();
+  const active = state.run.weaponRun.loadout.primarySkillByCharacter[characterId];
+  const preferences = stage5SkillUiPreferences(characterId, active);
+  const acquired = new Set(state.run.weaponRun.skillProgression.unlockedSkillKeysByCharacter[characterId] ?? []);
+  const reactive = state.run.weaponRun.loadout.reactivePriorityByCharacter[characterId] ?? [];
+  const nodes = stage5SkillTreeGroups().get(preferences.weaponId) ?? [];
+  const selectedKey = nodes.some((node) => node.key === state.selectedSkillNode)
+    ? state.selectedSkillNode
+    : preferences.selectedByWeapon[preferences.weaponId] ?? null;
+  const node = selectedKey ? WEAPON_SKILL_NODES[selectedKey] : null;
+  const context = node ? stage5SkillNodeContext(
+    characterId,
+    node,
+    acquired,
+    skillPointsFor(characterId),
+    state.run.weaponRun.skillProgression.skillReservationByCharacter[characterId],
+    active,
+    reactive,
+  ) : null;
+  return { characterId, preferences, acquired, nodes, node, context };
+}
+
+function syncStage5SkillDetailSpace() {
+  const treeCard = app.querySelector(".stage5-skill-tree-card");
+  if (!treeCard) return;
+  const detail = treeCard.querySelector(".stage5-skill-detail");
+  const height = detail ? Math.ceil(detail.getBoundingClientRect().height) : 0;
+  treeCard.style.setProperty("--skill-detail-space", height + "px");
+}
+
+function bindActionHandlers(root = app) {
+  root.querySelectorAll("[data-action]").forEach((element) => {
+    element.addEventListener("click", handleAction);
+  });
+}
+
+function refreshStage5SkillSelection() {
+  const treeCard = app.querySelector(".stage5-skill-tree-card");
+  if (!treeCard) {
+    render();
+    return;
+  }
+  const data = stage5SkillTreeCardContext();
+  for (const cell of treeCard.querySelectorAll(".weapon-tree-cell[data-skill-key]")) {
+    const selected = cell.dataset.skillKey === state.selectedSkillNode;
+    cell.classList.toggle("selected", selected);
+    const card = cell.querySelector(".stage5-skill-card");
+    card?.classList.toggle("selected", selected);
+    card?.querySelector(".stage5-skill-select")?.setAttribute("aria-pressed", String(selected));
+  }
+  const detail = treeCard.querySelector(".stage5-skill-detail");
+  if (detail) detail.remove();
+  if (data.node && data.context) {
+    treeCard.insertAdjacentHTML("beforeend", stage5SkillDetailHtml(data.characterId, data.node, data.context));
+    const newDetail = treeCard.querySelector(".stage5-skill-detail");
+    if (newDetail) bindActionHandlers(newDetail);
+  }
+  const oldNote = app.querySelector(".camp-view > .tutorial-note-card.skill-tutorial");
+  const newNoteHtml = skillLessonNote();
+  if (oldNote && newNoteHtml) {
+    const template = document.createElement("template");
+    template.innerHTML = newNoteHtml.trim();
+    const note = template.content.firstElementChild;
+    if (note) oldNote.replaceWith(note);
+  } else if (oldNote && !newNoteHtml) {
+    oldNote.remove();
+  }
+  applyTutorialGate();
+  publishCampTopHeight();
+  syncStage5SkillDetailSpace();
+  layoutStage5SkillTreeConnectors();
+  focusStage5SelectedMapNode(true);
+  focusTutorialSpot();
+}
+
+function rememberStage5SkillMapScroll() {
+  const scroller = app.querySelector(".stage5-skill-tree-card .weapon-tree-scroll");
+  if (!scroller) return;
+  const data = stage5SkillTreeCardContext();
+  data.preferences.mapScrollByWeapon[data.preferences.weaponId] = scroller.scrollLeft;
+}
+
+function mountStage5SkillTree() {
+  if (state.phase !== "camp" || campActiveTab() !== "skills") return;
+  const data = stage5SkillTreeCardContext();
+  const scroller = app.querySelector(".stage5-skill-tree-card .weapon-tree-scroll");
+  if (scroller) {
+    scroller.scrollLeft = data.preferences.mapScrollByWeapon[data.preferences.weaponId] ?? 0;
+    scroller.addEventListener("scroll", () => {
+      data.preferences.mapScrollByWeapon[data.preferences.weaponId] = scroller.scrollLeft;
+    }, { passive: true });
+  }
+  layoutStage5SkillTreeConnectors();
+  syncStage5SkillDetailSpace();
+  focusStage5SelectedMapNode(false);
+}
+
+window.addEventListener("resize", () => {
+  layoutStage5SkillTreeConnectors();
+  syncStage5SkillDetailSpace();
+}, { passive: true });
 
 
 function equipmentPanelExtras(characterId) {
@@ -5116,6 +5563,17 @@ function tutorialGate() {
 // **錠と光は描画のあとに一度で掛ける。**画面ごとに同じ条件を書き写すと、
 // いつか片方だけが直る（`disabled` は釦にしか効かないので、釦以外は CSS で止める）。
 function applyTutorialGate() {
+  for (const element of app.querySelectorAll(".tutorial-spot")) element.classList.remove("tutorial-spot");
+  for (const element of app.querySelectorAll("[data-action]")) {
+    if (element.classList.contains("tutorial-blocked")) {
+      element.classList.remove("tutorial-blocked");
+      element.removeAttribute("aria-disabled");
+    }
+    if (element.dataset.tutorialDisabled === "true") {
+      element.disabled = false;
+      delete element.dataset.tutorialDisabled;
+    }
+  }
   const gate = tutorialGate();
   if (!gate) return;
   const spots = gate.selector ? [...app.querySelectorAll(gate.selector)] : [];
@@ -5127,7 +5585,10 @@ function applyTutorialGate() {
     if (open.some((allowed) => allowed === element || allowed.contains(element))) continue;
     element.classList.add("tutorial-blocked");
     element.setAttribute("aria-disabled", "true");
-    if ("disabled" in element) element.disabled = true;
+    if ("disabled" in element && !element.disabled) {
+      element.disabled = true;
+      element.dataset.tutorialDisabled = "true";
+    }
   }
 }
 
@@ -8006,12 +8467,60 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "select-weapon-node") {
-    const nodeKey = element.dataset.node;
-    if (!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nodeKey)) return;
-    state.selectedSkillNode = state.selectedSkillNode === nodeKey ? null : nodeKey;
+  if (action === "select-stage5-skill-weapon") {
+    const weaponId = element.dataset.weapon;
+    const groups = stage5SkillTreeGroups();
+    if (!groups.has(weaponId)) return;
+    const characterId = selectedCharacter();
+    const active = state.run.weaponRun.loadout.primarySkillByCharacter[characterId];
+    const preferences = stage5SkillUiPreferences(characterId, active);
+    preferences.weaponId = weaponId;
+    const selectedKey = stage5SkillSelectedNode(
+      characterId, weaponId, groups.get(weaponId), active, preferences, skillLessonStep(),
+    );
+    state.selectedSkillNode = selectedKey;
+    if (selectedKey) preferences.selectedByWeapon[weaponId] = selectedKey;
     saveState();
     render();
+    return;
+  }
+
+  if (action === "select-stage5-skill-view") {
+    const view = element.dataset.view;
+    if (view !== "map" && view !== "list") return;
+    const characterId = selectedCharacter();
+    const active = state.run.weaponRun.loadout.primarySkillByCharacter[characterId];
+    const preferences = stage5SkillUiPreferences(characterId, active);
+    preferences.viewByWeapon[preferences.weaponId] = view;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-weapon-node") {
+    const nodeKey = element.dataset.node;
+    const characterId = selectedCharacter();
+    if (!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nodeKey)
+      || element.dataset.character !== characterId) return;
+    const node = WEAPON_SKILL_NODES[nodeKey];
+    const active = state.run.weaponRun.loadout.primarySkillByCharacter[characterId];
+    const preferences = stage5SkillUiPreferences(characterId, active);
+    preferences.selectedByWeapon[node.weaponId] = nodeKey;
+    preferences.weaponId = node.weaponId;
+    state.selectedSkillNode = nodeKey;
+    saveState();
+    refreshStage5SkillSelection();
+    return;
+  }
+
+  if (action === "clear-stage5-skill-selection") {
+    const characterId = selectedCharacter();
+    const active = state.run.weaponRun.loadout.primarySkillByCharacter[characterId];
+    const preferences = stage5SkillUiPreferences(characterId, active);
+    preferences.selectedByWeapon[preferences.weaponId] = null;
+    state.selectedSkillNode = null;
+    saveState();
+    refreshStage5SkillSelection();
     return;
   }
 

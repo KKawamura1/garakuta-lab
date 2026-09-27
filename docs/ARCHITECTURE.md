@@ -193,7 +193,7 @@ Weapon Manifestをまとめた新weapon Runを作ります。初期技能点は0
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 本編第1戦の勝利後はStage 5の武器技能チュートリアルへ進みます。`skillLessonStep()` はタブ・人物・初期20 nodeの選択・取得・予約・同行者への引き渡しを順に案内し、操作先は `select-weapon-node` / `acquire-weapon-skill` / `reserve-weapon-skill` を使います。予約後の引き渡し済み状態を画面stateへ記録し、選び直しでチュートリアルが戻らないようにします。
 
-Stage 1最初の戦闘では、`ultimateLessonStep()` が人物選択・武器技能カードの長押し・遠征tabへの移動を案内します。両方の手引きは `tutorialGate()` → `applyTutorialGate()` → `tutorialAllows()` を共有します。`tutorialNoteCard()` は現在の一手を一枚にまとめ、`focusTutorialSpot()` は段が変わったときだけ押し先を表示窓へ寄せます。Stage 5画面は武器別の初期20節一覧を使い、旧skill treeの節選択や旧操作盤には依存しません。
+Stage 1最初の戦闘では、`ultimateLessonStep()` が人物選択・武器技能カードの長押し・遠征tabへの移動を案内します。両方の手引きは `tutorialGate()` → `applyTutorialGate()` → `tutorialAllows()` を共有します。`tutorialNoteCard()` は現在の一手を一枚にまとめ、`focusTutorialSpot()` は段が変わったときだけ押し先を表示窓へ寄せます。Stage 5画面は武器別の初期20節をPR #289由来の地図／階層一覧・役割丸記号・効果バッジ・画面下詳細盤で表示し、取得・予約・主軸・反応操作を新しいweapon Runへ接続します。
 
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -371,7 +371,7 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 
 `app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
 先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
-選択対象→確定操作の順を維持し、敵情報は選択中の一体に絞り、武器技能は武器別の折り畳み一覧、装備は区分ごとの一覧で長さを制御する。
+選択対象→確定操作の順を維持し、敵情報は選択中の一体に絞り、武器技能は武器タブ別の地図／階層一覧と選択中の詳細盤で表示し、装備は区分ごとの一覧で長さを制御する。
 
 ギルドとキャンプの敵情報は `encounterArchive()` を共有します。12個の節はいずれも
 `composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
@@ -405,9 +405,11 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 印を持たない古い save のために `scriptOfClearedEncounter()` が一つだけ読み替えます——
 導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
 作り直すので、灰の門を飛ばす経路がありません）。
-Stage 5の `renderSkills()` は選択中の人物に対する初期20節を武器別に折り畳み表示します。
-節カードは種別・効果・前提・取得済み／予約状態を出し、アクティブは主軸、リアクティブは
-優先列、パッシブは自動適用として扱います。未実装の170節やターゲット優先の操作は表示しません。
+Stage 5の `renderSkills()` は選択中の人物に対する初期20節を武器タブごとに表示します。
+地図／階層一覧、前提線、役割丸記号、効果バッジ、選択節の画面下詳細盤はPR #289の操作・表示を
+引き継ぎます。選択では地図DOMを作り直さず、前提線と詳細盤を更新します。節カードは取得済み／
+予約状態も出し、アクティブは主軸、リアクティブは優先列、パッシブは自動適用として扱います。
+未実装の170節やターゲット優先の操作は表示しません。
 人物切替はキャンプ上端の共通盤面だけで行い、skill tab固有の人物タブはありません。
 
 `skillLessonStep()` はStage 0の一戦後に取得・予約・人物間引き渡しを順に教えます。
@@ -542,9 +544,9 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 自動取得します。人物の増減・再読込でstarter stateを二重に作らないことを
 `ecology/weapon-stage5-run.test.mjs` とsave / UI試行で確認します。
 
-`analysis/ecology-screens-smoke.mjs` は現行のweapon Run操作、初期20節の画面、同期経路、
-旧skill tree handlerが戻らないことを確認します。browser trialはStage5の一覧とTutorialの操作を
-Playwrightで通します。
+`analysis/ecology-screens-smoke.mjs` は現行のweapon Run操作、初期20節の画面、地図／一覧、詳細盤、
+同期経路、旧skill tree handlerが戻らないことを確認します。browser trialはStage5の節選択で地図DOMが
+維持されることと、Tutorialの取得・予約をPlaywrightで通します。
 
 ### キャンプのタブ（issue #235）
 
