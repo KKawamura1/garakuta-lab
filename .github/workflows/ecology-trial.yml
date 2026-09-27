@@ -140,7 +140,7 @@ jobs:
               ' <<< "$checks_json" 2>/dev/null || true)"
               if [[ -n "$preview_url" ]]; then
                 preview_candidate="${preview_url%/}/ecology/"
-                if ! printf '%s\\n' "${candidates[@]}" | grep -Fxq "$preview_candidate"; then
+                if ! printf '%s\n' "${candidates[@]}" | grep -Fxq "$preview_candidate"; then
                   candidates=("$preview_candidate" "${candidates[@]}")
                   echo "Cloudflare の Preview URL を探索候補に追加: $preview_candidate"
                 fi
@@ -155,10 +155,10 @@ jobs:
                 exit 0
               fi
             done
-            echo "まだ古い build（$attempt/40）。15秒待つ。"
+            echo "まだ古い build（$attempt/80）。15秒待つ。"
             sleep 15
           done
-          echo "公開先が $expect を出さないまま10分たった。候補: ${candidates[*]}" >&2
+          echo "公開先が $expect を出さないまま待機上限に達した。候補: ${candidates[*]}" >&2
           echo "base_url を渡して再実行するか、Cloudflare Pages のデプロイを確認すること。" >&2
           exit 1
 
