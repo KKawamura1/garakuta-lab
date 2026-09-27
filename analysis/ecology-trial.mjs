@@ -178,7 +178,7 @@ try {
   await click("はじめから");
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.phase = "expeditionStart";
@@ -309,7 +309,7 @@ try {
 
   // 修正前に作られた、phase=intro だけのオートセーブも救済する。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved) return;
     saved.phase = "intro";
@@ -328,7 +328,7 @@ try {
   // ここでは Stage 0 を踏破済みの Profile へ差し替えて、その先だけを踏む。
   // （Free mode を消したので、以前のように「難易度タブへ逃げて物語を回避する」ができない）
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
@@ -559,7 +559,7 @@ try {
   // **解禁の経路がこれまで一度も踏まれていなかった。**蘇生の検査と同じやり方で、
   // 保存に点を入れてから踏み、終わったら元へ戻す。
   const pointFixture = await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.run) return null;
     const before = { ...saved.run.runSkillPoints };
@@ -620,7 +620,7 @@ try {
     }
     // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
     await page.evaluate((fixture) => {
-      const key = "exp18-r10-auto-v02";
+      const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
       if (!saved?.run) return;
       saved.run.runSkillPoints = fixture.before;
@@ -1343,7 +1343,7 @@ try {
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
   if (!/今回のUIについて/.test(await bodyText())) {
     await page.evaluate(() => {
-      const key = "exp18-r10-auto-v02";
+      const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key));
       saved.phase = "complete";
       localStorage.setItem(key, JSON.stringify(saved));
@@ -1386,7 +1386,7 @@ try {
   }
 
   // 送信した控えに、版・seed・buildの印・主要イベントが載っているか。
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-r10-auto-v02")));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-r10-auto-v04")));
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
@@ -1402,7 +1402,7 @@ try {
   // runEvents が入れ替わるので、先に踏むと上の「控えに主要行動列が残る」が落ちる。
   // この台本は8戦前後まで進むので、同じ敵種を何度も倒している。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v02";
+    const key = "exp18-r10-auto-v04";
     const stored = JSON.parse(localStorage.getItem(key));
     stored.phase = "settlement";
     localStorage.setItem(key, JSON.stringify(stored));
