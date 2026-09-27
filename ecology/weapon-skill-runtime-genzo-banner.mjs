@@ -6,7 +6,7 @@ const LOWEST_AP_ALLY = {
     { type: "alive" },
     { type: "not_self" },
   ],
-  sort: ["action_points_asc", "is_preparing_desc", "position_asc"],
+  sort: ["action_points_asc", "is_preparing_desc", "instance_id_asc"],
   take: 1,
 };
 const EVENT_TARGET = {
