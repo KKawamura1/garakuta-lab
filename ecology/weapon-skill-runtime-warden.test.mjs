@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { MAX_ACTION_HIT_COUNT } from "./schema.mjs";
 import { CORE_BATTLE } from "./fixtures.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
@@ -18,7 +19,7 @@ assert.equal(registry.entries["warhammer:R"].definition.displayName, "槌打ち"
 assert.equal(registry.entries["warhammer:A1"].definition.displayName, "重い頭");
 assert.equal(registry.entries["gauntlets:R"].definition.displayName, "正拳");
 assert.equal(registry.entries["gauntlets:A1"].definition.displayName, "握り込み");
-assert.equal(registry.entries["gauntlets:A1"].definition.rules.length, 7,
+assert.equal(registry.entries["gauntlets:A1"].definition.rules.length, MAX_ACTION_HIT_COUNT - 1,
   "the later-hit passive has one once-per-chain rule for each legal follow-up hit");
 
 const projected = compileWeaponSkillRuntimeContent(FIXTURE_CONTENT, registry);
@@ -34,7 +35,7 @@ const GAUNTLETS_A1 = weaponSkillRuntimeId("gauntlets:A1");
 const ENEMY_TARGET = {
   scope: "enemies",
   filters: [{ type: "alive" }],
-  sort: ["position_asc"],
+  sort: ["distance_asc"],
   take: 1,
 };
 const EVENT_TARGET = {
@@ -60,7 +61,10 @@ const THREE_HIT_PROBE = {
   tags: ["attack", "weapon"],
 };
 
-function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null) {
+function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null, {
+  ownerPosition,
+  enemyPositions,
+} = {}) {
   const baseContent = compileWeaponSkillRuntimeContent(FIXTURE_CONTENT, registry);
   const activeSkills = { ...baseContent.activeSkills };
   if (extraActiveSkill) activeSkills[extraActiveSkill.id] = extraActiveSkill;
@@ -81,17 +85,35 @@ function runSkill(activeSkillId, passiveSkillIds = [], extraActiveSkill = null) 
   battle.allies = [{
     ...CORE_BATTLE.allies[0],
     instanceId: "a_stage5b",
+    ...(ownerPosition ? { position: ownerPosition } : {}),
     tactics: [{ activeSkillId, useWhen: [] }],
     reactiveSkillIds: [],
     passiveSkillIds,
     equipment: [],
     stats: { might: 100 },
   }];
-  battle.enemies = [{
-    ...CORE_BATTLE.enemies[0],
-    instanceId: "e_stage5b",
-  }];
+  battle.enemies = enemyPositions
+    ? enemyPositions.map(([instanceId, position]) => ({
+      ...CORE_BATTLE.enemies[0],
+      instanceId,
+      position,
+    }))
+    : [{
+      ...CORE_BATTLE.enemies[0],
+      instanceId: "e_stage5b",
+    }];
   return simulateBattle(battle, content);
+}
+
+for (const activeSkillId of [WARHAMMER_R, GAUNTLETS_R]) {
+  const nearest = runSkill(activeSkillId, [], null, {
+    ownerPosition: "front_right",
+    enemyPositions: [["e_far", "front_left"], ["e_near", "front_center"]],
+  });
+  const selection = nearest.events.find((event) =>
+    event.type === "target_selected" && event.skillId === activeSkillId);
+  assert.deepEqual(selection?.targetActorIds, ["e_near"],
+    "a weapon R skill selects the nearest in-range enemy, regardless of formation order");
 }
 
 function attackProposals(result, activeSkillId) {
