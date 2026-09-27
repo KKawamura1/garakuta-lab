@@ -566,6 +566,9 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
       validateTargetQuery(bag, `${path}.otherTarget`, effect.otherTarget, ctx, { take: 1 });
       break;
+    case "pull_toward_source":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      break;
     case "start_preparation":
       if (ctx.insidePreparation) {
         bag.add(path, "nested_preparation", "completionEffects must not start another preparation");

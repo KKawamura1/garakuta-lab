@@ -13,7 +13,9 @@ import {
   ACTION_HIT_EXPANSION_EVENT_TYPES,
   COLUMNS,
   POSITION_COLUMN,
+  POSITION_ORDER,
   POSITION_ROW,
+  POSITIONS,
   SKILL_LEVEL_STEP_BPS,
 } from "./schema.mjs";
 import {
@@ -164,6 +166,7 @@ export function applyEffect(rt, ctx, effect) {
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
     case "swap_positions": return swapPositions(rt, ctx, effect);
+    case "pull_toward_source": return pullTowardSource(rt, ctx, effect);
     case "start_preparation": return startPreparation(rt, ctx, effect);
     case "advance_preparation": return advancePreparation(rt, ctx, effect);
     case "interrupt_preparation": return interruptPreparation(rt, ctx, effect);
@@ -741,11 +744,15 @@ function addActionDamage(rt, ctx) {
   window.frame.actionDamageExpansion = ctx.preparedActionDamage;
 }
 
-function gridDistance(from, to) {
-  const rowDistance = POSITION_ROW[from.position] === POSITION_ROW[to.position] ? 0 : 1;
-  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[from.position]);
-  const toColumn = COLUMNS.indexOf(POSITION_COLUMN[to.position]);
+function positionDistance(fromPosition, toPosition) {
+  const rowDistance = POSITION_ROW[fromPosition] === POSITION_ROW[toPosition] ? 0 : 1;
+  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[fromPosition]);
+  const toColumn = COLUMNS.indexOf(POSITION_COLUMN[toPosition]);
   return rowDistance + Math.abs(fromColumn - toColumn);
+}
+
+function gridDistance(from, to) {
+  return positionDistance(from.position, to.position);
 }
 
 function dealOneInstance(
@@ -1258,6 +1265,34 @@ function swapPositions(rt, ctx, effect) {
       targetActorIds: [actor.instanceId],
       tags: ["swap"],
       values: { from, to, rowChanged: from.startsWith("front") !== to.startsWith("front") },
+    });
+  }
+}
+
+function pullTowardSource(rt, ctx, effect) {
+  const source = ctx.owner;
+  if (!source?.alive) return;
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    if (!target.alive) continue;
+    const startingDistance = positionDistance(source.position, target.position);
+    const destinations = POSITIONS
+      .filter((position) => positionDistance(target.position, position) === 1
+        && positionDistance(source.position, position) < startingDistance)
+      .sort((a, b) => POSITION_ORDER[a] - POSITION_ORDER[b]);
+    const occupied = new Set(actorsOnSide(rt.state, target.side)
+      .filter((actor) => actor.alive && actor !== target)
+      .map((actor) => actor.position));
+    const to = destinations.find((position) => !occupied.has(position));
+    if (!to) continue;
+    const from = target.position;
+    target.position = to;
+    bumpHistory(target, "times_moved", 1);
+    rt.emit({
+      type: "actor_moved",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: ["forced_move"],
+      values: { from, to, rowChanged: POSITION_ROW[from] !== POSITION_ROW[to] },
     });
   }
 }
