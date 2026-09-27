@@ -101,7 +101,7 @@ export const PROLOGUE = Object.freeze({
 // 教えるのは二手で、**その二手の違いがこの画面の全部**である。
 //
 //   取得 … いまの点で届く節を、いま取る（`unlockSkillId`）
-//   予約 … いまの点では届かない節を、先に指しておく（`reserveSkillId`）
+//   予約 … 先の節を指して、必要な点が入るまで待つ（`reserveSkillId`）
 //
 // 予約の相手は「前提の段がまだ足りない」節を選ぶ。**点が足りないだけの節を
 // 選ぶと、予約が「一回ぶんの貯金」にしか見えない。**傷へ盾を Lv3 を要求する
@@ -116,29 +116,27 @@ export const SKILL_LESSON = Object.freeze({
   // 一戦目の直後のキャンプ。**12戦の梯子の外に出ない。**
   encounterIndex: 1,
   tutorial: Object.freeze({
-    // ツグミ … 灰の門で後列へ下げた本人。**続きとして読める側へ点を払う。**
-    // ゴウの技能は腕力で読むものが Stage 0 に一本しか無く（AGENTS.md の
-    // 「完全上位互換を作らない」に沿って技術の技能は技術で伸びる）、
-    // 入口で払える先が実質無い。
+    // ツグミ … 灰の門で後列へ下げた本人。Stage 5の初期4節はすでに所持するため、
+    // 初期20節から別の武器系統へ一つ曲がる例を使う。
     characterId: "mender",
-    // いま1点で取れる節。傷へ盾を（starter）の子なので前提は満ちている。
-    unlockSkillId: "field_dressing",
-    // いまは取れない節。**前提の段（傷へ盾を Lv3）が足りない。**
-    reserveSkillId: "sustaining_ward",
+    // 一戦後の1点で取る。鎚打ちを取ると、初期20の戦槌系へ進める。
+    unlockSkillId: "warhammer:R",
+    // 同じ系統の次節を予約し、次の勝利で自動取得する。
+    reserveSkillId: "warhammer:A1",
   }),
   // 取得の前に出す一行。**答えではなく、点の出どころを言う。**
   pointHint: "一戦ごとに、隊の全員へ技能点が1点入る。",
   // 誰に払うかを選ぶ一行。**点は隊の財布ではなく、人ごとの持ち物である。**
   ownerHint: "技能点は人ごとに持つ。払う相手を先に選ぶ。",
   // 取得の一行。取り消せないことだけを言う（数字は節そのものが出している）。
-  unlockHint: "取った技能はその場で装着され、遠征のあいだ忘れない。使った点も戻らない。",
+  unlockHint: "取った技能はその場で使える状態になります。使った点も戻りません。",
   // 予約の前に出す一行。**なぜいま取れないのかを言う。**
-  reachHint: "この先は、前提の段が足りないので今日は取れない。",
+  reachHint: "今ある点は使い切りました。次の勝利で点が入るまで、ここに取る先を予約できます。",
   // 予約の効きを、一息で言う一行（作者要望 2026-09-14）。**予約の値打ちは
   // 「先の技能が取れる」ことではなく、「毎戦ここへ来なくてよくなる」ことである。**
   // 想定している遊び方は、先に行き先だけ決めて数戦を飛ばし、負ける予測が出た回に
   // 初めて手を入れる、という軽い往復である。
-  meritHint: "、この先は戦うたびに自動で進む——毎回ここへ来て振り直さなくていい。",
+  meritHint: "、次の勝利で技能点が入ると自動で取得される——毎回ここへ来て振り直さなくていい。",
   // 予約の一行。予約が何をするのかを言う。
   reserveHint: "予約した先へは、点が入るたびに前提から順に自動で進む。",
   // 受け渡しの一行。予約の縛りの緩さを言う。
@@ -182,26 +180,25 @@ export const ULTIMATE_LESSON = Object.freeze({
   encounterIndex: 1,
   maxRounds: 7,
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
-  // 溜め突き本体を550%から240%へ直した後も、「構えないと時間切れ・構えると
-  // 1ラウンド早く勝利」という教材の差が残るHP。通常版の過剰火力で帳尻は合わせない。
-  enemyScaling: Object.freeze({ maxHpBps: 8_500, offenseBps: 10_000 }),
+  // Stage 5では長槍Rの必殺（全体・量3倍）で同じ問いを教える。Stage 5の通常攻撃は
+  // 最寄りの敵を選ぶため単体火力が安定する。必殺なし側を期限で敗北させつつ、
+  // 必殺あり側では誰も倒れずに切り返せるよう、盾兵のHPと敵の攻撃倍率を実測で合わせている。
+  enemyScaling: Object.freeze({ maxHpBps: 5_000, offenseBps: 8_500 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
     Object.freeze({ instanceId: "lesson_marksman_a", enemyActorId: "gray_marksman", position: "rear_left" }),
     Object.freeze({ instanceId: "lesson_marksman_b", enemyActorId: "gray_marksman", position: "rear_right" }),
   ]),
-  // **教える一手は content が決める。**人物 id と技能 id を app.js へ書き写さないので、
+  // **教える一手は content が決める。**人物 id とnode keyを app.js へ書き写さないので、
   // ここを変えれば錠と光も一緒に動く（灰の門の `PROLOGUE.tutorial` と同じ作り）。
   //
-  // ナギの溜め突きを選ぶ理由：**溜めが要るせいで使いにくい技能**が、必殺にすると
-  // 「溜め不要・全体へ・量3倍」になる。#238 が狙った「見向きもしなかった技能が、
-  // 必殺になると別物になる」がそのまま絵になる。しかも加入したばかりの本人の技能である。
-  tutorial: Object.freeze({ characterId: "lancer", skillId: "heavy_swing" }),
+  // Stage 5初期20の長槍Rを使い、旧skill IDは参照しない。
+  tutorial: Object.freeze({ characterId: "lancer", skillKey: "long_spear:R" }),
   // 構える前に出す一行。**答えは書かず、見る場所を示す。**
   hint: "盾の二枚は硬い。一枚ずつ落としていては、前が保たない。",
   // 構えたあとに出す一行。予測の帯が変わったことを指す。
-  armedHint: "溜めが消えて、二枚へ同時に届く。上の予測がもう変わっている。",
+  armedHint: "長槍が二枚へ同時に届く。上の予測がもう変わっている。",
 });
 
 // ---------------------------------------------------------------- 断片の組み立て

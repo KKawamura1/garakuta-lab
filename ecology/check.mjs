@@ -21,6 +21,7 @@ const SUITES = [
   "weapon-pack-manifest.test.mjs",
   "weapon-save.test.mjs",
   "weapon-battle-input.test.mjs",
+  "weapon-stage5-run.test.mjs",
   "weapon-skill-runtime.test.mjs",
   "weapon-skill-runtime-warden.test.mjs",
   "weapon-skill-runtime-tsugumi.test.mjs",

@@ -23,7 +23,7 @@ const profile = freshWeaponProfile({
   unlockedEquipmentPackIds: ["equipment:family_edge"],
 });
 assert.equal(WEAPON_PROFILE_SCHEMA_VERSION, "ecology-weapon-profile-1");
-assert.equal(WEAPON_RUN_SCHEMA_VERSION, "ecology-weapon-run-2");
+assert.equal(WEAPON_RUN_SCHEMA_VERSION, "ecology-weapon-run-4");
 assert.equal(WEAPON_SKILL_PACKS.length, 10);
 assert.equal(validateWeaponProfile(profile).valid, true);
 
@@ -81,12 +81,22 @@ const unsupportedRun = { ...run, schemaVersion: "ecology-weapon-run-0" };
 assert.equal(deserializeWeaponRun(JSON.stringify(unsupportedRun), { profile }).code, "unsupported_version");
 const previousRunSchema = { ...run, schemaVersion: "ecology-weapon-run-1" };
 assert.equal(deserializeWeaponRun(JSON.stringify(previousRunSchema), { profile }).code, "unsupported_version");
+const v2RunSchema = { ...run, schemaVersion: "ecology-weapon-run-2" };
+assert.equal(deserializeWeaponRun(JSON.stringify(v2RunSchema), { profile }).code, "unsupported_version");
+const v3RunSchema = { ...run, schemaVersion: "ecology-weapon-run-3" };
+assert.equal(deserializeWeaponRun(JSON.stringify(v3RunSchema), { profile }).code, "unsupported_version");
 const legacyRun = { ...run, skillLevels: { gou: { legacy_skill_id: 4 } } };
 assert.ok(validateWeaponRun(legacyRun, { profile }).errors.some((error) => error.code === "unknown_run_field"));
 const wrongProfileId = { ...run, profileId: "another-profile" };
 assert.ok(validateWeaponRun(wrongProfileId, { profile }).errors.some((error) => error.code === "profile_mismatch"));
 const wrongRoster = { ...run, characterIds: ["gou"] };
 assert.ok(validateWeaponRun(wrongRoster, { profile }).errors.some((error) => error.code === "roster_mismatch"));
+const malformedUltimateState = {
+  ...run,
+  ultimateState: { ...run.ultimateState, unusedLegacySkillId: "old_skill" },
+};
+assert.ok(validateWeaponRun(malformedUltimateState, { profile }).errors
+  .some((error) => error.code === "unknown_ultimate_state_field"));
 const duplicatePosition = {
   ...run,
   battleState: {

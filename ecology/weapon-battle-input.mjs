@@ -15,6 +15,8 @@ import {
   weaponSkillRuntimeId,
 } from "./weapon-skill-runtime.mjs";
 import { STAGE_5_STARTER_WEAPON_SKILL_RUNTIME_REGISTRY } from "./weapon-skill-runtime-stage5.mjs";
+import { ultimateFirings, withUltimates } from "./ultimates.mjs";
+import { stage5UltimateCandidate } from "./weapon-stage5-ultimate.mjs";
 
 const CHARACTER_ID_SET = new Set(CHARACTER_OPTIONS.map(({ id }) => id));
 
@@ -39,6 +41,9 @@ function checkedRun(run, profile, registry) {
         throw new TypeError(`未実装の武器技能はBattleInputにできません: ${characterId}.${nodeKey}`);
       }
     }
+  }
+  const partyCharacterIds = run.battleState.partyCharacterIds;
+  for (const characterId of partyCharacterIds) {
     const primary = run.loadout.primarySkillByCharacter[characterId];
     if (!primary) throw new TypeError(`主軸技能を選んでください: ${characterId}`);
     if (!executable.has(primary) || !run.skillProgression.unlockedSkillKeysByCharacter[characterId].includes(primary)) {
@@ -108,10 +113,22 @@ export function buildWeaponBattleInput({
     throw new TypeError("BattleInputには確定済みEncounterが必要です。");
   }
 
-  const compiledContent = compileWeaponSkillRuntimeContent(contentBundle, runtimeRegistry);
-  const loadout = emptyLegacyLoadout(run.characterIds);
+  const partyCharacterIds = run.battleState.partyCharacterIds;
+  const armedUltimates = Object.fromEntries(partyCharacterIds.flatMap((characterId) => {
+    if (run.ultimateState.armedByCharacter[characterId] !== true) return [];
+    const skillKey = run.ultimateState.selectedSkillKeyByCharacter[characterId];
+    const candidate = stage5UltimateCandidate(run, characterId, skillKey, { contentBundle, runtimeRegistry });
+    if (!candidate) throw new TypeError(`必殺技の指定は装着中の実装済み技能に限ります: ${characterId}.${skillKey}`);
+    return [[characterId, candidate]];
+  }));
+  const compiledBaseContent = compileWeaponSkillRuntimeContent(contentBundle, runtimeRegistry);
+  const compiledContent = withUltimates(
+    compiledBaseContent,
+    Object.values(armedUltimates).map(({ runtimeSkillId }) => runtimeSkillId),
+  );
+  const loadout = emptyLegacyLoadout(partyCharacterIds);
   const currentHp = {};
-  for (const characterId of run.characterIds) {
+  for (const characterId of partyCharacterIds) {
     loadout.equipment[characterId] = run.battleState.equipmentByCharacter[characterId]
       .map(({ equipmentId }) => equipmentId);
     const hp = run.battleState.currentHpByCharacter[characterId];
@@ -121,7 +138,7 @@ export function buildWeaponBattleInput({
   const seed = `${run.runId}_${run.manifest.seed}`;
   const battleInput = makeExpeditionBattle(
     composed,
-    run.characterIds,
+    partyCharacterIds,
     loadout,
     seed,
     run.battleState.formationByCharacter,
@@ -134,13 +151,29 @@ export function buildWeaponBattleInput({
 
   for (const ally of battleInput.allies) {
     const characterId = ally.characterId;
-    const { activeSkillId, passiveSkillIds, reactiveSkillIds } = newRunPrimaryAndPassives(run, characterId);
+    const { activeSkillId, passiveSkillIds, reactiveSkillIds: baseReactiveSkillIds } = newRunPrimaryAndPassives(run, characterId);
+    const ultimate = armedUltimates[characterId];
+    const reactiveIndex = ultimate?.kind === "reactive"
+      ? baseReactiveSkillIds.indexOf(ultimate.runtimeSkillId)
+      : -1;
+    const reactiveSkillIds = reactiveIndex >= 0
+      ? [
+        ...baseReactiveSkillIds.slice(0, reactiveIndex),
+        ultimate.ultimateSkillId,
+        ...baseReactiveSkillIds.slice(reactiveIndex),
+      ]
+      : baseReactiveSkillIds;
     const acquired = run.skillProgression.unlockedSkillKeysByCharacter[characterId];
     if (!executable.has(run.loadout.primarySkillByCharacter[characterId])
       || acquired.some((nodeKey) => !executable.has(nodeKey))) {
       throw new TypeError(`取得技能が実行registryの範囲外です: ${characterId}`);
     }
-    ally.tactics = [{ activeSkillId, useWhen: [] }];
+    ally.tactics = ultimate?.kind === "active"
+      ? [
+        { activeSkillId: ultimate.ultimateSkillId, useWhen: [] },
+        { activeSkillId, useWhen: [] },
+      ]
+      : [{ activeSkillId, useWhen: [] }];
     ally.passiveSkillIds = passiveSkillIds;
     ally.reactiveSkillIds = reactiveSkillIds;
     ally.equipment = newRunEquipment(run, characterId, compiledContent).map(({ slot, ...item }) => item);
@@ -172,7 +205,16 @@ export function simulateWeaponBattle(options, engineOptions) {
   return {
     battleInput,
     contentBundle,
-    result: simulateBattle(battleInput, contentBundle, engineOptions),
+    result: (() => {
+      const result = simulateBattle(battleInput, contentBundle, engineOptions);
+      const partyCharacterIds = options.run.battleState.partyCharacterIds;
+      return {
+        ...result,
+        ultimateFiredBy: ultimateFirings(result)
+          .map((instanceId) => instanceId.replace(/^a_/, ""))
+          .filter((characterId) => partyCharacterIds.includes(characterId)),
+      };
+    })(),
   };
 }
 

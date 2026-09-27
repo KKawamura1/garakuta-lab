@@ -16,7 +16,8 @@ import { readFileSync } from "node:fs";
 const app = readFileSync("ecology/app.js", "utf8");
 const problems = [];
 
-const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
+const weaponLoadout = readFileSync("ecology/weapon-loadout.mjs", "utf8");
+const stage5Run = readFileSync("ecology/weapon-stage5-run.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
 // 盤面の演出（線と印）は app.js から切り出してある。切り出し先ごと消えれば、
 // 戦闘画面は無言で絵を失う（構文検査は通る）ので、ここで綴りを見る。
@@ -88,45 +89,20 @@ const displayContracts = [
   // 作者要望 2026-09-13 — ルールは段落から**記号つきの段**（ruleGrid）へ移した。
   // 形が変わったので、見る文字列もその段の綴りへ合わせる。
   ["装備常時効果の耐久説明", app, 'title: "能力値補正", value: "耐久を使わない"'],
-  ["技能バッジの表示語", app, 'const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };'],
-  ["アクティブ欄の見出し", app, 'active: "アクティブ"'],
-  ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
-  ["パッシブ欄の見出し", app, 'passive: "パッシブ"'],
-  ["技能取得予約の操作", app, '"reserve-skill"'],
-  ["技能点で取得と予約を切り替える判定", app, "canFulfillSkillReservation"],
-  ["技能取得予約の取消", app, '"cancel-skill-reservation"'],
-  ["予約技能の自動取得", app, "applyAutomaticSkillActions"],
-  ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
-  ["リアクティブツリーのラベル", skillTreeLayout, 'label: "リアクティブ"'],
-  ["パッシブツリーのラベル", skillTreeLayout, 'label: "パッシブ"'],
-  // 作者指摘 2026-09-13 — **説明と取得の釦は、地図の中ではなく操作盤に出す。**
-  // 列幅の中に釦を入れると、押す前に横スクロールが要る。
-  ["選んだ節の操作盤", app, "function renderSkillSheet(selectedRow, characterId)"],
-  ["操作盤を地図の後ろに置く", app, "+ renderSkillSheet(selectedRow, characterId);"],
-  ["操作盤を画面の下端へ貼る", styles, ".skill-sheet {\n  position: sticky;\n  bottom: 0;"],
-  ["操作盤の閉じる釦", app, 'class=\\"sheet-close\\"'],
-  // 作者指摘 2026-09-13 — 盤は短いほど地図と一緒に読める。入切は摘みひとつ、
-  // 取得・段上げ・予約は一行、前提と派生は地図に任せる。
-  ["入切の摘みを装着行と盤で共有する", app, "function skillToggleSwitch(characterId, skillId, kind, disabled)"],
-  ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
-  ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
-  ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
-  // 作者指摘 2026-09-17 — **地図は辿るため、一覧は見渡すため。**同じ森を二つの見方で出し、
-  // 既定は一覧（縦一列・横スクロール無し）にする。
-  ["技能ツリーの見方が二つある", app, 'const SKILL_TREE_VIEWS = ["list", "map"];'],
-  ["既定の見方は一覧", app, 'return SKILL_TREE_VIEWS.includes(state.skillTreeView) ? state.skillTreeView : "list";'],
-  ["一覧の組み立て", app, "function renderSkillList(group, characterId)"],
-  ["地図の組み立て", app, "function renderSkillMap(group, characterId, selectedRow)"],
-  ["見方の切り替え操作", app, '"select-skill-view"'],
-  ["一覧の深さはインデントで出す", styles, ".tree-cell.list-row { margin-left: calc(var(--indent, 0) * 11px); }"],
-  // いま技能点で動かせる節は、タブの数と絞り込みが同じ一箇所を読む。
-  ["いま動かせる節の判定", app, "function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId))"],
-  ["いま取れるの絞り込み操作", app, '"toggle-skill-ready"'],
-  ["種別タブのいま取れる数", app, '<em class=\\"tab-ready\\"'],
-  // 作者指摘 2026-09-17（二度目）— 技能点と予約先は、貼りつく帯ではなく操作の行が出す。
-  ["技能点と予約先はツリーの操作の行が出す", app, '+ readyChip + skillBuildSummary(characterId) + "</div>";'],
-  ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
-  ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
+  ["Stage 5の技能画面", app, "function renderSkills()"],
+  ["初期20節以外を技能画面に出さない", app, "for (const key of STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS)"],
+  ["技能取得操作", app, '"acquire-weapon-skill"'],
+  ["技能取得予約", app, '"reserve-weapon-skill"'],
+  ["取得予約の取消", app, '"cancel-weapon-reservation"'],
+  ["主軸技能の選択", app, '"select-weapon-primary"'],
+  ["反応優先順位の操作", app, '"move-weapon-priority"'],
+  ["技能カードのCSS", styles, ".stage5-skill-card"],
+  ["反応優先列のCSS", styles, ".stage5-priority-row"],
+  // Stage 5 — 技能点と予約先は人物ごとの新しいweapon Runが表示し、選んだ節が所属する
+  // 武器グループを開く。チュートリアルの光る節だけは描画後に見える位置へ寄せる。
+  ["技能点と予約先は人物ごとの技能画面が出す", app, '技能点 " + points + "</span>"'],
+  ["選んだ節の武器グループが開く", app, "nodes.some(({ key }) => key === active || key === state.selectedSkillNode)"],
+  ["描画のたびにチュートリアルの光る先を追う", app, "  focusTutorialSpot();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
   // 一つでも消えると、画面は静かなまま動き続ける（構文検査も単体試験も通る）。
   ["反応を申告する口", app, "function fx(key, kind)"],
@@ -207,7 +183,7 @@ const progressiveContracts = [
   ["敵の3列×2行盤面", app, "function expeditionEnemyBoard(encounter)"],
   ["敵セルの選択操作", app, "select-expedition-enemy"],
   ["選択した敵の詳細", app, "enemy-selection-detail"],
-  ["技能ツリーの折り畳み", app, "progressive-details skill-tree-details"],
+  ["武器別技能一覧の折り畳み", app, "stage5-weapon-group"],
   ["装備一覧の折り畳み", app, "progressive-details equipment-inventory"],
   ["主操作のCSS", styles, ".primary-action"],
   ["折り畳みのCSS", styles, ".progressive-details > summary"],
@@ -316,25 +292,14 @@ if (!app.includes("status + nextBlock + stateCard")) {
   problems.push("結果画面の主操作が戦闘後詳細より前に配置されていない");
 }
 for (const [label, sourceText, forbidden] of [
-  ["技能バッジの旧表示語", app, 'const kindLabels = { active: "行動"'],
-  ["アクティブ欄の旧表示語", app, 'active: "行動（優先順）"'],
-  ["リアクティブ欄の旧表示語", app, 'reactive: "反応"'],
-  ["パッシブ欄の旧表示語", app, 'passive: "常設（いつでも効く）"'],
-  ["アクティブツリーの旧表示語", skillTreeLayout, 'label: "行動"'],
-  ["リアクティブツリーの旧表示語", skillTreeLayout, 'label: "反応"'],
-  ["パッシブツリーの旧表示語", skillTreeLayout, 'label: "常設"'],
-  // 節の中で説明を開く形（`detail` を tree-cell へ差し込む）へ戻っていないか。
-  // 戻ると、押した節だけ背が伸びて地図が組み変わる。
-  ["節の中で説明を開く旧構造", app, '+ detail + "</article></div>"'],
-  // 盤で前提・派生を繰り返す形（`skillRouteChip`）と、摘みと同じことを言う釦・
-  // 説明文へ戻っていないか。
-  ["盤で前提と派生を繰り返す旧構造", app, "skillRouteChip"],
-  ["摘みと重なる入切の釦", app, 'button(nodeState.disabled ? "オンにする"'],
+  ["技能レベル表示の旧経路", app, "function skillLevelOf("],
+  ["旧技能マップ表示", app, "function renderSkillMap("],
+  ["旧技能一覧表示", app, "function renderSkillList("],
   // 作者試遊 2026-09-13 — 再生が流れきったら自動で次の場面へ出る形（issue #138）と、
   // 行き先を言わない旧い打ち切り釦へ戻っていないか。
   ["再生の終わりで自動的に次の場面へ出る旧経路", app, "      goToBattleResult();\n    }, beatDurationMs("],
   ["旧い打ち切り釦", app, '"再生をとばす"'],
-  ["入切の説明文", app, 'class=\\"node-locked\\">取得状態は変わりません'],
+  ["旧skill ID依存", app, "function installUnlockedSkills("],
   // 作者要望 2026-09-13 — 試映と実戦を見出し行の右端へ二字で畳んだ旧い形へ戻っていないか。
   // 戻ると、この窓で一番大事な操作が一番小さい釦になる。
   ["先見機の操作を見出し行へ畳んだ旧構造", app, "<small>試映</small>"],
@@ -552,6 +517,7 @@ const known = new Set([
 const ambient = new Set([
   "Object", "Array", "JSON", "Math", "Number", "String", "Boolean", "Date", "Map", "Set", "WeakMap",
   "Error", "Promise", "RegExp", "Symbol", "BigInt", "Intl", "TextEncoder",
+  "TypeError", "ReferenceError", "RangeError",
   "setTimeout", "clearTimeout", "setInterval", "clearInterval", "requestAnimationFrame",
   "parseInt", "parseFloat", "isNaN", "isFinite", "structuredClone",
   "encodeURIComponent", "decodeURIComponent",
@@ -570,38 +536,37 @@ for (const target of callTargets) {
   problems.push(`${target}() を呼んでいるが、定義も import もどこにも無い（踏んだ瞬間に ReferenceError）`);
 }
 
-// 4. 予測と本番の入力が、同じ一箇所から出ていること（issue #148）。
+// 4. Stage 5の予測と本番が同じweapon Run→BattleInput adapterを使うこと。
 //
-//    engine を共有していても、**呼び出し側が違う options を渡せば予測と本番はずれる。**
-//    実際に起きた壊れ方がそれで、本番だけ技能レベル（skillLevelsFor）を渡していない
-//    期間があり、「予測どおりに強くならない」「予測と結果が合わない」が同時に出た
-//    （PR #156）。engine 側の単体テストは両方とも通る——ずれは app.js の
-//    **呼び出し2箇所のあいだ**にあるからである。だからここで、その2箇所が同じ
-//    options 組み立てを通っていることだけを見る。
-const forecastCall = source.match(/previewNextBattle\s*\(([\s\S]*?)\);/);
-const productionCall = source.match(/simulateExpeditionBattle\s*\(([\s\S]*?)\);/);
-if (!forecastCall || !productionCall) {
+//    Engineテストはadapterの決定性を確認し、ここではapp側の両呼び出しが同じ
+//    options builderを使うことを確認する。再生snapshot採取だけは本番に加わる。
+const sliceBetween = (text, startMarker, endMarker) => {
+  const start = text.indexOf(startMarker);
+  const end = start < 0 ? -1 : text.indexOf(endMarker, start + startMarker.length);
+  return start < 0 || end < 0 ? "" : text.slice(start, end);
+};
+const forecastCall = sliceBetween(app, "function battleForecast()", "const FORECAST_RESULT_LABEL");
+const productionCall = sliceBetween(app, "function simulateAndEnterBattle(", "function advanceAfterBattle()");
+const optionsBuilder = sliceBetween(app, "function stage5BattleOptions(", "// 予測は毎 render");
+if (!forecastCall || !productionCall || !optionsBuilder) {
   console.error("ecology-screens smoke: 予測と本番の呼び出しを見つけられなかった。検査の書き方が古い。");
   process.exit(1);
 }
-const OPTIONS_BUILDER = "expeditionBattleOptions";
-if (!source.includes("function " + OPTIONS_BUILDER)) {
-  problems.push(`予測と本番が共有する options 組み立て ${OPTIONS_BUILDER}() が無い`);
+for (const [label, caller] of [["予測", forecastCall], ["本番", productionCall]]) {
+  if (!caller.includes("simulateWeaponBattle(") || !caller.includes("stage5BattleOptions(composed)")) {
+    problems.push(`${label}がStage 5の共有BattleInput builderを通っていない`);
+  }
 }
-if (!forecastCall[1].includes(OPTIONS_BUILDER)) {
-  problems.push(`戦闘予測（previewNextBattle）が ${OPTIONS_BUILDER}() を通っていない`
-    + "（予測だけ違う入力で走る）");
+for (const expected of [
+  "run: weaponRun",
+  "profile: state.profile.weaponSkillProfile",
+  "composed,",
+  "contentBundle: stage5ContentBundle(state.run)",
+]) {
+  if (!optionsBuilder.includes(expected)) problems.push(`stage5BattleOptions() から ${expected} が欠けている`);
 }
-if (!productionCall[1].includes(OPTIONS_BUILDER)) {
-  problems.push(`本番（simulateExpeditionBattle）が ${OPTIONS_BUILDER}() を通っていない`
-    + "（本番だけ違う入力で走る）");
-}
-// 本番が足してよいのは、結果を変えない再生用オプションだけ。
-const extraInProduction = productionCall[1]
-  .replace(/[\s\S]*expeditionBattleOptions\s*\([^)]*\),/, "")
-  .replace(/[{})\s,]/g, "");
-if (extraInProduction && extraInProduction !== "simulationOptions:captureReplaySnapshots:true") {
-  problems.push("本番だけが余分な戦闘入力を渡している: " + extraInProduction);
+if (!productionCall.includes("captureReplaySnapshots: true")) {
+  problems.push("本番解決がreplay snapshotを採取していない");
 }
 
 // 5. 予測 cache の鍵が、戦闘が読む欄を数え落としていないこと。
@@ -613,8 +578,8 @@ if (!forecastKeyBody) {
   process.exit(1);
 }
 for (const field of [
-  "runSeed", "difficulty", "roster", "formation", "loadout", "currentHp",
-  "runSkillLevels", "runUnlockedSkills", "equipmentDurability", "partySize",
+  "runSeed", "difficulty", "roster", "formation", "weaponRun", "state.run.loadout",
+  "currentHp", "equipmentDurability", "partySize",
 ]) {
   if (!forecastKeyBody[1].includes(field)) {
     problems.push(`forecastKey() が ${field} を数えていない（変えても予測が古いまま残る）`);
@@ -693,9 +658,10 @@ for (const field of [
     ["札が1ラウンドに払える点を出す", "function characterResPips(characterId)"],
     ["ギルドの連れていく隊が札を使う", "return characterPanel(id, {"],
     ["技能・装備の帯が札を使う", 'className: "member-context",'],
-    ["技能の札が足す読み値", "function skillPanelExtras(characterId)"],
+    ["技能画面がweapon Runを読む", "const weaponRun = state.run.weaponRun;"],
+    ["技能点の表示", "function skillPointsFor(characterId)"],
     ["装備の札が足す読み値", "function equipmentPanelExtras(characterId)"],
-    ["装備の常時補正を engine と同じ関数で合算する", "staticStatBonuses(runContentBundle(state.run), []"],
+    ["装備の常時補正を engine と同じ関数で合算する", "staticStatBonuses(stage5ContentBundle(state.run), []"],
     ["一行しか無い場所の小さな顔", "function characterFaceChip(characterId)"],
     ["札のCSS", ".character-panel {"],
     ["札の顔のCSS", ".panel-character-face {"],
@@ -762,11 +728,14 @@ for (const field of [
     }
   }
   for (const [label, expected] of [
-    ["加入時に取得済みを装着欄へ揃える", "next.loadout = installUnlockedSkills("],
-    ["保存から戻すときも揃える", "next.run.loadout = installUnlockedSkills("],
-    ["解禁したらその場で装着する", "const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind"],
+    ["加入時に取得済みを主軸と反応列へ揃える", "for (const id of partyCharacterIds) {"],
+    ["保存から戻すときもStage5の隊を同期する", "const synced = syncStage5WeaponParty(state.run.weaponRun"],
   ]) {
-    if (!app.includes(expected)) problems.push(label + "経路が見つからない");
+    const sourceText = label.startsWith("加入時") ? stage5Run : app;
+    if (!sourceText.includes(expected)) problems.push(label + "経路が見つからない");
+  }
+  if (!stage5Run.includes("function applyAutomaticActions(run, actions)")) {
+    problems.push("解禁した技能を即時装備するStage5経路が見つからない");
   }
   // issue #236 — キャンプの固定帯の下へ貼るものは、`top: 8px`（＝画面の上端）ではなく
   // 実測した固定帯の高さを見る。戻すと、固定帯の上に乗って盤面を隠す。
@@ -907,7 +876,7 @@ for (const field of [
     ["技能チュートリアルのタブの閉じ込め", app, "function skillLessonTabLocked() {"],
     ["補給チュートリアルのタブの閉じ込め", app, "function supplyTutorialTabLocked() {"],
     // 作者指摘 2026-09-14 — 操作盤が次の節を隠す回のために、「✕」だけは通す。
-    ["光らせないが通す先", app, "function skillLessonAllowSelector(step) {"],
+    ["光らせないが通す先", app, "function skillLessonAllowSelector() {"],
     ["補給を二戦目の後へ送った", app, "const SUPPLY_TUTORIAL_ENCOUNTER_INDEX = SKILL_LESSON_ENCOUNTER_INDEX + 1;"],
     // 作者指摘 2026-09-13 — 補給も**文章を読んで探す型から、光る先を押す型へ**揃える。
     ["補給チュートリアルの段", app, "function supplyTutorialStep() {"],
@@ -928,7 +897,7 @@ for (const field of [
     ["必殺技チュートリアルの三手目", app, "function ultimateLessonTabLocked() {"],
     ["三手目が遠征タブを光らせる", app, "open: \"nav.tabs [data-tab=\\\"map\\\"]\","],
     // 作者要望 2026-09-13 — 長押しの帯。**長さの正本は JS の定数ひとつ。**
-    ["長押しの帯", styles, ".installed-row[data-longpress].pressing::before {"],
+    ["長押しの帯", styles, ".stage5-skill-select.pressing::after {"],
     ["長押しの帯の長さを JS から渡す", app, "--long-press-ms"],
     ["長押しの帯の長さを CSS が受け取る", styles, "var(--long-press-ms, 450ms)"],
     // 作者指摘 2026-09-13 — 必殺の残りは人物ごと（隊の合計はやめた）。

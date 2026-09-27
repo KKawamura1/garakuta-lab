@@ -699,6 +699,20 @@ function allyInput(characterId, position, loadout, options = {}) {
 // **敵は composeEncounter が決めた形をそのまま渡す。**難易度で増える増援と変異は
 // 既に stat と mutation 名になっていて、ここでは何も足さない
 // （難易度の三層を同じ場所で動かさないため。R7 §8）。
+function expeditionBattleId(seed, encounterIndex) {
+  const raw = String(seed);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < raw.length; index += 1) {
+    hash = Math.imul(hash ^ raw.charCodeAt(index), 0x01000193);
+  }
+  const fingerprint = (hash >>> 0).toString(36);
+  const prefix = "expedition_";
+  const suffix = "_h" + fingerprint + "_e" + String(encounterIndex).replace(/[^a-z0-9_]/gi, "_");
+  const seedPart = raw.toLowerCase().replace(/[^a-z0-9_]/g, "_")
+    .slice(0, Math.max(0, 64 - prefix.length - suffix.length));
+  return prefix + seedPart + suffix;
+}
+
 export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formation = {}, options = {}) {
   const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
   const placed = normalizeFormation(formation, selected);
@@ -710,7 +724,7 @@ export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formati
   ));
   return {
     schemaVersion: BATTLE_SCHEMA_VERSION,
-    battleId: "expedition_" + String(seed).replace(/[^a-z0-9_]/gi, "_") + "_e" + composed.index,
+    battleId: expeditionBattleId(seed, composed.index),
     maxRounds: composed.maxRounds,
     objective: { type: "eliminate_all_enemies" },
     allies,
