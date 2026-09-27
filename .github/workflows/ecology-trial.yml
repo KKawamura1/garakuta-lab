@@ -35,13 +35,14 @@ on:
       - ".github/workflows/ecology-trial.yml"
 
 permissions:
+  checks: read
   contents: read
 
 jobs:
   trial:
     name: Play one expedition on the deployed preview
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -99,6 +100,7 @@ jobs:
         env:
           BASE_URL: ${{ inputs.base_url }}
           EXPECT_INPUT: ${{ inputs.expect_build }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           expect="$EXPECT_INPUT"
@@ -120,7 +122,30 @@ jobs:
           fi
 
           # デプロイは push と同時に始まるので、出てくるまで待つ。
-          for attempt in $(seq 1 40); do
+          # Branch alias が別のPRで上書きされている場合は、Cloudflare check の
+          # commit-specific Preview URL を拾う（branch aliasだけに依存しない）。
+          cloudflare_api="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/commits/${expect}/check-runs?per_page=100"
+          for attempt in $(seq 1 80); do
+            if [[ -z "$BASE_URL" && ( "$attempt" -eq 1 || $(( attempt % 4 )) -eq 0 ) ]]; then
+              checks_json="$(curl --silent --show-error --fail --max-time 10 \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "$cloudflare_api" || true)"
+              preview_url="$(jq -r '
+                [.check_runs[]?
+                  | select(.name == "Cloudflare Pages")
+                  | (.output.summary // "")
+                  | try (match("https://[a-z0-9-]+\\.garakuta-lab\\.pages\\.dev").string) catch empty
+                ] | .[0] // empty
+              ' <<< "$checks_json" 2>/dev/null || true)"
+              if [[ -n "$preview_url" ]]; then
+                preview_candidate="${preview_url%/}/ecology/"
+                if ! printf '%s\\n' "${candidates[@]}" | grep -Fxq "$preview_candidate"; then
+                  candidates=("$preview_candidate" "${candidates[@]}")
+                  echo "Cloudflare の Preview URL を探索候補に追加: $preview_candidate"
+                fi
+              fi
+            fi
             for url in "${candidates[@]}"; do
               served="$(curl -s --max-time 20 "${url%/ecology/}/core/build.generated.mjs" || true)"
               if grep -Fq "$expect" <<< "$served"; then
