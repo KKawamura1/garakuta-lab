@@ -394,6 +394,16 @@ assert.equal(defenseStrip.events.find((event) => event.type === "damage_taken"
 assert.ok(statusesFor(defenseStrip, "e_defended").some(({ statusId, stacks }) => statusId === "armor_broken" && stacks === 1),
 "armor break loses half its stacks at round end");
 
+const fortifiedGuard = runSkill(WARHAMMER_A3, {
+  enemies: [{ instanceId: "e_fortified_guard", enemyActorId: "husk", position: "front_center" }],
+  enemySetup: { statusId: "fortified", stacks: 3 },
+  enemyGuard: 5,
+});
+const fortifiedGuardHit = fortifiedGuard.events.find((event) => event.type === "damage_taken"
+  && event.skillId === WARHAMMER_A3);
+assert.equal(fortifiedGuardHit?.values.afterGuard, 159,
+  "堅牢 adds two guard per stack: 170 damage minus (5 base guard + 3×2)");
+
 const disassemble = runSkill(weaponSkillRuntimeId("warhammer:BA3"), {
   passiveSkillIds: [WARHAMMER_BB1],
   enemies: [{ instanceId: "e_fortified", enemyActorId: "husk", position: "front_center" }],
