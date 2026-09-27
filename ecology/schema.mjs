@@ -483,6 +483,12 @@ export const BATTLE_REASONS = freeze([
   "stalemate",
 ]);
 
+// Per-action ceiling from the current skill catalog: 千客万来 reaches 2 base hits +
+// at most 6 setup hits. Per-hit rules get one indexed rule per legal hit because a
+// rule may fire only once in a chain. This is a content/event-model limit, not an
+// animation or fixed-memory limit.
+export const MAX_ACTION_HIT_COUNT = 8;
+
 // §5.3, §5.5, §5.7 — structural limits that content may not exceed.
 export const LIMITS = freeze({
   // R6 §5.4 — PHASE A. 5人編成、2×3、敵も最大5。
@@ -490,6 +496,7 @@ export const LIMITS = freeze({
   maxAlliesInBattle: 5,
   minAlliesInBattle: 1,
   maxEnemiesInBattle: 5,
+  maxActionHitCount: MAX_ACTION_HIT_COUNT,
   minEnemiesInBattle: 1,
   // R18 — 技能の装着数にゲーム上の上限は設けない。ここは配列を壊すような
   // 極端な入力を早期に止めるための構造上限で、画面や loadout の枠数ではない。
