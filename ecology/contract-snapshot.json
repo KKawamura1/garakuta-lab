@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.21",
+ "contentVersion": "ecology-playable-full-0.22",
  "content": {
   "schemaVersion": "ecology-content-8",
-  "contentVersion": "ecology-playable-full-0.21",
+  "contentVersion": "ecology-playable-full-0.22",
   "characters": {
    "warden": {
     "id": "warden",
@@ -12697,6 +12697,108 @@
       }
      },
      {
+      "id": "exposed_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "exposed_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -12981,6 +13083,108 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
        }
       ],
       "costs": [],
@@ -13476,6 +13680,108 @@
       }
      },
      {
+      "id": "staggered_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "staggered_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -13760,6 +14066,108 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
        }
       ],
       "costs": [],
@@ -14101,6 +14509,108 @@
       }
      },
      {
+      "id": "warded_1_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
       "id": "warded_2_0_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
@@ -14385,6 +14895,108 @@
         "key": "hitIndex",
         "op": "eq",
         "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_6_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 6
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_7_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 7
        }
       ],
       "costs": [],
@@ -31403,7 +32015,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -31779,7 +32391,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -32124,7 +32736,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -32354,7 +32966,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -32657,7 +33269,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -32932,7 +33544,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -33138,7 +33750,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -33370,7 +33982,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -33603,7 +34215,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -33809,7 +34421,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -34018,7 +34630,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -34262,7 +34874,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -34522,7 +35134,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -34723,7 +35335,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -34955,7 +35567,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -35208,7 +35820,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -35450,7 +36062,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -35719,7 +36331,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -35959,7 +36571,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -36187,7 +36799,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -36397,7 +37009,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -36582,7 +37194,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -36786,7 +37398,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -37017,7 +37629,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -37245,7 +37857,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -37483,7 +38095,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -37816,7 +38428,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -38275,7 +38887,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -38660,7 +39272,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -39069,7 +39681,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -39509,7 +40121,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -39817,7 +40429,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -40041,7 +40653,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -40256,7 +40868,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -40488,7 +41100,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -40715,7 +41327,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-31",
+      "contentContractVersion": "ecology-content-contract-32",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",
