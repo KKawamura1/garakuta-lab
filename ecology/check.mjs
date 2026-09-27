@@ -21,6 +21,7 @@ const SUITES = [
   "weapon-pack-manifest.test.mjs",
   "weapon-save.test.mjs",
   "weapon-skill-runtime.test.mjs",
+  "weapon-skill-runtime-warden.test.mjs",
   "weapon-skill-prototype.test.mjs",
   "phase-b.test.mjs",
   "campaign-stage.test.mjs",

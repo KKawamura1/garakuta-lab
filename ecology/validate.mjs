@@ -887,8 +887,9 @@ export function validateContentBundle(bundle) {
         }
       }
       if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
-      if (skill.statBonus === undefined && skill.rule === undefined) {
-        bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+      if (skill.rules !== undefined) validateRules(bag, `${path}.rules`, skill.rules, baseCtx);
+      if (skill.statBonus === undefined && skill.rule === undefined && skill.rules === undefined) {
+        bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, rules, or both");
       }
     }
   }

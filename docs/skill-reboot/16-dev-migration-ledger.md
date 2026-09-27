@@ -1,9 +1,15 @@
-# dev移行台帳 — Stage 0〜4（Stage 5開始前）
+# dev移行台帳 — Stage 0〜5初期進捗
 
 更新日: 2026-09-26  
-状態: **Stage 0〜4完了。Stage 5（本編runtime切替）は未着手。** Stage 0の190節同期と初期20導出、Stage 1の敵registry分離、Stage 2の共通解決順・ActionPlan（#299〜#304）、Stage 3のloadout・progression・pack・save契約（#306〜#311）、Stage 4のfixture-first UI（#312 → #313 → #316 → #317 → #318）はdevへ統合済み。Stage 4の最後のPR #318は2026-09-26にマージされた。現行runtime・保存・画面への切替と残り170節の実装は未完了。
+状態: **Stage 0〜4完了。Stage 5は開始済み。** Stage 0の190節同期と初期20導出、Stage 1の敵registry分離、Stage 2の共通解決順・ActionPlan（#299〜#304）、Stage 3のloadout・progression・pack・save契約（#306〜#311）、Stage 4のfixture-first UI（#312 → #313 → #316 → #317 → #318）はdevへ統合済み。Stage 5は #319〜#320 で切替計画とexecutable-node gateを用意し、このPRでゴウの戦槌・格闘具のR / A1と共通engineへの投影を実装する。現行BattleInput・画面・保存は未接続で、初期20のうち残り16節と残り170節の実装は未完了。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
+
+## Stage 5の現在地
+
+- Stage 5a: catalog node keyとengine IDの対応、登録済み節だけを取得可能にするgateを追加。
+- Stage 5b: ゴウの戦槌・格闘具のR / A1を登録し、active/passive定義を既存engine contentへ投影する。命中別のパッシブ複数ruleとイベントテストを追加。
+- 未完了: run stateからBattleInputを作る経路、本編UI、save/reload、preview/replay、本編runtimeの切替。初期20節のうち16節と残り170節も未実装。
 
 ## 基準スナップショット
 

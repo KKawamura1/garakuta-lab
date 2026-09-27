@@ -11,7 +11,7 @@ const freeze = (value) => Object.freeze(value);
 
 // PR #292 — required separate enemy active/reactive/passive registries and
 // enemyCoreActions. Enemy references are validated only against those sections.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-6";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-7";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
