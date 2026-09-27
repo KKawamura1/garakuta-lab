@@ -69,9 +69,7 @@ import {
   ULTIMATE_LESSON_ENCOUNTER_INDEX,
   freshLoadout,
   makePrologueBattle,
-  previewNextBattle,
   prologueEncounter,
-  simulateExpeditionBattle,
   ultimateLessonEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -82,10 +80,17 @@ import {
   normalizeBestiary,
   normalizeProfile,
   recordBestiary,
-  ultimatesFiredBy,
 } from "./progression.mjs";
 import { ULTIMATE_READY_HP_PERCENT, ultimateIdFor } from "./ultimates.mjs";
 import { buildBeats } from "./replay-beats.mjs";
+import {
+  createStage5WeaponProfile,
+  createStage5WeaponRun,
+  selectStage5Primary,
+  toggleStage5WeaponUltimate,
+} from "./weapon-stage5-run.mjs";
+import { forecastWeaponBattle, simulateWeaponBattle } from "./weapon-battle-input.mjs";
+import { weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
 
 let checks = 0;
 const check = (condition, message) => {
@@ -193,19 +198,22 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 // 演出で勝たせない。差は必殺ひとつぶんだけで、engine の同じ経路から両方の結果が出る。
 {
   const goal = ULTIMATE_LESSON.tutorial;
-  check(Boolean(goal?.characterId && goal?.skillId), "教える一手（誰のどの技能か）が content にある");
+  check(Boolean(goal?.characterId && goal?.skillKey), "教える一手（誰のどの武器nodeか）が content にある");
 
-  const lessonProfile = newProfile();
-  const base = newRun(lessonProfile, {
-    runSeed: "ultimate-lesson-test",
-    campaignStageSequence: 1,
+  const weaponProfile = createStage5WeaponProfile("profile-ultimate-lesson-test");
+  const roster = CAMPAIGN_STAGES[1].castCharacterIds;
+  const base = createStage5WeaponRun({
+    runId: "run-ultimate-lesson-test",
+    profile: weaponProfile,
+    characterIds: roster,
+    seed: "ultimate-lesson-test",
   });
-  base.loadout = freshLoadout(base.roster);
-  check(base.roster.includes(goal.characterId),
+  check(roster.includes(goal.characterId),
     "必殺を構える人物（" + goal.characterId + "）は Stage 1 の隊にいる");
-  check((base.loadout.tactics[goal.characterId] ?? [])
-    .concat(base.loadout.reactives[goal.characterId] ?? [])
-    .includes(goal.skillId), "教える技能は最初から装着されている");
+  check(base.skillProgression.unlockedSkillKeysByCharacter[goal.characterId].includes(goal.skillKey),
+    "教える武器nodeは初期20として取得済み");
+  const selected = selectStage5Primary(base, goal.characterId, goal.skillKey);
+  check(selected.ok, "教える武器nodeを主軸へ選べる");
 
   const composed = ultimateLessonEncounter();
   equal(composed.index, ULTIMATE_LESSON_ENCOUNTER_INDEX, "必殺技の一戦は第1戦の席に座る");
@@ -214,20 +222,13 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     check(Boolean(PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId]), enemy.enemyActorId + " は実在の敵");
   }
 
-  const runWith = (armed) => ({
-    ...base,
-    encounterIndex: ULTIMATE_LESSON_ENCOUNTER_INDEX,
-    loadout: armed
-      ? {
-        ...base.loadout,
-        ultimates: { [goal.characterId]: goal.skillId },
-        ultimateArmed: { [goal.characterId]: true },
-      }
-      : base.loadout,
-  });
+  const runWith = (armed) => armed
+    ? toggleStage5WeaponUltimate(selected.run, goal.characterId, goal.skillKey).run
+    : selected.run;
+  const statsFor = (characterId) => characterStats(profile, characterId);
   const outcome = (armed) => {
     const run = runWith(armed);
-    const { result } = simulateExpeditionBattle(run, lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed });
+    const { result } = simulateWeaponBattle({ run, profile: weaponProfile, composed, statsFor });
     const allies = result.actors.filter((actor) => actor.instanceId.startsWith("a_"));
     return {
       run,
@@ -238,7 +239,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       enemiesAlive: result.actors.filter((actor) => actor.side === "enemy" && actor.alive).length,
       // 隊の誰かが「HP70%未満」へ落ちる拍。必殺の共通条件がこの一戦で満たされるか。
       lowestPercent: Math.min(...allies.map((actor) => Math.floor(actor.hp * 100 / actor.maxHp))),
-      fired: ultimatesFiredBy(run, result),
+      fired: result.ultimateFiredBy,
       cutIns: buildBeats(result.events).filter((beat) => beat.kind === "ultimate").length,
     };
   };
@@ -255,13 +256,13 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   // 2. 構えれば勝つ。**差は必殺ひとつぶんだけ**（loadout の他の欄は同じ）。
   equal(on.verdict, "win", "必殺を構えると勝てる");
   equal(on.enemiesAlive, 0, "構えれば敵を倒しきる");
-  equal(on.survivors, base.roster.length, "構えた側では誰も落ちない");
+  equal(on.survivors, roster.length, "構えた側では誰も落ちない");
   check(on.rounds < off.rounds, "構えたほうが早く終わる");
   assert.deepEqual(on.fired, [goal.characterId], "放つのは教えた一人だけ");
   equal(on.cutIns, 1, "必殺の拍（カットイン）が一つだけ出る");
   equal(
-    JSON.stringify({ ...off.run.loadout, ultimates: null, ultimateArmed: null }),
-    JSON.stringify({ ...on.run.loadout, ultimates: null, ultimateArmed: null }),
+    JSON.stringify({ ...off.run, ultimateState: null }),
+    JSON.stringify({ ...on.run, ultimateState: null }),
     "二つの入力の差は、必殺の指定と構えだけ",
   );
 
@@ -269,14 +270,12 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   check(off.lowestPercent < ULTIMATE_READY_HP_PERCENT,
     "構えない側でも、隊は必殺の条件（HP" + ULTIMATE_READY_HP_PERCENT + "%未満）まで削られる");
   const ultimateStart = on.result.events.find((event) => event.type === "action_started"
-    && event.skillId === ultimateIdFor(goal.skillId));
+    && event.skillId === ultimateIdFor(weaponSkillRuntimeId(goal.skillKey)));
   check(Boolean(ultimateStart), "必殺は元の技能と同じ場面（action_started）で出る");
   check((ultimateStart?.round ?? 0) >= 2, "1ラウンド目にいきなりは出ない（追い込まれてから切り返す）");
 
   // 4. 予測が両方を先に出す。**構える／構えないで帯が変わるのが、この一戦の教材。**
-  const forecast = (armed) => previewNextBattle(
-    runWith(armed), lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed },
-  );
+  const forecast = (armed) => forecastWeaponBattle({ run: runWith(armed), profile: weaponProfile, composed, statsFor }).result;
   equal(forecast(false).result, "loss", "予測は、構えない一戦を敗北と出す");
   equal(forecast(true).result, "win", "予測は、構えた一戦を勝利と出す");
   assert.deepEqual(forecast(true).ultimateFiredBy, [goal.characterId],
@@ -285,7 +284,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
   // 5. 決定的であること。同じ入力からは同じ出来事の列が出る。
   assert.deepEqual(
-    simulateExpeditionBattle(runWith(true), lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed }).result.events,
+    simulateWeaponBattle({ run: runWith(true), profile: weaponProfile, composed, statsFor }).result.events,
     on.result.events,
     "必殺技の一戦は決定的",
   );

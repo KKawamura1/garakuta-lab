@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "./content/index.mjs";
-import { prologueEncounter } from "./playable-battles.mjs";
+import { prologueEncounter, ultimateLessonEncounter } from "./playable-battles.mjs";
 import { WEAPON_SKILL_NODES, weaponSkillNodeKey } from "./weapon-loadout.mjs";
 import { WEAPON_SKILL_PACKS, makeWeaponPackManifest } from "./weapon-pack-manifest.mjs";
 import { freshWeaponProfile, freshWeaponRun, serializeWeaponRun, deserializeWeaponRun } from "./weapon-save.mjs";
@@ -13,6 +13,7 @@ import {
 } from "./weapon-skill-runtime-stage5.mjs";
 import { buildWeaponBattleInput, forecastWeaponBattle, simulateWeaponBattle } from "./weapon-battle-input.mjs";
 import { weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
+import { selectStage5Primary, toggleStage5WeaponUltimate } from "./weapon-stage5-run.mjs";
 
 const characterIds = Object.keys(STAGE_5_STARTER_SKILL_KEYS_BY_CHARACTER);
 const profile = freshWeaponProfile({
@@ -97,6 +98,41 @@ const forecast = forecastWeaponBattle({ run, profile, composed: prologueEncounte
 assert.deepEqual(firstLive.battleInput, forecast.battleInput);
 assert.deepEqual(firstLive.result, forecast.result);
 assert.deepEqual(firstLive.result, secondLive.result, "same Run/Encounter gives the same result and event stream");
+
+const lessonPrimary = selectStage5Primary(run, "lancer", "long_spear:R");
+assert.equal(lessonPrimary.ok, true);
+const activeUltimate = toggleStage5WeaponUltimate(lessonPrimary.run, "lancer", "long_spear:R");
+assert.equal(activeUltimate.ok, true);
+assert.equal(activeUltimate.armed, true);
+const reactiveUltimate = toggleStage5WeaponUltimate(activeUltimate.run, "mender", "medical_kit:A1");
+assert.equal(reactiveUltimate.ok, true);
+const lessonBuilt = buildWeaponBattleInput({
+  run: reactiveUltimate.run,
+  profile,
+  composed: ultimateLessonEncounter(),
+});
+const lessonLancer = lessonBuilt.battleInput.allies.find(({ characterId }) => characterId === "lancer");
+assert.deepEqual(lessonLancer.tactics.map(({ activeSkillId }) => activeSkillId), [
+  "ult_weapon.long_spear.r", weaponSkillRuntimeId("long_spear:R"),
+]);
+assert.deepEqual(lessonBuilt.battleInput.allies.find(({ characterId }) => characterId === "mender").reactiveSkillIds, [
+  "ult_weapon.medical_kit.a1", weaponSkillRuntimeId("medical_kit:A1"),
+]);
+assert.ok(lessonBuilt.contentBundle.activeSkills["ult_weapon.long_spear.r"]);
+assert.ok(lessonBuilt.contentBundle.reactiveSkills["ult_weapon.medical_kit.a1"]);
+const lessonPrediction = forecastWeaponBattle({
+  run: reactiveUltimate.run,
+  profile,
+  composed: ultimateLessonEncounter(),
+});
+const lessonResolution = simulateWeaponBattle({
+  run: reactiveUltimate.run,
+  profile,
+  composed: ultimateLessonEncounter(),
+});
+assert.deepEqual(lessonResolution.battleInput, lessonPrediction.battleInput);
+assert.deepEqual(lessonResolution.result, lessonPrediction.result);
+assert.ok(lessonPrediction.result.ultimateFiredBy.includes("lancer"));
 
 const lockedButManifestAvailable = unlockWeaponSkill(
   {

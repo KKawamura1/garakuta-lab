@@ -48,12 +48,14 @@ function defaultFormation(characterIds, supplied = {}) {
 }
 
 export function freshWeaponRunBattleState(characterIds, {
+  partyCharacterIds = characterIds,
   formationByCharacter,
   equipmentByCharacter = {},
   currentHpByCharacter = {},
 } = {}) {
   const state = {
     schemaVersion: WEAPON_RUN_BATTLE_STATE_SCHEMA_VERSION,
+    partyCharacterIds: [...partyCharacterIds],
     formationByCharacter: defaultFormation(characterIds, formationByCharacter),
     equipmentByCharacter: emptyEquipmentByCharacter(characterIds, equipmentByCharacter),
     currentHpByCharacter: Object.fromEntries(characterIds.map((characterId) => [
@@ -76,7 +78,7 @@ export function validateWeaponRunBattleState(state, { characterIds } = {}) {
     addError(errors, "unsupported_version", "schemaVersion", "対応していない戦闘状態形式です。");
   }
   const allowedFields = new Set([
-    "schemaVersion", "formationByCharacter", "equipmentByCharacter", "currentHpByCharacter",
+    "schemaVersion", "partyCharacterIds", "formationByCharacter", "equipmentByCharacter", "currentHpByCharacter",
   ]);
   for (const field of Object.keys(state)) {
     if (!allowedFields.has(field)) addError(errors, "unknown_battle_state_field", field, "この戦闘状態形式にない欄です。");
@@ -86,6 +88,12 @@ export function validateWeaponRunBattleState(state, { characterIds } = {}) {
     || new Set(ids).size !== ids.length) {
     addError(errors, "invalid_character_ids", "characterIds", "人物IDは重複のない文字列配列である必要があります。");
     return { valid: false, errors };
+  }
+  if (!Array.isArray(state.partyCharacterIds) || state.partyCharacterIds.length === 0
+    || state.partyCharacterIds.length > LIMITS.maxAlliesInBattle
+    || state.partyCharacterIds.some((id) => !ids.includes(id))
+    || new Set(state.partyCharacterIds).size !== state.partyCharacterIds.length) {
+    addError(errors, "invalid_party_roster", "partyCharacterIds", "戦闘参加者はRun内の重複しない人物を1〜5人指定してください。");
   }
   for (const field of ["formationByCharacter", "equipmentByCharacter", "currentHpByCharacter"]) {
     if (!isRecord(state[field])) {

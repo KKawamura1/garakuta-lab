@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0〜5初期進捗
 
-更新日: 2026-09-26  
-状態: **Stage 0〜4完了。Stage 5は実装中。** Stage 0〜4はdevへ統合済み。Stage 5では #319〜#323の計画・runtime registry境界、#321のゴウ、#324のツグミ、#325〜#327のナギ、#328〜#329のヒバナ、#330のゲンゾウに続き、#331で初期20節の新Run→BattleInput adapterを実装する。Run v2には編成、装備instanceと耐久、現在HPを保持する。現行本編UI・save接続・切替は未完了。残り170節は本Stageの実行範囲外で、registryの外に保つ。
+更新日: 2026-09-27
+状態: **Stage 0〜4はdevへ統合済み。Stage 5a〜5gはPR #331まで。Stage 5h/5iはローカル実装済み・未コミット。** 5h/5iで本編UI、weapon Run v4の保存・再開、live / forecast / Replayを初期20節のruntimeへ切り替え、アプリの旧player tree / level / pack / runtime依存を外した。390×844ブラウザtrialはこの環境のChromium起動クラッシュで未確認。残り170節は本Stageの実行範囲外で、registryの外に保つ。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -13,8 +13,10 @@
 - Stage 5d: ナギの長槍・大盾のR / A1を登録。長射程攻撃、距離2以上の各hit強化、誘引による単体攻撃の対象変更、防壁受け手への+15を共有engineで検証。
 - Stage 5e: ヒバナの鉤縄・双刃R / A1を登録。鉤縄の最短敵選択・1マス引きと塞がれた移動先での全hit +15、双刃の2hit攻撃と武器不問の全hit +10を共有engineで検証。
 - Stage 5f: ゲンゾウの号旗・重弩R / A1を登録。号令の最小AP・準備中優先、号旗主軸のラウンド制限、声を通すの対象限定、装填射の準備後ダメージと武器不問+20を共有engineで検証。
-- Stage 5g: 5人のengine actor IDと4節ずつの初期取得を対応づけるregistry aggregatorを追加。Run v2のformation・装備instance/耐久・現在HPと、Manifest・取得済みnode・primary/reactive loadoutからBattleInputを作り、content / input validationを通す。初期20以外の取得済みnodeとtarget優先列はBattleInput境界で拒否し、本番・forecastを同じsimulateBattle経路へ揃えた。
-- 未完了: 本編UI、save/reload接続、live Runへのpreview/replay統合、本編runtimeの切替と旧player経路の撤去。初期20節以外は取得操作からも実装registryで拒否する。
+- Stage 5g: 5人のengine actor IDと4節ずつの初期取得を対応づけるregistry aggregatorを追加。Run v2のformation・装備instance/耐久・現在HPと、Manifest・取得済みnode・primary/reactive loadoutからBattleInputを作り、content / input validationを通す。初期20以外の取得済みnodeとtarget優先列はBattleInput境界で拒否し、本番・forecastを同じsimulateBattle経路へ揃えた。PR #331まで。
+- Stage 5h: 本編Runへ初期取得・取得・予約・主軸・反応優先列と長押し必殺を接続。weapon Profile / Run v4のsave / reloadを現行storageへ追加。ローカル実装済み。
+- Stage 5i: 新規Run、live / forecast、Replay、再開をweapon Runへ切替。初期20以外は画面・取得・BattleInputで拒否し、アプリから旧player tree / level / pack / runtimeを外した。ローカル実装済み。
+- 未確認: 390×844のブラウザtrial。ローカルChromiumは起動直後にSIGSEGV、Cloud Chromeはlocalhost接続をERR_BLOCKED_BY_CLIENTで拒否した。コード上の試行はStage 5 UIへ更新済み。
 
 ## 基準スナップショット
 
@@ -137,8 +139,8 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 4a〜4dのプレビューは `/ecology/weapon-skill-prototype.html`。現行 `/ecology/` の起動経路を変えず、game stateも書き換えない。構成・予約デモはページ内だけで動き、予測結果は同じengine経路に接続するまで表示しない。各画面変更PRでモバイルbranch preview確認を記録する。
 
 
-## 次工程: Stage 5 — 本編runtime切替
+## Stage 5切替の現在状態
 
-Stage 4の #312 → #313 → #316 → #317 → #318 はすべてdevへ統合済み。これらはfixture-firstの独立UIであり、取得・保存・戦闘には未接続である。Stage 5では、Stage 3で用意した新save / progression / loadout / pack契約とStage 4の表示を本編の同一戦闘経路へ接続する。
+Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stage 5a〜5gはPR #331までで、5h/5iの実装はこのローカル作業にある。初期20節は本編の取得・装備・BattleInputに接続し、未実装170節は取得・表示・戦闘入力から閉じている。
 
-切替の範囲、初期20節の固定、実装PRの順序、旧player runtimeを撤去する条件は [Stage 5切替計画](17-stage5-runtime-cutover.md) に記録する。最初の実装PRは、実装済み技能だけを取得・装備・戦闘入力へ通すruntime registry境界と検査から始める。初期20節すべての実挙動を同じsimulation / preview / replay経路で検証できるまで、現在の本編runtimeを切り替えない。
+変更内容・順序・旧player経路の撤去条件・環境上未確認の試験は[Stage 5切替計画](17-stage5-runtime-cutover.md)を参照。次の検証可能な残作業は、利用可能なChromium環境で390×844のbrowser trialを通すこと。

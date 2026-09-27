@@ -1402,6 +1402,54 @@ button.party-cell { cursor: pointer; }
 .skill-node p { min-height: 48px; margin: 5px 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
 .skill-node > small { display: block; min-height: 27px; color: var(--blue); font-size: 9px; line-height: 1.35; }
 .node-action { margin-top: 6px; }
+.stage5-loadout-summary { display: grid; gap: 6px; margin: 12px 0 6px; }
+.stage5-loadout-summary > span { display: flex; justify-content: space-between; gap: 10px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(9,15,16,.22); }
+.stage5-loadout-summary small, .stage5-member-line span { color: var(--muted); font-size: 10px; }
+.stage5-loadout-summary b { text-align: right; font-size: 11px; }
+.stage5-member-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.stage5-reservation { margin: 7px 0 0; color: var(--blue); font-size: 11px; }
+.stage5-target-note { margin: 8px 0 0; color: var(--muted); font-size: 10px; }
+.stage5-skill-catalog > h3, .stage5-priority-list > h3 { margin: 0 0 8px; font-size: 13px; }
+.stage5-weapon-group { margin: 7px 0; border: 1px solid var(--line); border-radius: 10px; background: rgba(9,15,16,.18); }
+.stage5-weapon-group > summary { display: flex; justify-content: space-between; padding: 10px; color: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
+.stage5-weapon-group > summary small { color: var(--muted); font-weight: 500; }
+.stage5-skill-card { margin: 0 7px 7px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: #172124; }
+.stage5-skill-card.acquired { border-color: rgba(142,184,137,.65); }
+.stage5-skill-card.reserved, .stage5-skill-card.selected { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(229,184,105,.24); }
+.stage5-skill-select { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); text-align: left; }
+.stage5-skill-select b { align-self: center; font-size: 12px; }
+.stage5-skill-select small { grid-column: 1 / -1; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.stage5-skill-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.stage5-skill-select[data-longpress] { touch-action: pan-y; user-select: none; }
+.stage5-skill-select.pressing { position: relative; }
+.stage5-skill-select.pressing::after {
+  position: absolute; z-index: 1; inset: auto auto -5px 0; width: 0; height: 3px; border-radius: 4px;
+  background: var(--gold); content: ""; animation: stage5-long-press var(--long-press-ms, 450ms) linear forwards;
+}
+.stage5-ultimate-seal { flex: 0 0 auto; color: var(--gold); font-size: 15px; line-height: 1; opacity: .54; }
+.stage5-ultimate-seal.armed, .stage5-ultimate-seal.firing { opacity: 1; text-shadow: 0 0 8px rgba(229,184,105,.75); }
+.stage5-ultimate-seal.spent { color: var(--muted); opacity: .55; text-shadow: none; }
+.stage5-skill-card.ultimate-armed { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229,184,105,.3); }
+.stage5-skill-card.ultimate-firing { animation: ultimate-card-pulse 1.6s ease-in-out infinite; }
+.stage5-skill-card.ultimate-spent { border-color: rgba(148,158,151,.45); }
+.stage5-ultimate-prompt { color: var(--gold) !important; }
+.stage5-ultimate-traits { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: 4px; }
+.stage5-ultimate-traits i { padding: 2px 5px; border: 1px solid rgba(229,184,105,.4); border-radius: 20px; color: var(--gold); font-size: 9px; font-style: normal; }
+.stage5-ultimate-traits .stage5-ultimate-status { color: var(--muted); border-color: var(--line); }
+@keyframes stage5-long-press { to { width: 100%; } }
+@keyframes ultimate-card-pulse { 50% { box-shadow: inset 3px 0 0 var(--gold), 0 0 14px rgba(229,184,105,.26); } }
+.stage5-kind { align-self: center; padding: 2px 6px; border-radius: 99px; color: #151b19; font-size: 9px; font-weight: 800; }
+.stage5-kind.kind-active { background: var(--gold); }
+.stage5-kind.kind-reactive { background: var(--violet); }
+.stage5-kind.kind-passive { background: var(--good); }
+.stage5-kind.kind-target { background: var(--blue); }
+.stage5-skill-controls { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.stage5-skill-controls .tiny-button { min-height: 34px; }
+.stage5-state { color: var(--good); font-size: 10px; }
+.stage5-prerequisite { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+.stage5-priority-row { display: grid; grid-template-columns: 24px 1fr auto auto; align-items: center; gap: 6px; min-height: 40px; border-top: 1px solid var(--line); }
+.stage5-priority-row > span { color: var(--muted); font-size: 10px; }
+.stage5-priority-row > b { font-size: 11px; }
 .locked-reason { color: var(--muted); font-size: 10px; }
 .gear-grid, .reward-grid {
   display: grid;
@@ -1821,10 +1869,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   text-overflow: ellipsis;
   text-shadow: 0 1px 3px rgba(6, 11, 12, .95);
 }
-/* 払える点と必殺の印は名前の反対側へ寄せる（予測セルと同じ並び）。 */
+/* 払える点は名前の反対側へ寄せる（予測セルと同じ並び）。 */
 .character-panel-head .party-res { margin-left: auto; }
-.character-panel-head .party-ultimate { margin-left: auto; }
-.character-panel-head .party-ultimate + .party-res { margin-left: 0; }
 .character-panel-hp { height: 13px; }
 .character-panel .character-stats { margin-top: 2px; padding-top: 6px; }
 /* その画面でしか要らない読み値。**枠の外へはみ出さず、折り返して縦に伸びる。** */
@@ -2974,7 +3020,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* 拍の種類で左の帯の色を変える。**いま何の拍なのか**は、読む前に色で分かる。 */
 .battle-beat[data-kind="declare"] { --beat-accent: var(--gold); }
 .battle-beat[data-kind="impact"] { --beat-accent: var(--gold); }
-.battle-beat[data-kind="ultimate"] { --beat-accent: #ffd98a; }
 .battle-beat[data-kind="defeat"] { --beat-accent: var(--bad); }
 .battle-beat[data-kind="opening"],
 .battle-beat[data-kind="round"],
@@ -3053,156 +3098,46 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .debug-log .event.current { color: var(--gold); }
 .debug-log .event.from-rule .event-type { color: var(--violet); }
 .event-type { margin-left: auto; color: #6d7d77; font: 9px/1.4 ui-monospace, monospace; }
-/* ---------------------------------------------------------------- 必殺のカットイン（issue #242）
- *
- * **必殺は一人一遠征に一度きり**なので、ここだけは盤面を止めて一拍ぶん奪う。
- * 拍そのものは `replay-beats.mjs` が組んでいる（`kind: "ultimate"`）。この節は
- * その一拍の絵だけを持ち、**速さや順序には触らない**（飛ばす手段は速度変更と一手送り）。
- */
+/* Battle overlays anchor to the field. */
 .battle-field { position: relative; }
 .battle-field.ultimate-hold .battle-side,
-.battle-field.ultimate-hold .battle-beat {
-  /* 盤面をもう一段深く沈める。**帯だけが前に出ている**ことを、明るさと彩度の
-     両方で言う（枠線の色を変えると、行動中・被弾の枠表示と混ざる）。 */
-  filter: saturate(.32) brightness(.46);
-  transition: filter .2s ease;
-}
-.battle-field.ultimate-hold .battle-side { transform: scale(.985); transition: filter .2s ease, transform .2s ease; }
-.ultimate-cutin {
-  position: absolute;
-  z-index: 3;
-  display: none;
-  place-items: center;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 13px;
-  pointer-events: none;
-}
+.battle-field.ultimate-hold .battle-beat { filter: saturate(.35) brightness(.46); transition: filter .2s ease; }
+.ultimate-cutin { position: absolute; z-index: 5; inset: 23% 4% auto; display: none; min-height: 126px; place-items: center; overflow: hidden; border: 1px solid rgba(229,184,105,.62); border-radius: 14px; background: linear-gradient(110deg, rgba(19,22,21,.96), rgba(53,40,24,.96) 55%, rgba(17,23,23,.97)); box-shadow: 0 16px 48px rgba(0,0,0,.62), 0 0 32px rgba(229,184,105,.2); pointer-events: none; }
 .ultimate-cutin.show { display: grid; }
-/* 速度線。斜めの細い線が帯より速く走り抜ける。 */
-.cutin-lines {
-  position: absolute;
-  inset: -30% -20%;
-  background: repeating-linear-gradient(100deg,
-    rgba(255, 243, 214, 0) 0 9px,
-    rgba(255, 243, 214, .16) 9px 10px,
-    rgba(255, 243, 214, 0) 10px 21px);
-  opacity: 0;
-}
-/* 斬線。帯の上を一度だけ横切る。 */
-.cutin-slash {
-  position: absolute;
-  inset: -60% -10%;
-  background: linear-gradient(102deg,
-    rgba(255, 255, 255, 0) 44%, rgba(255, 250, 235, .95) 50%, rgba(255, 255, 255, 0) 56%);
-  opacity: 0;
-}
-.cutin-sheet {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  /* 斜めに走る帯。**盤面の長方形と角度を変える**ので、一枚だけで「別の層」に見える。 */
-  background:
-    linear-gradient(100deg, rgba(14, 20, 22, 0) 0%, rgba(14, 20, 22, .94) 7%,
-      rgba(44, 34, 19, .98) 50%, rgba(14, 20, 22, .94) 93%, rgba(14, 20, 22, 0) 100%);
-  border-block: 1px solid rgba(229, 184, 105, .55);
-  box-shadow: 0 0 26px -6px rgba(229, 184, 105, .55);
-}
-/* 閃光。中心から一度だけ開いて消える。 */
-.cutin-burst {
-  position: absolute;
-  inset: -40% -10%;
-  background: radial-gradient(closest-side, rgba(255, 243, 214, .5), rgba(255, 243, 214, 0) 70%);
-  opacity: 0;
-}
-.cutin-figure {
-  position: relative;
-  flex: 0 0 auto;
-  width: 58px;
-  height: 58px;
-  overflow: hidden;
-  border: 1px solid var(--accent, var(--gold));
-  border-radius: 50%;
-  background: rgba(9, 13, 14, .85);
-  box-shadow: 0 0 14px -4px var(--accent, var(--gold));
-}
-.cutin-figure .portrait-svg { width: 100%; height: auto; }
-.cutin-copy { display: grid; gap: 2px; min-width: 0; }
-.cutin-who { color: var(--accent, var(--gold)); font-size: 10px; letter-spacing: .18em; }
-.cutin-skill {
-  color: #fff6e0;
-  font-size: 17px;
-  letter-spacing: .04em;
-  line-height: 1.2;
-  text-shadow: 0 0 12px rgba(229, 184, 105, .85), 0 1px 0 #1b1405;
-}
+.cutin-sheet { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 126px; padding: 15px; overflow: hidden; }
+.cutin-burst, .cutin-lines, .cutin-slash { position: absolute; inset: 0; pointer-events: none; }
+.cutin-burst { background: radial-gradient(circle at 28% 48%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 45%); }
+.cutin-lines { opacity: .2; background: repeating-linear-gradient(164deg, transparent 0 13px, var(--gold) 14px 15px, transparent 16px 26px); transform: translateX(-100%); }
+.cutin-slash { inset: -50% auto -50% 42%; width: 3px; background: linear-gradient(transparent, #fff1bb, var(--gold), transparent); transform: rotate(20deg) scaleY(.3); opacity: 0; }
+.cutin-figure { position: relative; z-index: 1; flex: 0 0 84px; width: 84px; height: 96px; overflow: hidden; border: 1px solid var(--accent); border-radius: 10px; background: rgba(0,0,0,.3); }
+.cutin-figure .portrait-svg { width: 100%; height: 100%; }
+.cutin-copy { position: relative; z-index: 1; display: grid; gap: 6px; min-width: 0; }
+.cutin-who { color: var(--accent); font-size: 10px; letter-spacing: .14em; }
+.cutin-skill { color: #fff4cf; font-size: clamp(15px, 4.4vw, 22px); text-shadow: 0 2px 8px rgba(0,0,0,.7); }
 .cutin-traits { display: flex; flex-wrap: wrap; gap: 4px; }
-.cutin-traits span {
-  padding: 1px 6px;
-  border: 1px solid rgba(229, 184, 105, .7);
-  border-radius: 999px;
-  color: var(--gold);
-  font-size: 9px;
-}
-/* 動きは「来た一拍」だけ。`.run` は画面側が拍の頭で付け直す。 */
-.ultimate-cutin.run .cutin-sheet { animation: cutin-sheet .34s cubic-bezier(.17, .89, .25, 1) both; }
-.ultimate-cutin.run .cutin-burst { animation: cutin-burst .62s ease-out both; }
-.ultimate-cutin.run .cutin-figure { animation: cutin-figure .46s cubic-bezier(.17, .89, .25, 1) both; }
-.ultimate-cutin.run .cutin-skill { animation: cutin-skill .4s ease-out .08s both; }
-.ultimate-cutin.run .cutin-lines { animation: cutin-lines .56s cubic-bezier(.1, .8, .3, 1) both; }
-.ultimate-cutin.run .cutin-slash { animation: cutin-slash .46s cubic-bezier(.2, .85, .25, 1) .1s both; }
-.ultimate-cutin.run .cutin-who { animation: cutin-who .44s ease-out .04s both; }
-@keyframes cutin-sheet {
-  0% { opacity: 0; transform: translateX(-14%) skewX(-7deg); }
-  100% { opacity: 1; transform: translateX(0) skewX(0); }
-}
-@keyframes cutin-burst {
-  0% { opacity: 0; transform: scale(.5); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.35); }
-}
-@keyframes cutin-figure {
-  0% { opacity: 0; transform: translateX(-18px) scale(.82); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
-}
-@keyframes cutin-skill {
-  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
-  100% { opacity: 1; clip-path: inset(0 0 0 0); }
-}
-@keyframes cutin-lines {
-  0% { opacity: 0; transform: translateX(-26%); }
-  30% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(26%); }
-}
-@keyframes cutin-slash {
-  0% { opacity: 0; transform: translateX(-58%) skewX(-10deg); }
-  26% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(58%) skewX(-10deg); }
-}
-@keyframes cutin-who {
-  0% { opacity: 0; letter-spacing: .52em; }
-  100% { opacity: 1; letter-spacing: .18em; }
-}
+.cutin-traits span { padding: 2px 6px; border: 1px solid rgba(229,184,105,.45); border-radius: 20px; color: var(--gold); font-size: 9px; }
+.ultimate-cutin.run .cutin-sheet { animation: cutin-stage5-enter .32s cubic-bezier(.17,.89,.25,1) both; }
+.ultimate-cutin.run .cutin-lines { animation: cutin-stage5-lines .58s ease-out both; }
+.ultimate-cutin.run .cutin-slash { animation: cutin-stage5-slash .4s ease-out .08s both; }
+@keyframes cutin-stage5-enter { from { opacity: 0; transform: translateX(-9%) skewX(-5deg); } to { opacity: 1; transform: none; } }
+@keyframes cutin-stage5-lines { to { transform: translateX(100%); opacity: 0; } }
+@keyframes cutin-stage5-slash { 35% { opacity: .9; transform: rotate(20deg) scaleY(1); } to { opacity: 0; transform: translateX(120px) rotate(20deg) scaleY(1); } }
+.party-ultimate { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; color: var(--gold); font-size: 11px; line-height: 1; }
+.party-ultimate.ready { opacity: .42; }
+.party-ultimate.armed { opacity: .95; text-shadow: 0 0 6px rgba(229,184,105,.6); }
+.party-ultimate.firing { animation: ultimate-card-pulse 1.5s ease-in-out infinite; }
+.party-ultimate.spent { color: var(--muted); opacity: .55; }
+.tutorial-forecast { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; }
+.tutorial-forecast b { color: var(--gold); font-size: 12px; }
+.ultimate-tutorial .tutorial-steps { margin-bottom: 2px; }
+@media (max-width: 380px) { .cutin-figure { flex-basis: 62px; width: 62px; height: 76px; } .ultimate-cutin { inset-inline: 2%; } }
 @media (prefers-reduced-motion: reduce) {
-  /* **カットインそのものは残す**（必殺が出たことが読めなくなる）。動きだけ止める。 */
-  .ultimate-cutin.run .cutin-sheet,
-  .ultimate-cutin.run .cutin-burst,
-  .ultimate-cutin.run .cutin-figure,
-  .ultimate-cutin.run .cutin-skill,
-  .ultimate-cutin.run .cutin-lines,
-  .ultimate-cutin.run .cutin-slash,
-  .ultimate-cutin.run .cutin-who { animation: none; }
-  .battle-field.ultimate-hold .battle-side,
-  .battle-field.ultimate-hold .battle-beat { transition: none; }
-  .battle-field.ultimate-hold .battle-side { transform: none; transition: none; }
+  .ultimate-cutin.run .cutin-sheet, .ultimate-cutin.run .cutin-lines, .ultimate-cutin.run .cutin-slash,
+  .stage5-skill-card.ultimate-firing, .party-ultimate.firing { animation: none; }
+  .battle-field.ultimate-hold .battle-side, .battle-field.ultimate-hold .battle-beat { transition: none; }
 }
 
 @media (max-width: 380px) {
-  .cutin-figure { width: 48px; height: 48px; }
-  .cutin-skill { font-size: 15px; }
   .battle-row { grid-template-columns: 22px 1fr; }
   .battle-units { gap: 4px; }
   .unit { padding: 5px 4px 6px; }
@@ -3212,11 +3147,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .float.damage.crush { font-size: 22px; }
 }
 /* **動きだけを止める。**色・数字・印は動かない側にも全部残るので、何が起きたかは
-   止めても読める（帯とカットインは出したまま、走らせるのをやめる）。 */
+   止めても読める。 */
 @media (prefers-reduced-motion: reduce) {
   .unit, .unit-fill, .unit-recovered, .unit-recoverable, .unit-unrecoverable, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
   .battle-field, .battle-field::before, .battle-beat.pulse::after, .unit-fx > i { animation: none !important; }
-  .battle-field.ultimate-hold .battle-side { transform: none; }
   .unit.is-acting { transform: none; }
   .unit.is-aimed .fx-reticle { opacity: .75; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 16px)); }
@@ -4349,7 +4283,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: transparent;
   color: var(--muted);
 }
-/* 手取りチュートリアル。**札の見た目は隊列・技能・補給・必殺技で一つ**にする
+/* 手取りチュートリアル。**札の見た目は隊列・技能・補給で一つ**にする
    （組み立ても app.js の `tutorialNoteCard` 一箇所から出す）。光る先と同じ段の
    説明だけを置き、操作の探し方を画面ごとに変えない。
 
@@ -4448,25 +4382,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   color: var(--good);
   font-size: 10px;
 }
-
-/* issue #240 — 必殺技チュートリアル。**札の作りは他の手取りチュートリアルと同じ**にする
-   （手取りの札が二通りの見た目を持つと、同じ種類の場面だと読めなくなる）。
-   違うのは最後の一行だけで、そこには「いまの予測」を出す——構える前と後で帯が変わる
-   ことが、この一戦の教材そのものである。 */
-.tutorial-forecast {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  margin-top: 9px;
-  padding: 3px 9px;
-  border: 1px solid var(--gold);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 10px;
-}
-.tutorial-forecast b { color: var(--gold); font-size: 12px; }
-/* 必殺技だけは、段の一覧の下にもう一行（予測の帯）が付く。 */
-.ultimate-tutorial .tutorial-steps { margin-bottom: 2px; }
 
 /* 光る先。**釦でもセルでも同じ光**にする（押す場所は一種類だと読めるように）。 */
 .tutorial-spot {
@@ -5161,196 +5076,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .level-step b { color: var(--violet); }
 .empty-slot { color: var(--muted); font-size: 12px; }
 
-/* ---------------------------------------------------------------- 必殺技（issue #238）
- *
- * **印は「払うもの」なので丸ではなく菱形（✹）で出す。**丸は行動点・反応点・
- * 代償HPに譲ってある（issue #177）ので、同じ形を別の意味へ使わない。
- *
- * 作者指摘 2026-09-13 — 隊全体の合計（菱形の並び）はやめた。**印は人物ごと**に、
- * 盤面のセルの中で四段で出す（`.party-ultimate`、この節の下）。
- */
-.ultimate-card .context-line { color: var(--muted); font-size: 11px; }
-.ultimate-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 5px 0;
-  border-top: 1px solid rgba(58, 77, 79, .55);
-}
-.ultimate-row.selected { box-shadow: inset 2px 0 0 var(--gold); }
-.ultimate-pick {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 7px;
-  padding: 2px 4px;
-  border: 0;
-  background: none;
-  color: inherit;
-  text-align: left;
-}
-.ultimate-pick .ultimate-mark { color: var(--gold); opacity: .28; font-size: 13px; }
-.ultimate-row.selected .ultimate-pick .ultimate-mark { opacity: 1; }
-.ultimate-copy { display: flex; flex-direction: column; gap: 3px; }
-.ultimate-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.ultimate-trait {
-  padding: 1px 5px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 10px;
-}
-.ultimate-row.selected .ultimate-trait { border-color: var(--gold); color: var(--gold); }
-/* 盤面のセル。**どの一戦に印を賭けているかは盤面から読める。** */
-.party-ultimate { margin-left: 4px; color: var(--gold); font-size: 11px; }
-/* 帯のなかの必殺。系統の色は残し、印と枠だけを立てる。 */
-.turn-cell.ultimate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
-/* 装着行のなかの必殺。**枠を足さず、行そのものに宿らせる。**
- *
- * 作者要望 2026-09-12「必殺技を使おうとしている時はもっとかっこよくスキルを光らせて」。
- * 三段に分ける。**段の差がそのまま状態の差**なので、文字を足さずに読める。
- *
- *   .ultimate         … 指定だけ（古い保存から来る。長押しすれば構えに上がる）
- *   .ultimate.armed   … この一戦で構えている。金が脈打つ
- *   .ultimate.firing  … 予測が「本当に出る」と言っている。光が走る
- *   .ultimate.spent   … この遠征では放ち終えた。脈を止めて沈める
- */
-.installed-row.ultimate {
-  position: relative;
-  border-radius: 0 10px 10px 0;
-  box-shadow: inset 2px 0 0 var(--gold);
-}
-.installed-row.ultimate.armed {
-  background: linear-gradient(90deg, rgba(229, 184, 105, .22), rgba(229, 184, 105, .07) 58%, transparent);
-  animation: ultimate-armed 2.4s ease-in-out infinite;
-}
-/* **印は行ごと金に寄せる。**変換の札（全体へ・量3倍…）が普段の薄字のままだと、
-   構えた行だけが持つ情報が、構えていない行と同じ重さで並ぶ。 */
-.installed-row.ultimate.armed .ultimate-trait { border-color: rgba(229, 184, 105, .8); color: var(--gold); }
-.installed-row.ultimate.armed .installed-copy > b { color: #fff3dc; }
-.installed-row.ultimate.firing .installed-copy > b { text-shadow: 0 0 11px rgba(229, 184, 105, .6); }
-.installed-row.ultimate.spent .ultimate-trait { border-color: var(--line); color: var(--muted); }
-@keyframes ultimate-armed {
-  0%, 100% {
-    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .26),
-      0 0 10px -3px rgba(229, 184, 105, .22);
-  }
-  50% {
-    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .58),
-      0 0 18px -3px rgba(229, 184, 105, .55);
-  }
-}
-/* 走る光。**出ると分かっている一戦だけ**に付けるので、光が「予測」を意味する。 */
-.installed-row.ultimate.firing { overflow: hidden; }
-.installed-row.ultimate.firing::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(104deg, transparent 38%, rgba(255, 240, 203, .20) 50%, transparent 62%);
-  animation: ultimate-sheen 3.2s ease-in-out infinite;
-}
-@keyframes ultimate-sheen {
-  0%, 62%, 100% { transform: translateX(-125%); }
-  92% { transform: translateX(125%); }
-}
-.installed-row.ultimate.spent { animation: none; background: none; }
-/* ✹ は操作ではなく状態の印。**押す場所は行そのもの一つだけ**にした（長押し）。 */
-.ultimate-seal {
-  flex: 0 0 auto;
-  width: 22px;
-  color: var(--gold);
-  font-size: 14px;
-  line-height: 1;
-  text-align: center;
-  opacity: .42;
-}
-.installed-row.ultimate.armed .ultimate-seal { font-size: 16px; }
-.installed-row.ultimate.armed .ultimate-seal {
-  opacity: 1;
-  text-shadow: 0 0 7px rgba(229, 184, 105, .65);
-  animation: ultimate-seal-beat 2.4s ease-in-out infinite;
-}
-.installed-row.ultimate.firing .ultimate-seal { animation-duration: 1.3s; }
-.installed-row.ultimate.spent .ultimate-seal { opacity: .28; text-shadow: none; animation: none; }
-@keyframes ultimate-seal-beat {
-  0%, 100% { transform: scale(1); text-shadow: 0 0 6px rgba(229, 184, 105, .45); }
-  50% { transform: scale(1.22); text-shadow: 0 0 13px rgba(229, 184, 105, .9); }
-}
-.installed-row[data-longpress],
-.installed-row[data-longpress] * {
-  touch-action: pan-y;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-user-drag: none;
-}
-/* 長押しの手応え（作者要望 2026-09-13）。**押している時間そのものを、左から右へ
-   伸びる光の帯で出す。**右端まで届いた拍が、必殺がセットされる拍である。指を離すか
-   スクロールすると帯ごと消える（＝取り消し）。
-   帯の長さは JS が `--long-press-ms` で渡す（長押しの判定と同じ値）。 */
-.installed-row[data-longpress] { position: relative; overflow: hidden; }
-.installed-row[data-longpress].pressing::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  /* 二枚重ね。**面**（左から満ちる光）と、行の下端を走る**線**（どこまで来たか）。
-     どちらも同じ clip-path で切るので、線の先端が光の右端と必ず一致する。 */
-  background:
-    linear-gradient(90deg,
-      rgba(229, 184, 105, .10) 0%, rgba(229, 184, 105, .42) 86%,
-      rgba(255, 243, 214, .95) 100%),
-    linear-gradient(var(--gold), var(--gold)) bottom left / 100% 2px no-repeat;
-  box-shadow: 0 0 16px -2px rgba(229, 184, 105, .55);
-  clip-path: inset(0 100% 0 0);
-  animation: longpress-fill var(--long-press-ms, 450ms) linear forwards;
-  pointer-events: none;
-}
-/* 既に構えている行の長押しは**解く**操作なので、帯の色も変える。 */
-.installed-row[data-longpress].ultimate.armed.pressing::before {
-  background:
-    linear-gradient(90deg,
-      rgba(158, 173, 167, .06) 0%, rgba(158, 173, 167, .30) 86%,
-      rgba(237, 243, 237, .8) 100%),
-    linear-gradient(var(--muted), var(--muted)) bottom left / 100% 2px no-repeat;
-  box-shadow: none;
-}
-/* 帯の下に行の中身が隠れないようにする（帯は背景であって、覆いではない）。 */
-.installed-row[data-longpress] > * { position: relative; z-index: 1; }
-@keyframes longpress-fill {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-.ultimate-trait.idle { border-style: dashed; opacity: .7; }
-/* 盤面のセルの ✹（作者指摘 2026-09-13）。**四段で、誰が残していて誰が使い終えたかを出す。**
- *
- *   ready  … 薄い金の ✹ … まだ残っている（構えていない）
- *   armed  … 金の ✹    … 構えているが、この一戦では条件が揃わない
- *   firing … 光る ✹    … この一戦で出る（予測が言っている）
- *   spent  … 灰の ✧    … この遠征ではもう放った。補充されない
- */
-.party-ultimate.ready { opacity: .36; }
-.party-ultimate.armed { opacity: 1; text-shadow: 0 0 6px rgba(229, 184, 105, .55); }
-.party-ultimate.firing {
-  opacity: 1;
-  text-shadow: 0 0 8px rgba(229, 184, 105, .7);
-  animation: ultimate-seal-beat 1.6s ease-in-out infinite;
-}
-.party-ultimate.spent { color: var(--muted); opacity: .55; }
-@media (prefers-reduced-motion: reduce) {
-  /* **長押しの帯だけは止めない。**あれは装飾ではなく、押している時間の目盛りである
-     （止めると「いつ離してよいか」が画面から消える）。 */
-  .installed-row.ultimate.armed,
-  .installed-row.ultimate.armed .ultimate-seal,
-  .party-ultimate.firing { animation: none; }
-  .installed-row.ultimate.firing::after { animation: none; opacity: .35; transform: none; }
-  .installed-row.ultimate.armed {
-    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .5);
-  }
-}
-
 /* ============================================================ 装備の候補（PR #255）
  *
  * 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
@@ -5639,7 +5364,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
  * 色は既存の語彙のまま使う。
  *   金   得た・確定した・選んだ        青   先見機と装備（情報の側）
  *   緑   癒えた・入れた                赤   拒まれた・減った
- *   菫   必殺
  *
  * 守ること。
  *   - **反応が出なくても、色・記号・数・ラベルで同じことが読める。**
@@ -5816,13 +5540,6 @@ button.party-cell:active:not(:disabled),
 }
 .fx-heal { animation: fx-heal var(--fx-accent) var(--fx-ease); }
 
-/* ---- 必殺を構えた／降ろした。菫は戦闘のカットインと同じ色。 */
-@keyframes fx-ultimate {
-  0% { filter: brightness(1.75); box-shadow: 0 0 0 0 rgba(192, 167, 229, .7); }
-  40% { filter: brightness(1.2); box-shadow: 0 0 0 9px rgba(192, 167, 229, .18); }
-  100% { filter: none; box-shadow: 0 0 0 0 rgba(192, 167, 229, 0); }
-}
-.fx-ultimate { animation: fx-ultimate var(--fx-accent) var(--fx-ease); }
 
 /* ---- 引き直した。**候補が配り直される。**取った品は画面ごと変わるので、
    ここは引き直しだけが持つ反応である。 */
@@ -6017,7 +5734,6 @@ button.party-cell:active:not(:disabled),
   .fx-equip,
   .fx-unequip,
   .fx-heal,
-  .fx-ultimate,
   .fx-reroll,
   .fx-up,
   .fx-down,

@@ -477,54 +477,46 @@ try {
   await page.waitForTimeout(200);
   note("手動セーブからCampへ戻れる", await page.locator(".camp-top .forecast-bar").count() === 1);
 
-  // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
-  // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
+  // Stage 5 h — 390px 幅で人物ごとの武器技能一覧を確認する。
+  // 旧skill tree / level / pack UIはすでに切り替え済みなので、今の武器Run操作と
+  // 初期20節の表示境界、そしてStage 0で必殺を見せないことを実際のDOMで確かめる。
   await page.locator('nav.tabs [data-tab="skills"]').click();
-  const skillHelp = page.locator('details[data-help="skill-rules"]');
+  const skillHelp = page.locator('details[data-help="stage5-skill-rules"]');
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
-  note("入口の技能が出ている", /踏み込み斬り/.test(skillText) && /狙い撃ち/.test(skillText));
-
-  // issue #238 — **Stage 0 に必殺技は出さない。**武器と技の違い・隊列・応急手当を
-  // 覚える回に、もう一つの仕組みを載せない。長押しの入口も、残り回数も、説明も出ない。
-  note("Stage 0 では必殺技の長押しが無い",
-    await page.locator(".installed-row[data-longpress]").count() === 0);
-  note("Stage 0 では必殺技の残りを出さない",
-    await page.locator(".camp-top .party-ultimate").count() === 0);
-  note("Stage 0 では必殺技の説明も出さない",
-    await page.locator('details[data-help="ultimate-rules"]').count() === 0
+  const stage5Nodes = page.locator(".stage5-skill-card");
+  note("初期20節だけが技能一覧に出る", await stage5Nodes.count() === 20,
+    `節 ${await stage5Nodes.count()}`);
+  note("Stage 5の主軸・反応・常時の区分が出る",
+    await page.locator(".stage5-kind.kind-active").count() > 0
+      && await page.locator(".stage5-kind.kind-reactive").count() > 0
+      && await page.locator(".stage5-kind.kind-passive").count() > 0);
+  note("人物ごとの主軸・反応優先列・常時技能が読める",
+    /主軸/.test(skillText) && /反応優先列/.test(skillText) && /常時/.test(skillText));
+  note("技能一覧に旧skill treeとskill levelの操作が無い",
+    await page.locator('[data-action="select-skill-kind"], [data-action="select-skill-view"], [data-action="level-skill"]').count() === 0);
+  note("Stage 0では必殺技の長押しが無い",
+    await page.locator(".stage5-skill-select[data-longpress]").count() === 0);
+  note("Stage 0では必殺技の残りと説明を出さない",
+    await page.locator(".camp-top .party-ultimate").count() === 0
+      && await page.locator('details[data-help="ultimate-rules"]').count() === 0
       && !/必殺/.test(skillText));
-
-  // issue #177 — **1ラウンドに払える点**を見出しに出す。反応は上から順に払うので、
-  // 点が尽きた行は同じラウンドでは出ない（その行に印が付く）。ゴウは行動点1・反応点2。
-  const apPips = await page.locator(".slot-heading .slot-budget.ap .pips i").count();
-  const rpPips = await page.locator(".slot-heading .slot-budget.rp .pips i").count();
-  note("1ラウンドに払える点が装着の見出しに出る", apPips === 1 && rpPips === 2,
-    `行動点 ${apPips} · 反応点 ${rpPips}`);
-  note("装着した技能の消費が点で出る",
-    await page.locator(".installed-copy .row-marks .pips i").count() > 0);
-
-  // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
-  note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
-
-  // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
-  // **既定は一覧**（縦一列・横スクロール無し）で、地図は一押しで戻る。
-  note("技能ツリーは一覧で開く",
-    await page.locator('.skill-tree-view[data-view="list"]').count() === 1
-      && await page.locator(".skill-tree-forest").count() === 0);
-  const listShape = await page.locator(".skill-tree-list").evaluate((list) => ({
-    rows: list.querySelectorAll(".tree-cell.list-row").length,
-    overflow: list.scrollWidth - list.clientWidth,
-    inWindow: [...list.querySelectorAll(".tree-cell.list-row")].filter((row) => {
-      const box = row.getBoundingClientRect();
+  note("取得・予約・主軸・反応優先順位の操作がある",
+    await page.locator('[data-action="acquire-weapon-skill"]').count() > 0
+      && await page.locator('[data-action="reserve-weapon-skill"]').count() > 0
+      && await page.locator('[data-action="select-weapon-primary"]').count() > 0
+      && await page.locator('[data-action="move-weapon-priority"]').count() > 0);
+  const stage5Shape = await page.locator(".stage5-skill-catalog").evaluate((catalog) => ({
+    overflow: catalog.scrollWidth - catalog.clientWidth,
+    cards: [...catalog.querySelectorAll(".stage5-skill-card")].filter((card) => {
+      const box = card.getBoundingClientRect();
       return box.left >= -1 && box.right <= window.innerWidth + 1;
     }).length,
+    total: catalog.querySelectorAll(".stage5-skill-card").length,
   }));
-  note("一覧は横へはみ出さない", listShape.overflow <= 1, `はみ出し ${listShape.overflow}px`);
-
-  // 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
-  // **技能タブで貼りつくのは、上端の固定帯と（選んだ回だけの）操作盤の二つだけ。**
-  // 技能点の帯を三枚目として貼ると、iPhone の実質 660px から常に 46px を取る。
+  note("390pxの技能一覧が横へはみ出さない",
+    stage5Shape.overflow <= 1 && stage5Shape.cards === stage5Shape.total,
+    `${stage5Shape.cards} / ${stage5Shape.total}節 · ${stage5Shape.overflow}px`);
   const stickyBands = await page.evaluate(() => [...document.querySelectorAll(".camp-view *")]
     .filter((element) => {
       const style = getComputedStyle(element);
@@ -533,281 +525,8 @@ try {
       return box.height > 0 && box.width > window.innerWidth / 2;
     })
     .map((element) => (typeof element.className === "string" ? element.className.split(" ")[0] : element.tagName)));
-  note("技能タブに貼りつく帯を増やさない", !stickyBands.includes("skill-build-summary"),
+  note("技能点の帯を別のsticky要素として増やさない", !stickyBands.includes("skill-build-summary"),
     stickyBands.join(" / ") || "なし");
-  // **読める帯で、一覧が何行出せるか。**上端の固定帯の下から、実機 Safari の下端までを数える。
-  // 数えるのは帯の容量なので、一覧の頭が固定帯の真下に来るまで送ってから測る。
-  const roomy = await page.evaluate((budget) => {
-    const bandTop = () => document.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
-    const rows = [...document.querySelectorAll(".tree-cell.list-row")];
-    if (rows.length) {
-      window.scrollBy({ top: rows[0].getBoundingClientRect().top - bandTop() - 4, behavior: "auto" });
-    }
-    const top = bandTop();
-    const fits = rows.filter((row) => {
-      const box = row.getBoundingClientRect();
-      return box.top >= top - 1 && box.bottom <= budget + 1;
-    }).length;
-    return { top: Math.round(top), fits, rows: rows.length };
-  }, SAFARI_VISIBLE_HEIGHT);
-  note("一覧が読める帯に5行以上出る", roomy.fits >= 5 || roomy.fits === roomy.rows,
-    `固定帯 ${roomy.top}px の下に ${roomy.fits} / ${roomy.rows} 行`);
-  note("一覧の行は全部が画面の幅に収まる", listShape.rows > 0 && listShape.inWindow === listShape.rows,
-    `${listShape.inWindow} / ${listShape.rows} 行`);
-  // **同じ森である。**一覧と地図で出る節の数は一致する（見え方だけが違う）。
-  await page.locator('[data-action="select-skill-view"][data-view="map"]').click();
-  await page.waitForTimeout(200);
-  const mapCells = await page.locator(".skill-tree-forest .tree-cell").count();
-  note("一覧と地図は同じ節を出す", mapCells === listShape.rows, `地図 ${mapCells} / 一覧 ${listShape.rows}`);
-  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
-  await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
-  await page.waitForTimeout(150);
-  const reactiveTreeText = await bodyText();
-  note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(reactiveTreeText));
-
-  // 節を押すと、前提ルートと派生先が強調され、そこから route を辿れる。
-  // **根（mend）ではなく、その子（triage）を選ぶ。**根を選ぶと反応ツリー全体が
-  // 派生先になり、落ちる節が無くなるため。
-  // 作者指摘 2026-09-13 —「見やすいが操作しにくい」。**押す前後で地図が動いていないこと**を、
-  // 節の実座標で見る（説明を節の中で開いていたころは、押した節だけ背が伸びて、
-  // 同じ行の節も線も動いていた）。
-  const cellBoxes = () => page.locator(".skill-tree-forest .tree-cell").evaluateAll((cells) =>
-    Object.fromEntries(cells.map((cell) => [cell.dataset.node, `${cell.offsetLeft},${cell.offsetTop}`])));
-  const boxesBeforeSelect = await cellBoxes();
-  const secondNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').nth(1);
-  await secondNode.click();
-  await page.waitForTimeout(150);
-  // 作者指摘 2026-09-13 — **前提と派生の札は盤から降ろした。**どこから来てどこへ行くかは
-  // 真上の地図が線と色で見せているので、盤で二度言わない（盤が高いと地図が隠れる）。
-  note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
-  note("盤で前提と派生を繰り返さない", await page.locator(".skill-sheet .skill-route").count() === 0);
-  const boxesAfterSelect = await cellBoxes();
-  note("節を押しても地図が組み変わらない",
-    JSON.stringify(boxesBeforeSelect) === JSON.stringify(boxesAfterSelect),
-    `${Object.keys(boxesAfterSelect).length} 節`);
-
-  // **取得の操作は地図の外（下端に貼る操作盤）にある。**列幅の中に入れると、
-  // 押す前に横スクロールが要る。盤と釦が画面の横幅に収まっているかを実寸で見る。
-  const sheetFit = await page.locator(".skill-sheet").evaluate((sheet) => {
-    const box = sheet.getBoundingClientRect();
-    const column = Number.parseFloat(getComputedStyle(document.documentElement)
-      .getPropertyValue("--tree-col-width")) || 0;
-    const buttons = [...sheet.querySelectorAll(".node-action button")].map((button) => {
-      const rect = button.getBoundingClientRect();
-      return rect.left >= -1 && rect.right <= window.innerWidth + 1 && rect.width > 0;
-    });
-    return {
-      left: Math.round(box.left),
-      right: Math.round(box.right),
-      width: Math.round(box.width),
-      column,
-      inside: box.left >= -1 && box.right <= window.innerWidth + 1,
-      bottomOnScreen: Math.round(box.bottom) <= window.innerHeight + 1,
-      buttons: buttons.length,
-      buttonsInside: buttons.every(Boolean),
-    };
-  });
-  note("取得の操作盤が画面の横幅に収まる",
-    sheetFit.inside && sheetFit.bottomOnScreen && sheetFit.width > sheetFit.column,
-    `幅 ${sheetFit.width}px · 列幅 ${sheetFit.column}px`);
-  note("取得の釦を横スクロールなしで押せる",
-    sheetFit.buttons > 0 && sheetFit.buttonsInside, `${sheetFit.buttons} 件`);
-
-  // **盤は短い。**節を選んでいるあいだも地図が読めるよう、盤に残すのは
-  // 「その節を取るかどうかを決める材料」だけにした（実測の高さも見る）。
-  const sheetShape = await page.locator(".skill-sheet").evaluate((sheet) => {
-    const tops = [...sheet.querySelectorAll(".node-action .tiny-button")]
-      .map((element) => Math.round(element.getBoundingClientRect().top));
-    return {
-      height: Math.round(sheet.getBoundingClientRect().height),
-      buttons: tops.length,
-      rows: new Set(tops).size,
-      text: sheet.innerText,
-    };
-  });
-  note("盤が地図を隠さない高さに収まる", sheetShape.height <= 200, `${sheetShape.height}px`);
-  note("取得・段上げ・予約が一行に並ぶ", sheetShape.buttons > 1 && sheetShape.rows === 1,
-    `${sheetShape.buttons} 件 · ${sheetShape.rows} 行`);
-  note("入切の説明文を盤で繰り返さない", !/取得状態は変わりません/.test(sheetShape.text));
-
-  // **帯の端で切れている節を押したら、窓の中央へ寄る。**寄らないと、押した節が
-  // 半分だけ見えたまま操作することになる（dispatchEvent は playwright の
-  // 自動スクロールを通さないので、切れている状態のまま押せる）。
-  const clippedNode = await page.evaluate(() => {
-    const band = document.querySelector(".skill-tree-scroll");
-    const edge = () => band.getBoundingClientRect().right;
-    const clipped = () => [...band.querySelectorAll(".tree-cell")].find((cell) => {
-      const box = cell.getBoundingClientRect();
-      return box.left < edge() && box.right > edge();
-    });
-    if (!clipped()) band.scrollLeft += 60;
-    return clipped()?.dataset.node ?? null;
-  });
-  if (clippedNode) {
-    await page.locator(`.tree-cell[data-node="${clippedNode}"] .skill-node-button`).dispatchEvent("click");
-    await page.waitForTimeout(700);
-    const centred = await page.locator(`.tree-cell[data-node="${clippedNode}"]`).evaluate((cell) => {
-      const band = cell.closest(".skill-tree-scroll").getBoundingClientRect();
-      const box = cell.getBoundingClientRect();
-      return box.left >= band.left - 1 && box.right <= band.right + 1;
-    });
-    note("帯の端で切れている節を押すと窓の中へ寄る", centred, clippedNode);
-  }
-
-  // 取得済みの節は、盤の頭の摘み（装着行と同じ形）で入切する。
-  const equippedNode = page.locator(".tree-cell:has(.skill-node.equipped) .skill-node-button").first();
-  if (await equippedNode.count()) {
-    await equippedNode.click();
-    await page.waitForTimeout(200);
-    const before = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
-    await page.locator(".skill-sheet .skill-switch").click();
-    await page.waitForTimeout(250);
-    const after = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
-    note("取得済みの節を盤の摘みで入切できる", Boolean(before) && before !== after, `${before} → ${after}`);
-    await page.locator(".skill-sheet .skill-switch").click();
-    await page.waitForTimeout(250);
-  }
-  // ✕ で盤を閉じる。**閉じると地図が画面いっぱいに戻る**（ここから下の検査も、
-  // 何も選んでいない状態から始まる）。
-  await page.locator(".skill-sheet .sheet-close").click();
-  await page.waitForTimeout(200);
-  note("操作盤を閉じると地図だけに戻る",
-    await page.locator(".skill-sheet").count() === 0
-      && await page.locator(".tree-cell.selected").count() === 0);
-
-  // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
-  // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
-  // 上限は添え字で、いまの段を主にする。取得していない節には出ない。
-  const levels = await page.locator(".skill-tree-forest .level-tag").evaluateAll((nodes) =>
-    nodes.map((node) => ({ now: node.childNodes[0]?.textContent ?? "", cap: node.querySelector("small")?.textContent ?? "" })));
-  note("取得済みの節に段が文字で出る", levels.length > 0
-    && levels.every((entry) => /^Lv\d+$/.test(entry.now.trim()) && /^\/\d+$/.test(entry.cap.trim())),
-    `${levels.length} 件 · ${levels[0]?.now ?? ""}${levels[0]?.cap ?? ""}`);
-  // 作者指摘 2026-09-17 — **添え字（/10）が列の右端で切れていた。**列幅は
-  // iPhone で 176px しかないので、計器の行が一列に収まらない回がある。
-  // 収まらない回は下の段へ落として、**どの数も欠けさせない。**
-  const meterOverflow = await page.locator(".skill-tree-forest .node-meters").evaluateAll((rows) =>
-    rows.filter((row) => row.scrollWidth - row.clientWidth > 0).length);
-  note("節の計器（丸・効果量・段）が切れない", meterOverflow === 0, `はみ出し ${meterOverflow} 行`);
-  // 段は10まで上がる。**一番長い綴り（Lv10/10）でも切れない。**
-  const widestLevel = await page.locator(".skill-tree-forest .level-tag").evaluateAll((tags) => {
-    const before = tags.map((tag) => tag.innerHTML);
-    for (const tag of tags) tag.innerHTML = "Lv10<small>/10</small>";
-    const clipped = tags.filter((tag) => {
-      const row = tag.closest(".node-meters");
-      return row.scrollWidth - row.clientWidth > 0;
-    }).length;
-    tags.forEach((tag, index) => { tag.innerHTML = before[index]; });
-    return clipped;
-  });
-  note("一番長い段（Lv10/10）でも切れない", widestLevel === 0, `切れ ${widestLevel} 件`);
-  const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
-    nodes.filter((node) => !node.querySelector(".level-tag")).length);
-  note("未取得・レベル無しの節には段が出ない", flatNodes > 0, `段なし ${flatNodes} 節`);
-
-  // **丸は払うものだけ。**発動条件は技能名の下に短い薄字で書く（作者指摘）。
-  const circles = await page.locator(".skill-tree-forest .firing-mark, .skill-tree-forest .trigger-mark").count();
-  note("条件を表す丸や印を節に出していない", circles === 0, `${circles} 件`);
-  const whens = await page.locator(".skill-tree-forest .node-when").allInnerTexts();
-  note("発動条件が薄字の一行で読める", whens.length > 0 && whens.every((text) => text.trim().length > 0),
-    `${whens.length} 件 · ${whens[0] ?? ""}`);
-  // 段を上げる操作は**取得済みの節にだけ**出る。値段は釦に、変わる数はその隣に。
-  // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
-  await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
-  await page.waitForTimeout(150);
-  const levelButton = await page.locator('.node-action [data-action="level-up-skill"]').count();
-  const levelStep = await page.locator(".node-action .level-step").innerText().catch(() => "");
-  note("取得済みの節に段の上げ方が出る", levelButton === 1 && /→/.test(levelStep),
-    `${levelButton}件 · ${levelStep}`);
-
-  // 記号の意味は畳んだ中に一度だけ。**節や装着行の上には出さない。**
-  note("記号の意味が畳んで置いてある", await page.locator('details[data-help="skill-symbols"]').count() === 1);
-
-  await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
-  await page.waitForTimeout(150);
-
-  // issue #177 — **能力値を掛ける前の技能効果量**を出す。
-  // ゴウの腕力50・技術6を先に掛けず、技能そのものの係数と能力値を見て、
-  // 「どの能力値を伸ばすか」はプレイヤーが判断できるようにする。
-  const yields = await page.locator(".skill-tree-forest .yield-chip").evaluateAll((nodes) =>
-    nodes.map((node) => ({ label: node.getAttribute("aria-label") ?? "", text: node.textContent ?? "" })));
-  note("能力値を掛ける前の技能効果量が節に出る", yields.length > 0
-    && yields.every((entry) => /(腕力|技術|受け|最大HP)で伸びる/.test(entry.label))
-    && yields.every((entry) => /効果/.test(entry.label) && /%/.test(entry.text)),
-    `${yields.length} 件 · ${yields[0]?.text ?? ""}`);
-  note("詳細欄に人物別の実数を繰り返さない",
-    await page.locator(".skill-detail .skill-yield-readout").count() === 0);
-
-  // 取得コストは取得済みのチェックと同じ実線四角、前提の残りLv数は破線四角。
-  const costChains = await page.locator(".skill-tree-forest .node-cost-chain").evaluateAll((nodes) =>
-    nodes.map((node) => ({
-      prerequisite: Boolean(node.querySelector(".prerequisite-levels")),
-      plus: Boolean(node.querySelector(".cost-plus")),
-      acquisition: Boolean(node.querySelector(".acquisition-cost")),
-    })));
-  note("前提の残りLv数と取得コストを四角とプラスで分けて出す",
-    costChains.some((entry) => entry.prerequisite && entry.plus && entry.acquisition),
-    `${costChains.length} 件`);
-
-  // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
-  const branchChips = page.locator('[data-action="select-skill-branch"]');
-  const chipCount = await branchChips.count();
-  note("テーマの印で絞り込める", chipCount >= 2, `テーマ ${chipCount} 種`);
-  const beforeFilter = await page.locator(".tree-cell.faded").count();
-  await branchChips.first().click();
-  await page.waitForTimeout(150);
-  const afterFilter = await page.locator(".tree-cell.faded").count();
-  note("テーマを選ぶと他のテーマが沈む", afterFilter > beforeFilter, `${beforeFilter} → ${afterFilter}`);
-  await branchChips.first().click();
-  await page.waitForTimeout(150);
-  note("同じ印をもう一度押すと戻る", await page.locator(".tree-cell.faded").count() === beforeFilter);
-
-  // 作者指摘 2026-09-17 —「取得しやすさ」。**いま技能点で動かせる節だけに絞れる。**
-  // 絞りは一覧では隠し、地図では沈める（線の行き先を消さない）。
-  await page.locator('[data-action="select-skill-view"][data-view="list"]').click();
-  await page.waitForTimeout(200);
-  const readyChip = page.locator(".ready-chip");
-  const readyCount = await readyChip.count()
-    ? Number((await readyChip.innerText()).replace(/[^0-9]/g, ""))
-    : 0;
-  if (readyCount > 0) {
-    const allRows = await page.locator(".tree-cell.list-row").count();
-    await readyChip.click();
-    await page.waitForTimeout(200);
-    const shown = await page.locator(".tree-cell.list-row").count();
-    const shownReady = await page.locator(".tree-cell.list-row.ready").count();
-    note("「いま取れる」で取れる節だけが残る",
-      shown === readyCount && shownReady === shown && shown < allRows,
-      `${allRows} 節 → ${shown} 節（数え ${readyCount}）`);
-    await readyChip.click();
-    await page.waitForTimeout(200);
-    note("もう一度押すと全部へ戻る", await page.locator(".tree-cell.list-row").count() === allRows);
-  } else {
-    // 技能点が無い回は、押した先が空になる絞り込みそのものを出さない。
-    note("取れる節が無い回は絞り込みを出さない", await readyChip.count() === 0);
-  }
-  // **どの種別に使い道があるかは、タブそのものが言う。**いま見ている種別の数は、
-  // 絞り込みの数と同じでなければならない（別々に数えていたら、どちらかが嘘になる）。
-  const activeTabReady = await page.locator(".tree-tab.active .tab-ready").count()
-    ? Number(await page.locator(".tree-tab.active .tab-ready").innerText())
-    : 0;
-  note("選んでいる種別のタブが、いま取れる数を出す", activeTabReady === readyCount,
-    `タブ ${activeTabReady} / 絞り込み ${readyCount}`);
-
-  // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
-  // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
-  const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
-  note("未解禁の技能を名前でも出さない", outOfManifest === 0, `manifest 外 ${outOfManifest} 節`);
-
-  // R18 — 取得は取り消せず、装着後は順番とオン／オフを調整できる。
-  note("技能を外すボタンが無い", await page.locator('[data-action="remove-skill"]').count() === 0);
-  note("解禁のやり直しが無い", await page.locator('[data-action="reset-run-skills"]').count() === 0);
-  note("取得を忘れられないと書いてある", /取得した技能は遠征中に忘れません/.test(skillText));
-  note("技能数の上限が無いと書いてある", /枠の上限はありません/.test(skillText));
-  note("装着済み技能をオン／オフできる", await page.locator('[data-action="toggle-skill"]').count() > 0);
-  note("行動と反応の順番を変えられる",
-    await page.locator('[data-action="move-skill"][data-kind="active"]').count() > 0
-      && await page.locator('[data-action="move-skill"][data-kind="reactive"]').count() > 0);
 
   // ---- issue #159 — **仲間を選ぶ経路は上端の盤面ただ一つ。**技能タブ・装備タブは
   // 自前の仲間タブを持たず、盤面のセルで対象を切り替える。押しても隊列は動かない。
@@ -939,214 +658,139 @@ try {
       const mapTabDuringSkill = page.locator('nav.tabs [data-tab="map"]');
       const skillCard = page.locator(".skill-tutorial");
       const skillSpot = () => page.locator("#app .tutorial-spot");
+      const unlockKey = "warhammer:R";
+      const reserveKey = "warhammer:A1";
+      const pointsReadout = () => page.locator(".stage5-member-line").innerText();
       note("第1戦の直後は遠征タブのまま、技能の札が出る",
         await page.locator('nav.tabs [data-tab="map"].active').count() === 1
           && await skillCard.count() === 1);
-      note("技能チュートリアルは七手で、いまは一手目",
-        /技能チュートリアル/.test(await bodyText())
-          && /手順 1\/7/.test(await skillCard.innerText()));
-      note("手順1は「スキル」タブだけが光る",
-        await skillSpot().count() === 1
+      note("Stage 5技能チュートリアルは七手で、最初に技能タブを開く",
+        /手順 1\/7/.test(await skillCard.innerText())
+          && await skillSpot().count() === 1
           && await skillSpot().first().getAttribute("data-tab") === "skills");
       note("手順1では戦闘へ進めない",
         await page.locator('[data-action="begin-stage"]').isDisabled());
-      // 光っていないタブを押しても段は進まない（押せる形と経路の両方で塞いでいる）。
       await page.locator('nav.tabs [data-tab="equipment"]').click({ force: true }).catch(() => {});
       await page.waitForTimeout(150);
-      note("光っていないタブを押しても段は進まない",
+      note("光っていないタブを押しても技能チュートリアルに留まる",
         /手順 1\/7/.test(await skillCard.innerText())
           && await page.locator('nav.tabs [data-tab="map"].active').count() === 1);
       await skillSpot().first().click();
       await page.waitForTimeout(200);
-      note("スキルタブを押すと技能の地図へ入る",
+      note("スキルタブを押すと技能一覧へ入る",
         await skillTab.evaluate((tab) => tab.classList.contains("active"))
           && /手順 2\/7/.test(await skillCard.innerText()));
-      note("技能チュートリアル中は他のタブを押せない",
+      note("チュートリアル中は遠征と補給タブを閉じる",
         await mapTabDuringSkill.isDisabled()
           && await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
-      // 札は**固定帯の真下に貼りつく。**地図の奥まで送っても、段と理由が視界に残る。
-      note("手引きの札は送っても画面に残る",
+      note("札は固定帯の下へ貼りつく",
         await page.locator(".camp-view > .tutorial-note-card").evaluate((card) =>
           getComputedStyle(card).position === "sticky"));
       note("手順2は払う相手（ツグミ）のセルだけが光る",
         await skillSpot().count() === 1
           && await skillSpot().first().getAttribute("data-action") === "select-character"
           && await skillSpot().first().getAttribute("data-character") === "mender");
-      note("払う相手を選ぶ前は、まだ別の仲間の地図を見ている",
-        /ゴウ/.test(await page.locator(".member-context").innerText()));
       await skillSpot().first().click();
       await page.waitForTimeout(200);
-      note("ツグミを選ぶとツグミの地図に変わる",
-        /ツグミ/.test(await page.locator(".member-context").innerText())
+      note("ツグミを選ぶと人物別技能一覧へ切り替わる",
+        /ツグミ/.test(await page.locator(".stage5-member-line").innerText())
           && /手順 3\/7/.test(await skillCard.innerText()));
-      note("手順3は取得する節だけが光る",
+      note("手順3は取得する武器節だけが光る",
         await skillSpot().count() === 1
-          && await skillSpot().first().getAttribute("data-action") === "select-skill-node"
-          && await skillSpot().first().getAttribute("data-skill") === "field_dressing");
-      // 光っていない節を押しても何も起きない。
-      await page.locator('.skill-tree-view [data-action="select-skill-node"][data-skill="ward_ally"]')
+          && await skillSpot().first().getAttribute("data-action") === "select-weapon-node"
+          && await skillSpot().first().getAttribute("data-node") === unlockKey);
+      await page.locator(`.stage5-skill-card[data-node-key="${reserveKey}"] [data-action="select-weapon-node"]`)
         .click({ force: true }).catch(() => {});
       await page.waitForTimeout(150);
       note("光っていない節を押しても段は進まない",
         /手順 3\/7/.test(await skillCard.innerText()));
       await skillSpot().first().click();
       await page.waitForTimeout(250);
-      note("手順4は操作盤の「解禁」だけが光る",
+      note("手順4は武器節の取得操作だけが光る",
         /手順 4\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
-          && await skillSpot().first().getAttribute("data-action") === "unlock-skill");
-      // 作者指摘 2026-09-17 — **手引きの札の手前へ、技能の操作盤が出ていた。**
-      // 札は固定帯の下へ、盤は画面の下端へ貼るので、**画面が低い回にだけ**重なる
-      // （作者の iPhone は上下のバーで 660px ほどしか残さない）。その高さにして、
-      // 重なった点の一番手前が札かを見る。
+          && await skillSpot().first().getAttribute("data-action") === "acquire-weapon-skill"
+          && await skillSpot().first().getAttribute("data-node") === unlockKey);
+      const pointsBefore = /未使用 1点/.test(await pointsReadout());
       await page.setViewportSize({ width: 390, height: SAFARI_VISIBLE_HEIGHT });
-      await page.waitForTimeout(250);
-      const sheetOverlap = await page.evaluate(async () => {
-        const card = document.querySelector(".camp-view > .tutorial-note-card.pinned");
-        const sheet = document.querySelector(".skill-sheet");
-        if (!card || !sheet) return { seen: false, reason: "札か盤が無い" };
-        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-        let seen = false;
-        let ok = true;
-        let detail = "";
-        for (let top = 0; top <= max; top += 80) {
-          window.scrollTo({ top: Math.min(top, max), behavior: "auto" });
-          await new Promise((resolve) => requestAnimationFrame(() => resolve()));
-          const c = card.getBoundingClientRect();
-          const s = sheet.getBoundingClientRect();
-          const overlap = Math.min(c.bottom, s.bottom) - Math.max(c.top, s.top);
-          if (overlap <= 1) continue;
-          seen = true;
-          detail = `送り ${Math.round(window.scrollY)}px で ${Math.round(overlap)}px 重なる`;
-          const y = (Math.max(c.top, s.top) + Math.min(c.bottom, s.bottom)) / 2;
-          const front = [0.25, 0.5, 0.75].every((ratio) => {
-            const element = document.elementFromPoint(c.left + c.width * ratio, y);
-            return Boolean(element) && (element === card || card.contains(element));
-          });
-          if (!front) ok = false;
-        }
-        window.scrollTo({ top: 0, behavior: "auto" });
-        return { seen, ok, detail };
-      });
-      note("貼りついた手引きの札の手前へ技能の操作盤が出ない",
-        sheetOverlap.seen && sheetOverlap.ok,
-        sheetOverlap.seen ? sheetOverlap.detail : (sheetOverlap.reason ?? "重なる送り位置が見つからなかった"));
+      await page.waitForTimeout(200);
+      const unlockSpotBox = await skillSpot().first().boundingBox();
+      note("660pxの表示高でも次の取得操作が画面内にある",
+        Boolean(unlockSpotBox) && unlockSpotBox.y >= 0 && unlockSpotBox.y + unlockSpotBox.height <= SAFARI_VISIBLE_HEIGHT,
+        unlockSpotBox ? `${Math.round(unlockSpotBox.y)}–${Math.round(unlockSpotBox.y + unlockSpotBox.height)}px` : "対象なし");
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.waitForTimeout(250);
-      const pointsBefore = Number((await page.locator(".skill-build-summary .summary-points b").innerText()).trim());
       await skillSpot().first().click();
       await page.waitForTimeout(250);
-      const pointsAfter = Number((await page.locator(".skill-build-summary .summary-points b").innerText()).trim());
-      note("解禁で技能点が1点減る", pointsBefore === 1 && pointsAfter === 0,
-        `${pointsBefore} → ${pointsAfter}`);
-      note("取得した技能がその場で装着される",
-        await page.locator('.installed-row[data-skill="field_dressing"]').count() > 0
-          || /まとめて手当て/.test(await page.locator(".skill-build-card").innerText()));
-      note("手順5は予約する節だけが光る",
+      const pointsAfter = /未使用 0点/.test(await pointsReadout());
+      note("取得で人物の技能点が1点減る", pointsBefore && pointsAfter);
+      note("取得した主軸技能がその場で使用中になる",
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
+          === "主軸に設定中");
+      note("手順5は次に予約する節だけが光る",
         /手順 5\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
-          && await skillSpot().first().getAttribute("data-skill") === "sustaining_ward");
-      // **前提の段が足りない節である**ことと、**予約の値打ち**を札そのものが言う。
-      note("なぜいま取れないのかを札が言う",
-        /傷へ盾を Lv3/.test(await skillCard.innerText()));
-      note("予約の効きを札が一行で言う",
-        /戦うたびに自動で進む/.test(await skillCard.innerText())
-          && /振り直さなくていい/.test(await skillCard.innerText()));
-      // 作者指摘 2026-09-14 — 操作盤が次の節を隠す回のために、「✕」だけは押せる。
-      const sheetClose = page.locator('.skill-sheet .sheet-close');
-      note("操作盤の「✕」は錠の最中でも押せる",
-        await sheetClose.count() === 1 && await sheetClose.isEnabled()
-          && !(await sheetClose.evaluate((button) => button.classList.contains("tutorial-blocked"))));
-      await sheetClose.click();
-      await page.waitForTimeout(200);
-      note("「✕」で閉じても段は進まない",
-        await page.locator(".skill-sheet").count() === 0
-          && /手順 5\/7/.test(await skillCard.innerText())
-          && await skillSpot().count() === 1);
+          && await skillSpot().first().getAttribute("data-node") === reserveKey);
+      note("いま予約する理由を札が説明する",
+        /今ある点は使い切りました/.test(await skillCard.innerText())
+          && /自動で取得される/.test(await skillCard.innerText()));
       await skillSpot().first().click();
-      await page.waitForTimeout(250);
-      note("手順6は「Lv1まで予約」だけが光る",
+      await page.waitForTimeout(200);
+      note("手順6は技能の取得予約だけが光る",
         /手順 6\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
-          && await skillSpot().first().getAttribute("data-action") === "reserve-skill"
-          && await skillSpot().first().getAttribute("data-target-level") === "1");
+          && await skillSpot().first().getAttribute("data-action") === "reserve-weapon-skill"
+          && await skillSpot().first().getAttribute("data-node") === reserveKey);
       await skillSpot().first().click();
       await page.waitForTimeout(250);
-      note("予約すると要約帯に予約先が出る",
-        await page.locator(".skill-build-summary .summary-reservation").count() === 1
-          && /長く守る/.test(await page.locator(".skill-build-summary .summary-reservation").innerText()));
-      // 最後は**もう一人へ渡して終わる**（作者要望 2026-09-14）。
+      note("予約先がStage 5のRunに表示される",
+        await page.locator(".stage5-reservation").count() === 1
+          && /予約:/.test(await page.locator(".stage5-reservation").innerText()));
       note("手順7はもう一人（ゴウ）のセルだけが光る",
         /手順 7\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
           && await skillSpot().first().getAttribute("data-character") === "warden");
       await skillSpot().first().click();
       await page.waitForTimeout(250);
-      note("ゴウを押すと錠が外れる",
+      note("技能の受け渡し後は錠が外れてゴウへ移る",
         await page.locator("#app .tutorial-blocked").count() === 0
           && await mapTabDuringSkill.isEnabled()
-          && /ゴウ/.test(await page.locator(".member-context").innerText()));
-      // チュートリアル中は節選択を閉じているので、錠が外れてから遠征タブで戦歴を開く。
-      await mapTabDuringSkill.click();
+          && /ゴウ/.test(await page.locator(".stage5-member-line").innerText()));
+      await page.locator('nav.tabs [data-tab="map"]').click();
       await page.waitForTimeout(150);
-      await completedEncounter.click();
-      await page.waitForTimeout(200);
-      const battleReport = page.locator(".encounter-projection.record .encounter-report.recorded");
-      const battleReportText = await battleReport.innerText();
-      note("踏破した節にラウンド数と技能点が出る",
-        await battleReport.getAttribute("data-report-known") === "true"
-          && /ラウンド/.test(battleReportText) && /技能点/.test(battleReportText),
-        battleReportText.replace(/\s+/g, " ").slice(0, 80));
-      // 作者指摘 2026-09-17 — **記録には、戦った盤面そのものが出る。**巻き戻して
-      // 勝った「灰の門」は第1戦の勝利になるのに、盤面だけ index から組み直していて、
-      // ラウンド数と味方損失は灰の門のものなのに敵は「灰の入口」の走者二体だった。
-      const recordTitle = await page.locator(".encounter-archive .forecast-title").innerText();
-      const recordCells = await page.locator(".encounter-archive .enemy-board-cell").count();
-      note("第1戦の記録が、戦った「灰の門」になる", /灰の門/.test(recordTitle), recordTitle);
-      note("第1戦の記録に、戦った敵がそのまま並ぶ", recordCells === 4, `${recordCells} 体`);
       await page.locator(
         '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
       await page.waitForTimeout(200);
-      note("まだ戦っていない第2戦は先見機の投影のまま",
-        /狩りの路地/.test(await page.locator(".encounter-archive .forecast-title").innerText()));
-      await page.locator(
-        '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
-      await skillTab.click();
-      await page.waitForTimeout(150);
-      note("最後は光らせず、自分で選ばせる",
+      note("最後は光らせず自分で選ばせる",
         await skillSpot().count() === 0
           && /自分で決める|あなたが決める/.test(await skillCard.innerText()));
-      note("ゴウにも技能点が残っている",
-        /1/.test(await page.locator(".skill-build-summary .summary-points b").innerText()));
-      // 説明文の強調は**星印ではなく太字**で出す（作者要望 2026-09-14）。
-      await page.locator('.skill-tree-view [data-action="select-skill-node"][data-skill="field_dressing"]').click();
+      note("ゴウにも人物別技能点が残る",
+        /未使用 1点/.test(await pointsReadout()));
+      await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] [data-action="select-weapon-node"]`).click();
       await page.waitForTimeout(200);
-      note("説明文の強調が星印のまま出ていない",
-        !/\*\*/.test(await page.locator(".skill-sheet").innerText())
-          && await page.locator(".skill-sheet .skill-detail b").count() > 0);
-      // 受け渡しが済んだあとは**誰を選び直しても段が戻らない**（錠が復活しない）。
+      note("Stage 5の技能節を選択して詳細を開ける",
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"].selected`).count() === 1);
       await page.locator('.camp-top [data-action="select-character"][data-character="mender"]').click();
       await page.waitForTimeout(200);
       note("終わったあとにツグミを選び直しても錠は戻らない",
         await page.locator("#app .tutorial-blocked").count() === 0
           && await skillSpot().count() === 0);
-      note("取得と予約が保存されている",
-        await page.locator(".skill-build-summary .summary-reservation").count() === 1
-          && /長く守る/.test(await page.locator(".skill-build-summary .summary-reservation").innerText()));
+      note("取得した主軸技能と予約先が保存されている",
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
+          === "主軸に設定中"
+          && await page.locator(".stage5-reservation").count() === 1);
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
-      note("リロードしても予約と、済んだ段が残る",
-        await page.locator(".skill-build-summary .summary-reservation").count() === 1
+      note("リロード後も主軸・予約と済んだ段が残る",
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
+          === "主軸に設定中"
+          && await page.locator(".stage5-reservation").count() === 1
           && await page.locator("#app .tutorial-blocked").count() === 0);
-      // 錠が外れたあとは、他のタブも次の一戦も自分で選べる。
       await page.locator('nav.tabs [data-tab="equipment"]').click();
       await page.waitForTimeout(150);
       note("終わったあとは他のタブへも移れる",
         await page.locator('nav.tabs [data-tab="equipment"].active').count() === 1
           && await page.locator(".skill-tutorial").count() === 1);
-      // 作者試遊 2026-09-17 — **ここが詰みの入口だった。**一戦目の傷が残っているので、
-      // 二戦目へ入る前に全体手当を3回押せて、補給0のまま補給チュートリアルへ着いた。
-      note("技能チュートリアルのあとも、補給タブはまだ閉じている",
+      note("技能チュートリアルのあとも補給タブは閉じている",
         await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
       await page.locator('nav.tabs [data-tab="supplies"]').click({ force: true }).catch(() => {});
       await page.waitForTimeout(150);
@@ -1581,14 +1225,9 @@ try {
       await page.locator(".camp-top button.party-cell").count() === 3
         && !/3 \/ 3人/.test(stage1Camp));
 
-    // ---- issue #240 — 必殺技の一戦。**Stage 1 の第1戦は、構えないと勝てない盤面。**
-    //
-    // 見るのは三段（ナギを選ぶ → 行を長押し → 挑む）と、**予測の帯が構える前後で
-    // 変わること**、そして必殺の拍でカットインが出ること（issue #242）。
-    // 盤面そのものが本当に負ける／勝つことは ecology/story.test.mjs が engine で見ている。
-    // **押す前に、押せる場所へ寄せる。**キャンプの上端は貼りついた帯（.camp-top）で、
-    // 行がその下へ潜ったまま座標だけで押すと、指は帯の上へ落ちて行へ届かない。
-    // hover() は行を画面の中ほどへ送り、覆われていないことまで確かめてから指を置く。
+    // ---- Stage 5 h — Stage 1 の第1戦で武器Runの必殺技を試す。 ------------------
+    // ナギの長槍Rを選び、長押しすると予測と本番が同じ必殺結果へ切り替わる。
+    // 見た目・勝利時の消費・保存後の再開まで、390x844で一度通す。
     const pressDown = async (locator) => {
       await locator.scrollIntoViewIfNeeded();
       await locator.hover();
@@ -1600,35 +1239,36 @@ try {
       await page.mouse.up();
       await page.waitForTimeout(250);
     };
+    const lessonKey = "long_spear:R";
     note("必殺技チュートリアルの札が出る", await page.locator(".ultimate-tutorial").count() === 1);
     note("構える前の予測は敗北", /いまの予測\s*敗北/.test(await bodyText()));
     note("錠の最中は技能タブに留まる",
       await page.locator('nav.tabs [data-tab="skills"].active').count() === 1
         && await page.locator('nav.tabs [data-tab="map"]').isDisabled());
     const lessonCell = page.locator(".camp-top .party-cell.tutorial-spot");
-    note("光るのは構える仲間のセルだけ", await lessonCell.count() === 1);
+    note("光るのは構える仲間のセルだけ", await lessonCell.count() === 1
+      && await lessonCell.first().getAttribute("data-character") === "lancer");
     await lessonCell.first().click();
     await page.waitForTimeout(250);
-    const lessonRow = page.locator(".installed-row.tutorial-spot");
-    note("光るのは教える装着行だけ", await lessonRow.count() === 1);
-    note("必殺にできる行は長押しできる",
-      await page.locator(".installed-row.tutorial-spot[data-longpress]").count() === 1);
+    const lessonRow = page.locator(`.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-skill-select`);
+    note("光るのは長槍Rの技能カードだけ", await lessonRow.count() === 1
+      && await lessonRow.first().evaluate((row) => row.classList.contains("tutorial-spot")));
+    note("必殺にできるカードは長押し可能", await page.locator(
+      `.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-skill-select[data-longpress="toggle-stage5-ultimate"]`).count() === 1);
+    note("Stage 1の技能一覧に初期20節を保つ", await page.locator(".stage5-skill-card").count() === 20);
     if (await lessonRow.count()) {
-      // 作者要望 2026-09-13 — 押しているあいだ、左から右へ光の帯が伸びる。
-      // **途中で離すと取り消し**（帯も消える）。
       await pressDown(lessonRow.first());
-      // **一往復で測る。**押し始めから 450ms のあいだにしか帯は無いので、待ってから
-      // 読みに行くと、遅い環境では窓を外して落ちる（測れないだけで、画面は正しい）。
-      // ブラウザの中で数フレーム続けて読み、伸びていることそのものを見る。
+      // CSSの進行値は幅で測る。帯はJSの450msと揃い、タップを長押しと誤判定しない。
       const fill = await lessonRow.first().evaluate((row) => new Promise((resolve) => {
         const samples = [];
         const read = () => {
-          const style = getComputedStyle(row, "::before");
+          const style = getComputedStyle(row, "::after");
+          const width = Number.parseFloat(style.width);
+          const total = row.getBoundingClientRect().width;
           samples.push({
             pressing: row.classList.contains("pressing"),
             shown: style.content !== "none",
-            // clip-path は inset(0px <残り>% 0px 0px)。残りが減る＝帯が伸びる。
-            left: Number.parseFloat((style.clipPath ?? "").match(/inset\([^ ]+ ([0-9.]+)%/)?.[1] ?? "NaN"),
+            progress: Number.isFinite(width) && total > 0 ? width / total : NaN,
             animation: style.animationName,
           });
           if (samples.length < 6) requestAnimationFrame(read);
@@ -1636,45 +1276,41 @@ try {
         };
         requestAnimationFrame(read);
       }));
-      const grew = fill.filter((entry) => entry.pressing && entry.shown && Number.isFinite(entry.left));
-      note("長押し中は左から光の帯が伸びる",
+      const grew = fill.filter((entry) => entry.pressing && entry.shown && Number.isFinite(entry.progress));
+      note("長押し中は指の下で帯が伸びる",
         grew.length >= 2
-          && grew.every((entry) => entry.animation === "longpress-fill")
-          && grew.at(-1).left < grew[0].left,
-        grew.length ? `${grew[0].left}% → ${grew.at(-1).left}%` : JSON.stringify(fill[0]));
+          && grew.every((entry) => entry.animation === "stage5-long-press")
+          && grew.at(-1).progress > grew[0].progress,
+        grew.length ? `${Math.round(grew[0].progress * 100)}% → ${Math.round(grew.at(-1).progress * 100)}%` : JSON.stringify(fill[0]));
       await page.mouse.up();
       await page.waitForTimeout(160);
-      note("途中で離すと帯が消えて必殺にならない",
-        await page.locator(".installed-row.pressing").count() === 0
-          && await page.locator(".installed-row.ultimate").count() === 0);
+      note("途中で離すと帯だけ消えて必殺は構えない",
+        await page.locator(".stage5-skill-select.pressing").count() === 0
+          && await page.locator(".stage5-skill-card.ultimate-armed").count() === 0);
 
       await longPress(lessonRow.first());
-      note("構えると盤面にも印が出る", await page.locator(".camp-top .party-ultimate.firing").count() === 1);
+      note("構えると盤面にナギの印が出る",
+        await page.locator(".camp-top .party-ultimate.firing").count() === 1);
       note("構えると予測が勝利に変わる", /いまの予測\s*勝利/.test(await bodyText()));
-      // 行の見た目はその場で確かめる。**構えた拍で画面は跳ばない**（作者指摘 2026-09-13）。
       note("構えても技能タブから動かない",
         await page.locator('nav.tabs [data-tab="skills"].active').count() === 1);
-      note("長押しだけでこの一戦の必殺になる（釦を押さない）",
-        await page.locator(".installed-row.ultimate.armed").count() === 1
+      note("長押しだけでこの一戦の必殺になる",
+        await page.locator(`.stage5-skill-card[data-node-key="${lessonKey}"].ultimate-armed.ultimate-firing`).count() === 1
           && await page.locator('[data-action="toggle-ultimate-armed"]').count() === 0);
-      note("構えた行に ✹ が出る", await page.locator(".installed-row.ultimate .ultimate-seal").count() === 1);
-      note("この一戦で出るなら行が強く光る",
-        await page.locator(".installed-row.ultimate.armed.firing").count() === 1);
-      // 段3。**遠征タブを開くのもプレイヤーの一手**にする。
+      note("構えたカードに発動予定の印が出る",
+        await page.locator(`.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-ultimate-seal.firing`).count() === 1);
       const mapTabSpot = page.locator('nav.tabs [data-tab="map"].tutorial-spot');
       note("次に光るのは遠征タブ", await mapTabSpot.count() === 1);
-      note("三手目のあいだ、遠征タブ以外は押せない",
+      note("三手目のあいだ、遠征以外のタブは押せない",
         await page.locator('nav.tabs [data-tab="equipment"]').isDisabled());
       await mapTabSpot.click();
       await page.waitForTimeout(250);
-      note("遠征タブを押すと錠が外れて次の一押しが光る",
+      note("遠征を開くと挑戦操作が光り、錠が外れる",
         await page.locator('[data-action="begin-stage"].tutorial-spot').count() === 1
           && await page.locator('nav.tabs [data-tab="equipment"]:disabled').count() === 0);
       note("必殺技の一戦が第1戦として出る", /塞ぐ二枚/.test(await bodyText()));
       await click("この敵との実戦へ進む");
       await waitForTutorialSelector(".battle-field");
-      // issue #242 — 必殺の拍のカットイン。**自動再生を止めて一手ずつ送る**ので、
-      // 拍の並び（決定的）だけを見ており、実時間の速さに依存しない。
       await page.locator('[data-role="replay-toggle"]').click();
       await page.waitForTimeout(150);
       let cutInText = null;
@@ -1689,33 +1325,47 @@ try {
         await page.waitForTimeout(40);
       }
       note("必殺の拍でカットインが出る", cutInText !== null && /必殺・/.test(cutInText ?? ""), cutInText ?? "");
-      note("カットインに立ち絵が出る", await page.locator(".ultimate-cutin .portrait-svg").count() === 1);
-      note("カットインに変換の印が出る", await page.locator(".ultimate-cutin .cutin-traits span").count() > 0);
-      note("カットインのあいだ盤面を沈めている",
+      note("カットインに立ち絵と変換の印が出る",
+        await page.locator(".ultimate-cutin .portrait-svg").count() === 1
+          && await page.locator(".ultimate-cutin .cutin-traits span").count() > 0);
+      note("カットイン中に盤面の通常情報が沈む",
         await page.locator(".battle-field.ultimate-hold").count() === 1);
-      // 一手戻すと演出も戻る（拍の並びが崩れない）。
       await page.locator('[data-role="replay-back"]').click();
       await page.waitForTimeout(150);
       note("一手戻すとカットインも閉じる", await page.locator(".ultimate-cutin.show").count() === 0);
       await page.locator('.speed-button[data-speed="fast"]').click();
-      // PR #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
       await finishReplay();
       await page.waitForTimeout(400);
+      const spentState = await page.evaluate(() => {
+        const saved = JSON.parse(localStorage.getItem("exp18-r10-auto-v02") || "null");
+        const run = saved?.run?.weaponRun;
+        return run ? {
+          selected: run.ultimateState.selectedSkillKeyByCharacter.lancer,
+          armed: run.ultimateState.armedByCharacter.lancer,
+          spent: run.ultimateState.spentCharacterIds.includes("lancer"),
+          seen: saved.profile.storyFlags.includes("ultimate_lesson_seen"),
+        } : null;
+      });
+      note("勝利時だけ必殺をStage 5のRunへ記録し、チュートリアルを完了する",
+        spentState?.selected === lessonKey && spentState?.armed === true
+          && spentState?.spent === true && spentState?.seen === true);
       const clearedNodes = page.locator('.encounter-archive .map-node.done');
       await clearedNodes.last().click();
       note("必殺を構えた第1戦に勝てる",
         await page.locator(".encounter-projection.record .encounter-report.recorded").count() === 1);
-      note("必殺の一戦の後も装備の候補は出ない",
+      note("必殺の一戦の後も装備候補を出さない",
         await page.locator(".reward-choices").count() === 0);
-      note("必殺技の一戦は一度きり（次の一戦では札が出ない）",
+      note("必殺技チュートリアルは一度きり",
         await page.locator(".ultimate-tutorial").count() === 0);
-      // 作者指摘 2026-09-13 — **誰が放ち終えて、誰が残しているか**が盤面から読める。
-      note("放った仲間だけが使用済みの印になる",
+      note("放ったナギだけが使用済み、他の二人は残数あり",
         await page.locator(".camp-top .party-ultimate.spent").count() === 1
           && await page.locator(".camp-top .party-ultimate.ready").count() === 2);
-      // 作者要望 2026-09-16 — 見出しの「技能点 · 隊全体」も落とし、技能点は人物の札が出す。
-      note("隊全体の合計はもう出さない",
-        await page.locator(".skill-points-badge").count() === 0);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      note("リロードしても必殺の使用済み印とチュートリアル完了が残る",
+        await page.locator(".camp-top .party-ultimate.spent").count() === 1
+          && await page.locator(".camp-top .party-ultimate.ready").count() === 2
+          && await page.locator(".ultimate-tutorial").count() === 0);
     }
 
     // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。

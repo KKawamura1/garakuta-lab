@@ -19,9 +19,13 @@ import {
   freshWeaponRunBattleState,
   validateWeaponRunBattleState,
 } from "./weapon-run-battle-state.mjs";
+import {
+  freshStage5UltimateState,
+  validateStage5UltimateState,
+} from "./weapon-stage5-ultimate.mjs";
 
 export const WEAPON_PROFILE_SCHEMA_VERSION = "ecology-weapon-profile-1";
-export const WEAPON_RUN_SCHEMA_VERSION = "ecology-weapon-run-2";
+export const WEAPON_RUN_SCHEMA_VERSION = "ecology-weapon-run-4";
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -89,9 +93,11 @@ export function freshWeaponRun({
   startingSkillKeysByCharacter = {},
   startingSkillPointsByCharacter = 0,
   battleState,
+  partyCharacterIds = characterIds,
   formationByCharacter,
   equipmentByCharacter,
   currentHpByCharacter,
+  ultimateState,
 } = {}) {
   const profileValidation = validateWeaponProfile(profile);
   if (!profileValidation.valid) throw new TypeError(profileValidation.errors[0].message);
@@ -109,6 +115,7 @@ export function freshWeaponRun({
     availableSkillNodeKeys: available,
   });
   const runBattleState = battleState ?? freshWeaponRunBattleState(characterIds, {
+    partyCharacterIds,
     formationByCharacter,
     equipmentByCharacter,
     currentHpByCharacter,
@@ -124,6 +131,7 @@ export function freshWeaponRun({
     skillProgression,
     loadout: freshWeaponSkillLoadout(characterIds),
     battleState: runBattleState,
+    ultimateState: ultimateState ?? freshStage5UltimateState(characterIds),
   };
 }
 
@@ -158,7 +166,7 @@ export function validateWeaponRun(run, { profile } = {}) {
   }
   const allowedFields = new Set([
     "schemaVersion", "runId", "profileId", "characterIds", "manifest", "skillProgression", "loadout",
-    "battleState",
+    "battleState", "ultimateState",
   ]);
   for (const field of Object.keys(run)) {
     if (!allowedFields.has(field)) addError(errors, "unknown_run_field", field, "このweapon Run形式にない欄です。");
@@ -211,6 +219,12 @@ export function validateWeaponRun(run, { profile } = {}) {
       unlockedSkillKeysByCharacter: unlocked,
     });
     errors.push(...loadoutValidation.errors.map((error) => ({ ...error, path: `loadout.${error.path}` })));
+    const ultimateValidation = validateStage5UltimateState(run.ultimateState, {
+      characterIds: run.characterIds,
+      skillProgression: run.skillProgression,
+      loadout: run.loadout,
+    });
+    errors.push(...ultimateValidation.errors.map((error) => ({ ...error, path: `ultimateState.${error.path}` })));
   }
   return { valid: errors.length === 0, errors };
 }
