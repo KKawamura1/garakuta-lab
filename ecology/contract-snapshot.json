@@ -18724,7 +18724,8 @@
         "amount": {
          "type": "status_stacks_scaled",
          "subject": "self",
-         "statusId": "armor_broken"
+         "statusId": "armor_broken",
+         "numerator": 1
         }
        }
       ],
@@ -18806,7 +18807,8 @@
         "amount": {
          "type": "status_stacks_scaled",
          "subject": "self",
-         "statusId": "fortified"
+         "statusId": "fortified",
+         "numerator": 2
         }
        }
       ],
