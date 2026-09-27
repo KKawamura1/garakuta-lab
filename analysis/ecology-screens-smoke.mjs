@@ -97,11 +97,18 @@ const displayContracts = [
   ["主軸技能の選択", app, '"select-weapon-primary"'],
   ["反応優先順位の操作", app, '"move-weapon-priority"'],
   ["技能カードのCSS", styles, ".stage5-skill-card"],
+  ["Stage4由来の地図・一覧切替", app, "select-stage5-skill-view"],
+  ["武器技能の前提線", app, "function layoutStage5SkillTreeConnectors()"],
+  ["選択時に詳細だけ更新する", app, "function refreshStage5SkillSelection()"],
+  ["地図のStage5 CSS", styles, ".stage5-skill-tree-card .weapon-skill-map"],
+  ["詳細盤を画面下へ固定する", styles, ".stage5-skill-tree-card .weapon-skill-sheet { position: fixed;"],
   ["反応優先列のCSS", styles, ".stage5-priority-row"],
-  // Stage 5 — 技能点と予約先は人物ごとの新しいweapon Runが表示し、選んだ節が所属する
-  // 武器グループを開く。チュートリアルの光る節だけは描画後に見える位置へ寄せる。
+  // Stage 5 — 技能点と予約先は人物ごとの新しいweapon Runが表示し、Stage 4の
+  // 地図／一覧と詳細盤を維持する。選択時は地図を作り直さず、チュートリアルの押し先を寄せる。
   ["技能点と予約先は人物ごとの技能画面が出す", app, '技能点 " + points + "</span>"'],
-  ["選んだ節の武器グループが開く", app, "nodes.some(({ key }) => key === active || key === state.selectedSkillNode)"],
+  ["武器技能タブを切り替える", app, "select-stage5-skill-weapon"],
+  ["選んだ節の武器ツリーが開く", app, "function stage5SkillSelectedNode("],
+  ["技能選択で詳細のみ更新する", app, "refreshStage5SkillSelection();"],
   ["描画のたびにチュートリアルの光る先を追う", app, "  focusTutorialSpot();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
   // 一つでも消えると、画面は静かなまま動き続ける（構文検査も単体試験も通る）。
@@ -183,7 +190,7 @@ const progressiveContracts = [
   ["敵の3列×2行盤面", app, "function expeditionEnemyBoard(encounter)"],
   ["敵セルの選択操作", app, "select-expedition-enemy"],
   ["選択した敵の詳細", app, "enemy-selection-detail"],
-  ["武器別技能一覧の折り畳み", app, "stage5-weapon-group"],
+  ["武器技能を地図または階層一覧で見る", app, "weapon-skill-list"],
   ["装備一覧の折り畳み", app, "progressive-details equipment-inventory"],
   ["主操作のCSS", styles, ".primary-action"],
   ["折り畳みのCSS", styles, ".progressive-details > summary"],
