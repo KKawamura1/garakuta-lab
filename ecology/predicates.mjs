@@ -73,6 +73,14 @@ export function evaluatePredicate(state, ctx, predicate) {
       return compareOp(predicate.op, raw, predicate.value);
     }
 
+    case "event_status_stacks": {
+      if (!ctx.event) return false;
+      const snapshot = ctx.event.values[predicate.key];
+      const stacks = snapshot && snapshot[predicate.statusId];
+      if (!Number.isSafeInteger(stacks)) return false;
+      return compareOp(predicate.op, stacks, predicate.value);
+    }
+
     case "history_count": {
       const actor = resolveSubject(state, ctx, predicate.subject);
       if (!actor) return false;
@@ -95,4 +103,3 @@ export function evaluatePredicate(state, ctx, predicate) {
 }
 
 export { getActor };
-

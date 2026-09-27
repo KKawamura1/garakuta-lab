@@ -32,6 +32,13 @@ import { resolveTargets } from "./selectors.mjs";
 import { BPS, evaluateValue, roundHalfUpDiv } from "./values.mjs";
 
 const DURATION_RANK = { round: 0, battle: 1 };
+const NEXT_ACTION_HIT_ORDINAL_BY_PLAN = new WeakMap();
+
+function nextActionHitOrdinal(actionPlan) {
+  const ordinal = NEXT_ACTION_HIT_ORDINAL_BY_PLAN.get(actionPlan) ?? 0;
+  NEXT_ACTION_HIT_ORDINAL_BY_PLAN.set(actionPlan, ordinal + 1);
+  return ordinal;
+}
 
 function sourceFields(ctx) {
   return {
@@ -166,6 +173,8 @@ export function applyEffect(rt, ctx, effect) {
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
+    case "remove_status_by_tag": return removeStatusByTag(rt, ctx, effect);
+    case "scale_status_stacks": return scaleStatusStacks(rt, ctx, effect);
     case "swap_positions": return swapPositions(rt, ctx, effect);
     case "pull_toward_source": return pullTowardSource(rt, ctx, effect);
     case "start_preparation": return startPreparation(rt, ctx, effect);
@@ -174,6 +183,7 @@ export function applyEffect(rt, ctx, effect) {
     case "wear_equipment": return wearEquipmentEffect(rt, ctx, effect);
     case "repair_equipment": return repairEquipmentEffect(rt, ctx, effect);
     case "modify_pending_amount": return modifyPendingAmount(rt, ctx, effect);
+    case "modify_pending_guard": return modifyPendingGuard(rt, ctx, effect);
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
@@ -302,14 +312,19 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
     baseTargetCount: baseTargetIds.length,
     plannedRecipientIds: Object.freeze([...plannedRecipients]),
     plannedTargetCount: plannedRecipients.size,
+    startingStatusStacks: ctx.ruleId === undefined
+      ? (ctx.pendingAction?.startingStatusStacks ?? Object.freeze({}))
+      : Object.freeze({}),
     effectPlans: Object.freeze(effectPlans),
     actionDamageExpansion,
   });
 }
 
-function actionPlanEventValues(actionPlan, effectPlan) {
+function actionPlanEventValues(actionPlan, effectPlan, actionHitOrdinal) {
   return {
     actionPlanId: actionPlan.id,
+    startingStatusStacks: actionPlan.startingStatusStacks,
+    ...(actionHitOrdinal === undefined ? {} : { actionHitOrdinal }),
     ...(effectPlan.effectIndex === undefined
       ? { actionDamageExpansionIndex: effectPlan.actionDamageExpansionIndex }
       : { effectIndex: effectPlan.effectIndex }),
@@ -367,6 +382,7 @@ function resolveActionDamageExpansion(rt, ctx, actionPlan) {
       undefined,
       actionPlan,
       effectPlan,
+      nextActionHitOrdinal(actionPlan),
     );
   }
 }
@@ -426,7 +442,7 @@ function reduceDefenses(rt, ctx, effect) {
       blockBefore,
       blockAfter,
       blockRemoved,
-    });
+    }, undefined, effect.tags ?? []);
     rt.settleAfterReactions();
   }
 }
@@ -448,13 +464,13 @@ function reduceBarrierPackets(target, amount) {
   return amount - remaining;
 }
 
-function emitDefenseReduced(rt, ctx, target, values, parentEventId) {
+function emitDefenseReduced(rt, ctx, target, values, parentEventId, tags = []) {
   rt.emit({
     type: "defense_reduced",
     ...sourceFields(ctx),
     parentEventId,
     targetActorIds: [target.instanceId],
-    tags: [],
+    tags,
     values,
   });
 }
@@ -518,6 +534,7 @@ function dealDamage(rt, ctx, effect) {
       hitSlot.amount,
       actionPlan,
       effectPlan,
+      nextActionHitOrdinal(actionPlan),
     );
     // Each damage instance is its own reaction boundary: defense-break and
     // other after rules settle before the next planned recipient/hit starts.
@@ -541,9 +558,9 @@ function expandPattern(state, primary, effect) {
 
 // R6 §4.4 — direct damage の軽減。**最低10%は通す。**
 // guard は hit ごとに引くので、同じ総係数なら多段は guard に弱く、単発大威力は強い。
-function afterGuard(rawAmount, target, guardPierceBps) {
+function afterGuard(rawAmount, target, guardPierceBps, guardModifier = 0) {
   const effectiveGuard = roundHalfUpDiv(
-    (target.guard ?? 0) * (BPS - (guardPierceBps ?? 0)),
+    Math.max(0, (target.guard ?? 0) + guardModifier) * (BPS - (guardPierceBps ?? 0)),
     BPS,
   );
   const floor = roundHalfUpDiv(rawAmount * 1_000, BPS);
@@ -766,6 +783,7 @@ function dealOneInstance(
   proposedOverride,
   actionPlan = null,
   effectPlan = null,
+  actionHitOrdinal = undefined,
 ) {
   const proposed = proposedOverride === undefined
     ? effectPlan
@@ -775,7 +793,7 @@ function dealOneInstance(
       )
     : Math.max(0, proposedOverride);
   const tags = effect.tags ?? [];
-  const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
+  const frame = { kind: "amount", amount: proposed, guardModifier: 0, targetActorIds: [target.instanceId] };
   const event = rt.emit(
     {
       type: "damage_proposed",
@@ -787,7 +805,7 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         ...(ctx.owner ? { distance: gridDistance(ctx.owner, target) } : {}),
-        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
+        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan, actionHitOrdinal) : {}),
       },
     },
     frame,
@@ -846,12 +864,12 @@ function dealOneInstance(
       blockRemoved: before - finalTarget.block,
       hitIndex,
       hitCount,
-    }, event.id);
+    }, event.id, tags);
     return;
   }
 
   // guard — hit ごとの固定軽減。heal と barrier には掛からない。
-  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps);
+  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps, frame.guardModifier);
 
   // barrier — 位置は v1 から動かしていないので、barrier だけを使う定義は挙動不変。
   const absorbed = absorbBarrier(rt, ctx, finalTarget, guarded, []);
@@ -953,7 +971,7 @@ function dealOneInstance(
       blockRemoved,
       hitIndex,
       hitCount,
-    }, event.id);
+    }, event.id, tags);
   }
 }
 
@@ -1202,10 +1220,25 @@ function addStatus(rt, ctx, effect) {
   const definition = rt.state.content.statuses[effect.statusId];
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
-    const stacks = effect.stacks ?? 1;
-    const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
+    const requested = effect.stacks === undefined
+      ? 1
+      : (typeof effect.stacks === "number" ? effect.stacks : evaluateValue(rt.state, ctx, effect.stacks));
+    if (requested <= 0) continue;
+    const frame = { kind: "amount", amount: requested, targetActorIds: [target.instanceId] };
+    const proposal = rt.emit({
+      type: "status_proposed",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: definition.tags ?? [],
+      values: { statusId: effect.statusId, stacks: requested },
+    }, frame);
+    const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
+    if (!finalTarget || !finalTarget.alive) continue;
+    const stacks = Math.max(0, Math.floor(frame.amount));
+    if (stacks <= 0) continue;
+    const existing = finalTarget.statuses.find((entry) => entry.statusId === effect.statusId);
     const before = existing ? existing.stacks : 0;
-    const after = Math.min(definition.maxStacks, before + stacks);
+    const after = definition.maxStacks === null ? before + stacks : Math.min(definition.maxStacks, before + stacks);
     if (after === before) continue;
     if (existing) existing.stacks = after;
     else {
@@ -1219,8 +1252,9 @@ function addStatus(rt, ctx, effect) {
     rt.emit({
       type: "status_added",
       ...sourceFields(ctx),
-      targetActorIds: [target.instanceId],
-      tags: [definition.polarity, definition.duration],
+      parentEventId: proposal.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags: [...new Set([definition.polarity, definition.duration, ...(definition.tags ?? [])])],
       values: { statusId: effect.statusId, added: after - before, stacks: after, duration: definition.duration },
     });
   }
@@ -1240,9 +1274,63 @@ function removeStatus(rt, ctx, effect) {
       type: "status_removed",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: ["effect"],
+      tags: [...new Set([
+        "effect",
+        ...(ctx.event?.tags ?? []),
+        ...(rt.state.content.statuses[effect.statusId]?.tags ?? []),
+      ])],
       values: { statusId: effect.statusId, removed, remaining: before - removed, cause: "effect" },
     });
+  }
+}
+
+function removeStatusByTag(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    const matching = target.statuses.filter((entry) => (
+      rt.state.content.statuses[entry.statusId]?.tags?.includes(effect.tag)
+    ));
+    for (const existing of matching) {
+      const definition = rt.state.content.statuses[existing.statusId];
+      const removed = existing.stacks;
+      target.statuses = target.statuses.filter((entry) => entry !== existing);
+      rt.emit({
+        type: "status_removed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: [...new Set(["effect", ...(ctx.event?.tags ?? []), ...(definition?.tags ?? [])])],
+        values: { statusId: existing.statusId, removed, remaining: 0, cause: "effect" },
+      });
+    }
+  }
+}
+
+function scaleStatusStacks(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
+    if (!existing) continue;
+    const before = existing.stacks;
+    const scaled = (BigInt(before) * BigInt(effect.numerator)) / BigInt(effect.denominator);
+    const after = Number(scaled > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : scaled);
+    if (after === before) continue;
+    existing.stacks = after;
+    if (after <= 0) {
+      target.statuses = target.statuses.filter((entry) => entry !== existing);
+      rt.emit({
+        type: "status_removed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: ["decay"],
+        values: { statusId: effect.statusId, removed: before, remaining: 0, cause: "decay" },
+      });
+    } else {
+      rt.emit({
+        type: "status_stacks_changed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: ["decay"],
+        values: { statusId: effect.statusId, before, after, removed: before - after },
+      });
+    }
   }
 }
 
@@ -1495,6 +1583,30 @@ function modifyPendingAmount(rt, ctx, effect) {
       after: frame.amount,
       delta: frame.amount - before,
       proposalEventId: ctx.event ? ctx.event.id : null,
+    },
+  });
+}
+
+function modifyPendingGuard(rt, ctx, effect) {
+  const frame = ctx.pending;
+  if (!frame || frame.kind !== "amount" || ctx.event?.type !== "damage_proposed") return;
+  const amount = evaluateValue(rt.state, ctx, effect.amount);
+  if (amount <= 0) return;
+  const before = frame.guardModifier ?? 0;
+  const delta = effect.operation === "decrease" ? -amount : amount;
+  frame.guardModifier = before + delta;
+  rt.emit({
+    type: "pending_guard_modified",
+    ...sourceFields(ctx),
+    targetActorIds: [...frame.targetActorIds],
+    tags: [effect.operation],
+    values: {
+      operation: effect.operation,
+      amount,
+      before,
+      after: frame.guardModifier,
+      delta,
+      proposalEventId: ctx.event.id,
     },
   });
 }

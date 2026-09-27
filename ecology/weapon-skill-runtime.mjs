@@ -18,14 +18,27 @@ export const STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS = Object.freeze([
   "banner:R", "banner:A1",
   "heavy_crossbow:R", "heavy_crossbow:A1",
 ]);
-const STAGE_5_INITIAL_NODE_KEY_SET = new Set(STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS);
+// Stage 6 opens only nodes whose catalog behavior has been implemented and
+// tested. Keep the Stage 5 starter contract separately so its 20-node boundary
+// remains explicit while weapon tracks are migrated one at a time.
+export const STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS = Object.freeze([
+  ...STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
+  "warhammer:A2",
+  "warhammer:A3",
+  "warhammer:AA1", "warhammer:AA2", "warhammer:AA3",
+  "warhammer:AB1", "warhammer:AB2", "warhammer:AB3",
+  "warhammer:B1", "warhammer:B2", "warhammer:B3",
+  "warhammer:BA1", "warhammer:BA2", "warhammer:BA3",
+  "warhammer:BB1", "warhammer:BB2", "warhammer:BB3",
+]);
+const IMPLEMENTED_NODE_KEY_SET = new Set(STAGE_6_IMPLEMENTED_WEAPON_SKILL_NODE_KEYS);
 
 const RUNTIME_DEFINITION_FIELDS_BY_KIND = Object.freeze({
   active: new Set([
     "id", "displayName", "apCost", "actionMode", "intrinsicPredicates",
     "targetQuery", "effects", "preparation", "tags",
   ]),
-  reactive: new Set(["id", "displayName", "tags", "rule"]),
+  reactive: new Set(["id", "displayName", "tags", "rule", "rules"]),
   passive: new Set(["id", "displayName", "tags", "rule", "rules", "statBonus"]),
   target: new Set(["id", "displayName", "query"]),
 });
@@ -69,9 +82,9 @@ function hasExecutablePayload(definition, kind) {
         && definition.preparation.completionEffects.length > 0);
   }
   if (kind === "reactive") {
-    return isRecord(definition.rule)
-      && Array.isArray(definition.rule.effects)
-      && definition.rule.effects.length > 0;
+    const rules = definition.rules ?? (definition.rule ? [definition.rule] : []);
+    return Array.isArray(rules)
+      && rules.some((rule) => isRecord(rule) && Array.isArray(rule.effects) && rule.effects.length > 0);
   }
   if (kind === "passive") {
     return (isRecord(definition.statBonus) && Object.keys(definition.statBonus).length > 0)
@@ -140,8 +153,8 @@ export function makeWeaponSkillRuntimeRegistry(definitions = {}) {
   for (const [nodeKey, definition] of Object.entries(definitions)) {
     const node = Object.hasOwn(WEAPON_SKILL_NODES, nodeKey) ? WEAPON_SKILL_NODES[nodeKey] : null;
     if (!node) throw new TypeError(`unknown weapon skill node: ${nodeKey}`);
-    if (!STAGE_5_INITIAL_NODE_KEY_SET.has(nodeKey)) {
-      throw new TypeError(`runtime definition is outside the Stage 5 initial node scope: ${nodeKey}`);
+    if (!IMPLEMENTED_NODE_KEY_SET.has(nodeKey)) {
+      throw new TypeError(`runtime definition is outside the implemented Stage 6 node scope: ${nodeKey}`);
     }
     if (!isRecord(definition)) {
       throw new TypeError(`runtime definition for ${nodeKey} must be an object.`);
@@ -192,8 +205,8 @@ export function validateWeaponSkillRuntimeRegistry(registry) {
       addError(errors, "unknown_runtime_node", path, "node key is not in the weapon catalog.");
       continue;
     }
-    if (!STAGE_5_INITIAL_NODE_KEY_SET.has(nodeKey)) {
-      addError(errors, "runtime_node_outside_initial_scope", path, "only the Stage 5 initial R/A1 nodes may be registered.");
+    if (!IMPLEMENTED_NODE_KEY_SET.has(nodeKey)) {
+      addError(errors, "runtime_node_outside_implemented_scope", path, "only explicitly implemented weapon nodes may be registered.");
       continue;
     }
     if (!isRecord(entry)) {
@@ -274,9 +287,9 @@ const RUNTIME_CONTENT_SECTION_BY_KIND = Object.freeze({
   passive: "passiveSkills",
 });
 
-// Stage 5 adapter: materialize registered definitions through the existing
-// battle engine's player content sections. Target-priority nodes stay outside
-// this adapter until the new BattleInput builder owns their selection semantics.
+// Materialize action and reaction definitions through the engine's content
+// sections. Target-priority nodes remain in the versioned registry and are
+// applied by the BattleInput builder to each character's selected main skill.
 export function compileWeaponSkillRuntimeContent(contentBundle, registry) {
   const validation = validateWeaponSkillRuntimeRegistry(registry);
   if (!validation.valid) {
@@ -289,6 +302,7 @@ export function compileWeaponSkillRuntimeContent(contentBundle, registry) {
   const next = { ...contentBundle };
   const projectedSections = {};
   for (const [nodeKey, entry] of Object.entries(registry.entries)) {
+    if (entry.kind === "target") continue;
     const section = RUNTIME_CONTENT_SECTION_BY_KIND[entry.kind];
     if (!section) {
       throw new TypeError("runtime node kind cannot be projected to engine content yet: " + entry.kind);

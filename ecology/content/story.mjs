@@ -181,14 +181,15 @@ export const ULTIMATE_LESSON = Object.freeze({
   maxRounds: 7,
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
   // Stage 5では長槍Rの必殺（全体・量3倍）で同じ問いを教える。Stage 5の通常攻撃は
-  // 最寄りの敵を選ぶため単体火力が安定する。必殺なし側を期限で敗北させつつ、
-  // 必殺あり側では誰も倒れずに切り返せるよう、盾兵のHPと敵の攻撃倍率を実測で合わせている。
-  enemyScaling: Object.freeze({ maxHpBps: 5_000, offenseBps: 8_500 }),
+  // 最寄りの敵を選ぶため単体火力が安定する。射手2体の集中攻撃だけで後衛が先に倒れないよう
+  // 射手ごとの攻撃倍率を抑え、そのぶん盾兵を硬くして、必殺なし側は7ラウンドで削り切れず、
+  // 必殺あり側は全員が生きたまま切り返せるよう実測で合わせている。
+  enemyScaling: Object.freeze({ maxHpBps: 5_500, offenseBps: 8_500 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
-    Object.freeze({ instanceId: "lesson_marksman_a", enemyActorId: "gray_marksman", position: "rear_left" }),
-    Object.freeze({ instanceId: "lesson_marksman_b", enemyActorId: "gray_marksman", position: "rear_right" }),
+    Object.freeze({ instanceId: "lesson_marksman_a", enemyActorId: "gray_marksman", position: "rear_left", offenseBps: 6_500 }),
+    Object.freeze({ instanceId: "lesson_marksman_b", enemyActorId: "gray_marksman", position: "rear_right", offenseBps: 6_500 }),
   ]),
   // **教える一手は content が決める。**人物 id とnode keyを app.js へ書き写さないので、
   // ここを変えれば錠と光も一緒に動く（灰の門の `PROLOGUE.tutorial` と同じ作り）。

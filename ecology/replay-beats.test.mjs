@@ -47,6 +47,17 @@ assert.ok(impact?.events.some((entry) => entry.type === "damage_absorbed"), "zer
 assert.ok(impact?.events.some((entry) => entry.type === "barrier_damaged"), "barrier consumption stays with the impact");
 assert.ok(impact?.events.some((entry) => entry.type === "defense_reduced"), "defense reductions stay with the impact");
 
+const warhammerInterrupts = buildBeats([
+  event("action_started", { skillId: "weapon.warhammer.bb3" }),
+  event("status_proposed", { values: { statusId: "staggered", stacks: 1 } }),
+  event("pending_guard_modified", { values: { before: 0, after: -2 } }),
+  event("damage_taken", { skillId: "weapon.warhammer.bb3", values: { amount: 4 } }),
+  event("status_stacks_changed", { values: { statusId: "fortified", before: 2, after: 1 } }),
+]);
+assert.equal(warhammerInterrupts.length, 1, "internal proposals and stack decay do not create replay beats");
+assert.ok(warhammerInterrupts[0].events.some((entry) => entry.type === "damage_taken"),
+  "the warhammer impact remains on the action beat");
+
 const preHitDefenseBreak = buildBeats([
   event("action_started", { skillId: "strike" }),
   event("defense_reduced", { skillId: "strike", values: { barrierRemoved: 1, blockRemoved: 0 } }),

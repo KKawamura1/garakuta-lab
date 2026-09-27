@@ -11,7 +11,7 @@ const freeze = (value) => Object.freeze(value);
 
 // PR #292 — required separate enemy active/reactive/passive registries and
 // enemyCoreActions. Enemy references are validated only against those sections.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-8";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-9";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -27,10 +27,9 @@ export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-// Stage 2f adds an explicit, interruptible event before an action fixes its
-// ActionPlan hit slots. Readers that understand only result-4 would miss this
-// planning window and the additional hit recorded from it.
-export const RESULT_SCHEMA_VERSION = "ecology-result-5";
+// Stage 2f added action planning events. Stage 6 adds status proposals, stack
+// decay, and guard modifiers; older readers would miss these resolution steps.
+export const RESULT_SCHEMA_VERSION = "ecology-result-6";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -110,6 +109,7 @@ export const EVENT_TYPES = freeze([
   "preparation_interrupted",
   // §6.4 hp and barrier
   "damage_proposed",
+  "status_proposed",
   // Issue #192 — a proposed packet can be fully absorbed without producing
   // damage_taken. The explicit result keeps that outcome observable.
   "damage_absorbed",
@@ -138,6 +138,7 @@ export const EVENT_TYPES = freeze([
   "actor_moved",
   "status_added",
   "status_removed",
+  "status_stacks_changed",
   "equipment_worn",
   "equipment_broken",
   "equipment_repaired",
@@ -150,6 +151,7 @@ export const EVENT_TYPES = freeze([
   // Emitted when an interrupt rule changes a pending damage, healing or barrier
   // amount. It is a record, not a hook: nothing may listen to it (see below).
   "pending_amount_modified",
+  "pending_guard_modified",
 ]);
 
 // §6 — reserved for later mechanics packs. Referencing one is a validator error,
@@ -169,6 +171,8 @@ export const RESERVED_EVENT_TYPES = freeze([
 export const NON_LISTENABLE_EVENT_TYPES = freeze([
   "resource_refreshed",
   "pending_amount_modified",
+  "pending_guard_modified",
+  "status_stacks_changed",
   "damage_absorbed",
   "damage_skipped",
   "recovery_window_closed",
@@ -187,6 +191,7 @@ export const PREPLAN_INTERRUPT_EVENT_TYPES = freeze([
 ]);
 export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   "damage_proposed",
+  "status_proposed",
   "healing_proposed",
   // DEVIATION (PREFLIGHT §14): §6 does not list a barrier proposal, but §15.4
   // requires a status that raises "the next damage, healing or barrier amount".
@@ -204,7 +209,10 @@ export const INTERRUPTIBLE_EVENT_TYPES = freeze([
 ]);
 
 export const RULE_TIMINGS = freeze(["interrupt", "after"]);
-export const LIMIT_SCOPES = freeze(["chain", "round", "battle"]);
+// `event` permits a rule once per triggering event in a chain. It supports
+// repeated per-hit/per-status responses without making one rule recurse on the
+// same event.
+export const LIMIT_SCOPES = freeze(["event", "chain", "round", "battle"]);
 
 // §8 — predicates.
 export const PREDICATE_TYPES = freeze([
@@ -216,6 +224,7 @@ export const PREDICATE_TYPES = freeze([
   "is_preparing",
   "event_tag",
   "event_value",
+  "event_status_stacks",
   "history_count",
   "target_exists",
   "round_number",
@@ -304,6 +313,8 @@ export const TARGET_SORT_TYPES = freeze([
   "position_asc",
   "position_desc",
   "distance_asc",
+  "block_desc",
+  "defense_priority_desc",
   "instance_id_asc",
 ]);
 // §9 — appended to every sort so no tie survives into take: 1.
@@ -328,6 +339,8 @@ export const EFFECT_TYPES = freeze([
   "gain_resource",
   "add_status",
   "remove_status",
+  "remove_status_by_tag",
+  "scale_status_stacks",
   "swap_positions",
   "pull_toward_source",
   "start_preparation",
@@ -338,6 +351,7 @@ export const EFFECT_TYPES = freeze([
   // item that repairs itself and §10.2 has no way to raise durability.
   "repair_equipment",
   "modify_pending_amount",
+  "modify_pending_guard",
   // 受けるダメージの一部を pending frame から所有者へ移す割り込み。
   // 軽減量と移送量を同じ提案から別々に評価できる。
   "split_pending_damage",
@@ -372,6 +386,7 @@ export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
@@ -385,6 +400,7 @@ export const PENDING_ACTION_EFFECT_TYPES = freeze([
 ]);
 export const PENDING_AMOUNT_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
 ]);
@@ -397,6 +413,8 @@ export const VALUE_TYPES = freeze([
   "event_value_scaled",
   "actor_stat_scaled",
   "status_stacks_scaled",
+  "event_value_stacks_percent",
+  "event_status_stacks_percent",
   // R6 §4.4 — PHASE A. flat + roundHalfUp(stat * coefficientBps / 10_000).
   // Kept separate from actor_stat_scaled because that one floors and has no
   // flat term; changing it would move every existing fixture amount.

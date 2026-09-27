@@ -1,7 +1,8 @@
-# dev移行台帳 — Stage 0〜5初期進捗
+# dev移行台帳 — Stage 0〜6初期進捗
 
 更新日: 2026-09-27
-状態: **Stage 0〜4はdevへ統合済み。Stage 5a〜5gはPR #331まで。Stage 5h/5iはローカル実装済み・未コミット。** 5h/5iで本編UI、weapon Run v4の保存・再開、live / forecast / Replayを初期20節のruntimeへ切り替え、アプリの旧player tree / level / pack / runtime依存を外した。390×844ブラウザtrialはこの環境のChromium起動クラッシュで未確認。残り170節は本Stageの実行範囲外で、registryの外に保つ。
+
+状態: **Stage 0〜5はdevへ統合済み。Stage 6では戦槌19節を実装し、初期20節を含む37節を実行可能にする。残る153節はfail-closed。戦槌全体をPR #336でレビュー中。**
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -141,6 +142,10 @@ Stage 2の共通解決順とActionPlanはdevで完了した。PR #299は先行�
 
 ## Stage 5切替の現在状態
 
-Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stage 5a〜5gはPR #331までで、5h/5iの実装はこのローカル作業にある。初期20節は本編の取得・装備・BattleInputに接続し、未実装170節は取得・表示・戦闘入力から閉じている。
+Stage 4の #312 → #313 → #316 → #317 → #318 はdevへ統合済み。Stage 5a〜5gはPR #331までで、Stage 5g後続修正PR #332と5h/5i本編切替PR #333もdevへ統合された。PR #334のPlaywright headless shell修正は#333へ取り込まれた。Stage 5切替計画と受け入れ範囲は[Stage 5切替計画](17-stage5-runtime-cutover.md)を参照する。
 
-変更内容・順序・旧player経路の撤去条件・環境上未確認の試験は[Stage 5切替計画](17-stage5-runtime-cutover.md)を参照。次の検証可能な残作業は、利用可能なChromium環境で390×844のbrowser trialを通すこと。
+## Stage 6の移行範囲
+
+Stage 6は武器単位に移行する。一つの武器の技能・共通engine機構・取得/UI/BattleInput・event testを同じPRでレビュー可能にする。戦槌ではStage 5初期20節にA2〜BB3の17節を足し、19節の武器ツリー全体を実装した。初期節を含む実行範囲は37節、残る153節は取得・表示・BattleInputから閉じている。
+
+戦槌runtime testは攻撃内通し番号、複数hit/対象の倍率、隣接拡張、反撃、対象優先、防御破砕、状態の追加・除去・減衰、攻撃開始時の堅牢snapshotをevent列・actor stateで固定する。Stage 6の残りは[Stage 6技能移行計画](18-stage6-skill-migration.md)を参照する。

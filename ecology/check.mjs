@@ -24,6 +24,7 @@ const SUITES = [
   "weapon-stage5-run.test.mjs",
   "weapon-skill-runtime.test.mjs",
   "weapon-skill-runtime-warden.test.mjs",
+  "weapon-skill-runtime-warhammer.test.mjs",
   "weapon-skill-runtime-tsugumi.test.mjs",
   "weapon-skill-runtime-nagi-spear.test.mjs",
   "weapon-skill-runtime-nagi-shield.test.mjs",

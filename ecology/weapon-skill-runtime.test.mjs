@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { WEAPON_SKILL_NODES } from "./weapon-loadout.mjs";
+import { validateContentBundle } from "./validate.mjs";
+import { stage5ContentBundle } from "./weapon-stage5-content.mjs";
 import {
   availableWeaponSkillNodeKeys,
   freshWeaponPackProfile,
@@ -10,6 +12,7 @@ import {
   STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS,
   WEAPON_SKILL_RUNTIME_REGISTRY_SCHEMA_VERSION,
   availableExecutableWeaponSkillNodeKeys,
+  compileWeaponSkillRuntimeContent,
   makeWeaponSkillRuntimeRegistry,
   validateWeaponSkillRuntimeRegistry,
   weaponSkillNodeKeyFromRuntimeId,
@@ -115,18 +118,33 @@ const definitions = Object.fromEntries(implementedNodeKeys.map((nodeKey) => [
   schemaValidDefinitionFixture(nodeKey),
 ]));
 const registry = makeWeaponSkillRuntimeRegistry(definitions);
+const stage5Content = stage5ContentBundle();
+const coreActionIds = Object.values(stage5Content.coreActions)
+  .flatMap((byReach) => Object.values(byReach));
+assert.deepEqual(
+  Object.keys(stage5Content.activeSkills).sort(),
+  [...new Set(coreActionIds)].sort(),
+  "Stage 5 keeps the engine's generic core actions but strips legacy player actives",
+);
+assert.ok(!Object.hasOwn(stage5Content.activeSkills, "steady_cut"));
+const compiledStage5Content = compileWeaponSkillRuntimeContent(stage5Content, registry);
+assert.deepEqual(
+  validateContentBundle(compiledStage5Content),
+  [],
+  "projecting the initial weapon skills leaves all core action references valid",
+);
 assert.equal(validateWeaponSkillRuntimeRegistry(registry).valid, true);
 assert.deepEqual(availableExecutableWeaponSkillNodeKeys(manifest, registry), implementedNodeKeys,
   "only initial-scope nodes with engine-schema-valid definitions and unlocked packs are available");
 assert.equal(availableExecutableWeaponSkillNodeKeys(manifest, EMPTY_WEAPON_SKILL_RUNTIME_REGISTRY).length, 0,
   "catalog entries without runtime definitions are not exposed as executable");
 
-const nonInitialNodeKey = "warhammer:A2";
+const nonInitialNodeKey = "gauntlets:AA1";
 assert.ok(!STAGE_5_INITIAL_WEAPON_SKILL_NODE_KEYS.includes(nonInitialNodeKey));
 assert.throws(
   () => makeWeaponSkillRuntimeRegistry({ [nonInitialNodeKey]: schemaValidDefinitionFixture(nonInitialNodeKey) }),
-  /outside the Stage 5 initial node scope/,
-  "out-of-scope nodes cannot be registered even when their pack is enabled",
+  /outside the implemented Stage 6 node scope/,
+  "unimplemented nodes cannot be registered even when their pack is enabled",
 );
 const outOfScopeRegistry = {
   ...registry,
@@ -141,7 +159,7 @@ const outOfScopeRegistry = {
   },
 };
 assert.ok(validateWeaponSkillRuntimeRegistry(outOfScopeRegistry).errors
-  .some((error) => error.code === "runtime_node_outside_initial_scope"));
+  .some((error) => error.code === "runtime_node_outside_implemented_scope"));
 
 const medicalProfile = freshWeaponPackProfile({
   unlockedSkillPackIds: ["skill:medical_kit"],

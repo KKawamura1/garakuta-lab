@@ -178,6 +178,23 @@ function validateValue(bag, path, value, ctx) {
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
       break;
+    case "event_value_stacks_percent":
+      for (const keyName of ["key", "stacksKey"]) {
+        if (typeof value[keyName] !== "string" || value[keyName].length === 0) {
+          bag.add(`${path}.${keyName}`, "bad_key", `event_value_stacks_percent needs a ${keyName}`);
+        }
+      }
+      requireCount(bag, `${path}.percentPerStack`, value.percentPerStack, { min: 1, max: 100_000 });
+      break;
+    case "event_status_stacks_percent":
+      for (const keyName of ["key", "stacksKey"]) {
+        if (typeof value[keyName] !== "string" || value[keyName].length === 0) {
+          bag.add(`${path}.${keyName}`, "bad_key", `event_status_stacks_percent needs a ${keyName}`);
+        }
+      }
+      requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      requireCount(bag, `${path}.percentPerStack`, value.percentPerStack, { min: 1, max: 100_000 });
+      break;
     default:
       break;
   }
@@ -345,6 +362,14 @@ function validatePredicate(bag, path, predicate, ctx) {
       } else if (typeof predicate.value === "number" && !Number.isFinite(predicate.value)) {
         bag.add(`${path}.value`, "not_a_number", "event_value.value must be finite");
       }
+      break;
+    case "event_status_stacks":
+      if (typeof predicate.key !== "string" || predicate.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "event_status_stacks needs a values key");
+      }
+      requireStatusReference(bag, `${path}.statusId`, predicate.statusId, ctx);
+      requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
+      requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
       break;
     case "history_count":
       validateSubject(bag, `${path}.subject`, predicate.subject, ctx);
@@ -539,6 +564,7 @@ function validateEffect(bag, path, effect, ctx) {
       if ((effect.barrierBps ?? 0) === 0 && effect.clearBlock !== true) {
         bag.add(path, "no_defense_reduction", "barrierBps must be positive or clearBlock must be true");
       }
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
     case "gain_block":
@@ -554,7 +580,10 @@ function validateEffect(bag, path, effect, ctx) {
     case "add_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       requireStatusReference(bag, `${path}.statusId`, effect.statusId, ctx);
-      if (effect.stacks !== undefined) requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
+      if (effect.stacks !== undefined) {
+        if (typeof effect.stacks === "number") requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
+        else validateValue(bag, `${path}.stacks`, effect.stacks, ctx);
+      }
       break;
     case "remove_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -562,6 +591,18 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.stacks !== undefined && effect.stacks !== "all") {
         requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
       }
+      break;
+    case "remove_status_by_tag":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      if (typeof effect.tag !== "string" || effect.tag.length === 0) {
+        bag.add(`${path}.tag`, "bad_tag", "remove_status_by_tag needs a tag string");
+      }
+      break;
+    case "scale_status_stacks":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      requireStatusReference(bag, `${path}.statusId`, effect.statusId, ctx);
+      requireCount(bag, `${path}.numerator`, effect.numerator, { min: 0 });
+      requireCount(bag, `${path}.denominator`, effect.denominator, { min: 1 });
       break;
     case "swap_positions":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
@@ -601,6 +642,13 @@ function validateEffect(bag, path, effect, ctx) {
       break;
     case "modify_pending_amount":
       requireOneOf(bag, `${path}.operation`, effect.operation, PENDING_AMOUNT_OPERATIONS, "unknown_operation");
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      break;
+    case "modify_pending_guard":
+      if (ctx.listenTo !== "damage_proposed" || ctx.timing !== "interrupt") {
+        bag.add(path, "no_pending_guard", "modify_pending_guard needs a damage_proposed interrupt");
+      }
+      requireOneOf(bag, `${path}.operation`, effect.operation, ["increase", "decrease"], "unknown_operation");
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "split_pending_damage":
@@ -847,7 +895,14 @@ export function validateContentBundle(bundle) {
       const path = `${section}.${id}`;
       requireDisplayName(bag, `${path}.displayName`, skill.displayName);
       requireTags(bag, `${path}.tags`, skill.tags);
-      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+      if (skill.rules !== undefined) {
+        if (skill.rule !== undefined) {
+          bag.add(path, "ambiguous_reactive_rules", "use either rule or rules, not both");
+        }
+        validateRules(bag, `${path}.rules`, skill.rules, baseCtx);
+      } else {
+        validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+      }
     }
   }
 
@@ -920,7 +975,11 @@ export function validateContentBundle(bundle) {
     const path = `statuses.${id}`;
     requireDisplayName(bag, `${path}.displayName`, status.displayName);
     requireOneOf(bag, `${path}.polarity`, status.polarity, STATUS_POLARITIES, "unknown_polarity");
-    requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    if (status.maxStacks === null) {
+      // null is the explicit representation for a status with no stack cap.
+    } else {
+      requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    }
     requireOneOf(bag, `${path}.duration`, status.duration, DURATIONS, "unknown_duration");
     requireTags(bag, `${path}.tags`, status.tags);
     validateRules(bag, `${path}.rules`, status.rules, baseCtx);

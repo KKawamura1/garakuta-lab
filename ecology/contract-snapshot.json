@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.22",
+ "contentVersion": "ecology-playable-full-0.23",
  "content": {
-  "schemaVersion": "ecology-content-8",
-  "contentVersion": "ecology-playable-full-0.22",
+  "schemaVersion": "ecology-content-9",
+  "contentVersion": "ecology-playable-full-0.23",
   "characters": {
    "warden": {
     "id": "warden",
@@ -18683,6 +18683,173 @@
      "debuff"
     ]
    },
+   "armor_broken": {
+    "id": "armor_broken",
+    "displayName": "破甲",
+    "polarity": "negative",
+    "maxStacks": null,
+    "duration": "battle",
+    "rules": [
+     {
+      "id": "armor_broken_guard_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 44,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "armor_broken",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_guard",
+        "operation": "decrease",
+        "amount": {
+         "type": "status_stacks_scaled",
+         "subject": "self",
+         "statusId": "armor_broken",
+         "numerator": 1
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "event",
+       "count": 1
+      }
+     },
+     {
+      "id": "armor_broken_round_decay_rule",
+      "listenTo": "round_ended",
+      "timing": "after",
+      "priority": 50,
+      "predicates": [],
+      "costs": [],
+      "effects": [
+       {
+        "type": "scale_status_stacks",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "armor_broken",
+        "numerator": 1,
+        "denominator": 2
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "debuff"
+    ]
+   },
+   "fortified": {
+    "id": "fortified",
+    "displayName": "堅牢",
+    "polarity": "positive",
+    "maxStacks": null,
+    "duration": "battle",
+    "rules": [
+     {
+      "id": "fortified_guard_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 44,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "fortified",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_guard",
+        "operation": "increase",
+        "amount": {
+         "type": "status_stacks_scaled",
+         "subject": "self",
+         "statusId": "fortified",
+         "numerator": 2
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "event",
+       "count": 1
+      }
+     },
+     {
+      "id": "fortified_round_decay_rule",
+      "listenTo": "round_ended",
+      "timing": "after",
+      "priority": 50,
+      "predicates": [],
+      "costs": [],
+      "effects": [
+       {
+        "type": "scale_status_stacks",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "fortified",
+        "numerator": 1,
+        "denominator": 2
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "guard",
+     "buff"
+    ]
+   },
    "warded": {
     "id": "warded",
     "displayName": "守勢",
@@ -22001,6 +22168,18 @@
      "playable",
      "mark"
     ]
+   },
+   "echoing_iron_armed": {
+    "id": "echoing_iron_armed",
+    "displayName": "響く鉄",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark"
+    ]
    }
   },
   "enemyActors": {
@@ -23406,11 +23585,14 @@
   "exposed": "隙",
   "focused": "集中",
   "staggered": "怯み",
+  "armor_broken": "破甲",
+  "fortified": "堅牢",
   "warded": "守勢",
   "bleeding": "裂傷",
   "lured": "誘引",
   "ultimate_spent": "必殺",
   "banner_order_used": "号令済み",
+  "echoing_iron_armed": "響く鉄",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
   "still_husk": "動かない灰殻",

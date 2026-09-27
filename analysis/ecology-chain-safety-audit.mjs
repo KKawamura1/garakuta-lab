@@ -169,7 +169,7 @@ function collectContent(bundle) {
 function isFiniteLimit(limit) {
   return Boolean(limit)
     && LIMIT_OWNER_BASES.has(limit.owner)
-    && ["chain", "round", "battle"].includes(limit.scope)
+    && ["event", "chain", "round", "battle"].includes(limit.scope)
     && Number.isSafeInteger(limit.count)
     && limit.count >= 1;
 }
@@ -294,7 +294,7 @@ function auditExcessHealingDefinitions(rules) {
 function auditLimits(rules) {
   const violations = [];
   const rows = [];
-  const scopeCounts = { chain: 0, round: 0, battle: 0 };
+  const scopeCounts = { event: 0, chain: 0, round: 0, battle: 0 };
   for (const record of rules) {
     rows.push({ path: record.path, owner: record.ownerBasis, scope: record.rule.limit?.scope });
     if (!LIMIT_OWNER_BASES.has(record.ownerBasis)) {
@@ -771,6 +771,11 @@ check(auditLimits([{
   ownerBasis: "unknown-owner",
   rule: { ...badResourceRule.rule, limit: { owner: "unknown-owner", scope: "unknown_unit", count: 0 } },
 }]).violations.length > 0, "unreadable limit declaration is detected");
+check(auditLimits([{
+  path: "audit.event_limit",
+  ownerBasis: "actor-instance + rule",
+  rule: { ...badResourceRule.rule, limit: { owner: "actor-instance + rule", scope: "event", count: 1 } },
+}]).violations.length === 0, "event-scoped limits are finite and recognized");
 check(auditExcessHealingDefinitions([{
   path: "audit.bad_excess_rule",
   rule: {
@@ -808,4 +813,4 @@ function* RARITY_PROBES() {
 console.log(`chain-safety audit: PASS (${checks} checks)`);
 console.log(`  inspected: ${current.activeSkills.length} active skills, ${current.rules.length} reachable rules, ${generatedRules.length} generated rules`);
 console.log(`  AP/RP outputs: ${resourceAudit.rows.length} (creation ${resourceAudit.flowCounts.creation}, transfer ${resourceAudit.flowCounts.transfer}); damage_taken guards: ${current.rules.filter(({ rule }) => rule.listenTo === DAMAGE_EVENT).length}; excess-healing reactions: ${excessAudit.rows.length}`);
-console.log(`  limit declarations: ${limitAudit.rows.length} (chain ${limitAudit.scopeCounts.chain}, round ${limitAudit.scopeCounts.round}, battle ${limitAudit.scopeCounts.battle}); excluded fixture witnesses: ${current.excluded.join(", ") || "none"}`);
+console.log(`  limit declarations: ${limitAudit.rows.length} (event ${limitAudit.scopeCounts.event}, chain ${limitAudit.scopeCounts.chain}, round ${limitAudit.scopeCounts.round}, battle ${limitAudit.scopeCounts.battle}); excluded fixture witnesses: ${current.excluded.join(", ") || "none"}`);
