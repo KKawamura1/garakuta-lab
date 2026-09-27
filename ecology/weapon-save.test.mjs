@@ -23,7 +23,7 @@ const profile = freshWeaponProfile({
   unlockedEquipmentPackIds: ["equipment:family_edge"],
 });
 assert.equal(WEAPON_PROFILE_SCHEMA_VERSION, "ecology-weapon-profile-1");
-assert.equal(WEAPON_RUN_SCHEMA_VERSION, "ecology-weapon-run-1");
+assert.equal(WEAPON_RUN_SCHEMA_VERSION, "ecology-weapon-run-2");
 assert.equal(WEAPON_SKILL_PACKS.length, 10);
 assert.equal(validateWeaponProfile(profile).valid, true);
 
@@ -71,17 +71,31 @@ assert.equal(validateWeaponRun(run, { profile }).valid, true);
 const runRoundTrip = serializeWeaponRun(run, { profile });
 assert.equal(runRoundTrip.ok, true);
 assert.deepEqual(deserializeWeaponRun(runRoundTrip.json, { profile }), { ok: true, run });
+assert.deepEqual(run.battleState.formationByCharacter, { gou: "front_left", tsugumi: "rear_right" });
+assert.deepEqual(run.battleState.equipmentByCharacter, { gou: [], tsugumi: [] });
+assert.deepEqual(run.battleState.currentHpByCharacter, { gou: null, tsugumi: null });
 assert.equal(serializeWeaponRun(run).code, "missing_profile_context");
 assert.equal(deserializeWeaponRun(runRoundTrip.json).code, "missing_profile_context");
 
 const unsupportedRun = { ...run, schemaVersion: "ecology-weapon-run-0" };
 assert.equal(deserializeWeaponRun(JSON.stringify(unsupportedRun), { profile }).code, "unsupported_version");
+const previousRunSchema = { ...run, schemaVersion: "ecology-weapon-run-1" };
+assert.equal(deserializeWeaponRun(JSON.stringify(previousRunSchema), { profile }).code, "unsupported_version");
 const legacyRun = { ...run, skillLevels: { gou: { legacy_skill_id: 4 } } };
 assert.ok(validateWeaponRun(legacyRun, { profile }).errors.some((error) => error.code === "unknown_run_field"));
 const wrongProfileId = { ...run, profileId: "another-profile" };
 assert.ok(validateWeaponRun(wrongProfileId, { profile }).errors.some((error) => error.code === "profile_mismatch"));
 const wrongRoster = { ...run, characterIds: ["gou"] };
 assert.ok(validateWeaponRun(wrongRoster, { profile }).errors.some((error) => error.code === "roster_mismatch"));
+const duplicatePosition = {
+  ...run,
+  battleState: {
+    ...run.battleState,
+    formationByCharacter: { gou: "front_left", tsugumi: "front_left" },
+  },
+};
+assert.ok(validateWeaponRun(duplicatePosition, { profile }).errors
+  .some((error) => error.code === "duplicate_formation_position"));
 const forbiddenSkill = {
   ...run,
   skillProgression: {
