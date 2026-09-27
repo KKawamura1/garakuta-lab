@@ -109,7 +109,7 @@ import {
 // actor参照へ `foe_*` namespaceを付けた。schema節とevent上のskill/rule IDが変わるため上げる。
 // PR #327 / Stage 5d — 誘引状態と敵の単体攻撃 redirect を公開。
 // PR #328 / Stage 5e — 距離順対象選択と鉤縄の強制移動を公開。
-// PR #332 / Stage 5 review — 有効hit数を8へ揃え、隙・怯み・守勢を全hitへ適用する。
+// PR #332 / Stage 5 review — hit上限を30へ揃え、隙・怯み・守勢を全hitへ適用する。
 export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-32";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
