@@ -140,18 +140,18 @@ assert.equal(bannerRoundLimitBattle.events.filter((event) =>
   event.type === "resource_gained" && event.skillId === BANNER_R).length, 1,
 "号令 can grant AP only once in a round even when the actor has another activation");
 
-// When AP ties, a preparing ally wins before formation order. The one-action
-// round limit leaves its preparation pending until the banner's next turn.
+// Preparation wins even when another ally has fewer AP. The one-action
+// round limit leaves the preparing ally pending until the banner's next turn.
 const prepPriorityBattle = simulateBattle(battle("stage5f_banner_prep_priority", [
   ally("a_genzo", "mender", "front_left", BANNER_R, [BANNER_A1]),
   ally("a_preparing", "warden", "front_center", CROSSBOW_R),
   ally("a_not_preparing", "lancer", "front_right", null),
-], 2), contentFor(), { maxActivationsPerActorPerRound: 1 });
+], 2), contentFor({ characterAp: { warden: 2, lancer: 0 } }), { maxActivationsPerActorPerRound: 1 });
 const roundTwoGrant = prepPriorityBattle.events.find((event) =>
   event.type === "resource_gained" && event.skillId === BANNER_R && event.round === 2);
 assert.deepEqual(roundTwoGrant?.targetActorIds, ["a_preparing"]);
 
-// 号令 resolves by lowest AP, then preparing status, then stable actor ID.
+// 号令 resolves by preparation status, then lowest AP, then stable actor ID.
 const fixedActorOrderBattle = simulateBattle(battle("stage5f_banner_actor_order", [
   ally("a_genzo", "mender", "front_left", BANNER_R),
   ally("z_person", "warden", "front_center", null),
