@@ -1,12 +1,12 @@
 import { makeWeaponSkillRuntimeRegistry, weaponSkillRuntimeId } from "./weapon-skill-runtime.mjs";
 
-const LOWEST_AP_ALLY = {
+const PRIORITIZED_BANNER_ALLY = {
   scope: "allies",
   filters: [
     { type: "alive" },
     { type: "not_self" },
   ],
-  sort: ["action_points_asc", "is_preparing_desc", "instance_id_asc"],
+  sort: ["is_preparing_desc", "action_points_asc", "instance_id_asc"],
   take: 1,
 };
 const EVENT_TARGET = {
@@ -34,7 +34,7 @@ function bannerOrder() {
       op: "eq",
       value: 0,
     }],
-    targetQuery: LOWEST_AP_ALLY,
+    targetQuery: PRIORITIZED_BANNER_ALLY,
     effects: [
       {
         type: "gain_resource",
