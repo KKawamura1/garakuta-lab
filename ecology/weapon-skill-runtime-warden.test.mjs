@@ -148,6 +148,10 @@ const combinedSequence = runSkill(
     [COMBINED_PASSIVE_PROBE_ID]: {
       ...projected.passiveSkills[WARHAMMER_A1],
       id: COMBINED_PASSIVE_PROBE_ID,
+      rule: {
+        ...projected.passiveSkills[WARHAMMER_A1].rule,
+        id: COMBINED_PASSIVE_PROBE_ID + ".first-hit",
+      },
       rules: projected.passiveSkills[GAUNTLETS_A1].rules.map((rule) => ({
         ...rule,
         id: COMBINED_PASSIVE_PROBE_ID + "." + rule.id,
