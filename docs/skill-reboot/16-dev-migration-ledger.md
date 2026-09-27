@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0〜5初期進捗
 
 更新日: 2026-09-26  
-状態: **Stage 0〜4完了。Stage 5は実装中。** Stage 0〜4はdevへ統合済み。Stage 5では #319〜#323 の計画・runtime registry境界に続き、#321でゴウの戦槌・格闘具、Stage 5cでツグミの射出器・医療具、Stage 5dでナギの長槍・大盾R / A1、Stage 5eでヒバナの鉤縄R / A1を共通engineへ接続する。現行BattleInput・画面・保存は未接続で、初期20のうち残り6節と残り170節の実装は未完了。
+状態: **Stage 0〜4完了。Stage 5は実装中。** Stage 0〜4はdevへ統合済み。Stage 5では #319〜#323 の計画・runtime registry境界に続き、#321でゴウの戦槌・格闘具、Stage 5cでツグミの射出器・医療具、Stage 5dでナギの長槍・大盾R / A1、Stage 5eでヒバナの鉤縄・双刃R / A1を共通engineへ接続する。現行BattleInput・画面・保存は未接続で、初期20のうち残り4節と残り170節の実装は未完了。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -11,8 +11,8 @@
 - Stage 5b: ゴウの戦槌・格闘具のR / A1を登録し、active/passive定義を既存engine contentへ投影。hit番号ごとのpassive ruleとイベント列を検証。
 - Stage 5c: ツグミの射出器・医療具のR / A1を登録。遠隔攻撃の初撃強化、HP50%以下への被弾後回復、低HP割合対象への防壁を共有engineで検証。
 - Stage 5d: ナギの長槍・大盾のR / A1を登録。長射程攻撃、距離2以上の各hit強化、誘引による単体攻撃の対象変更、防壁受け手への+15を共有engineで検証。
-- Stage 5e: ヒバナの鉤縄R / A1を登録。最短敵の選択、空きマスへの1マス引き、塞がれた移動先での全hit +15を共有engineで検証。
-- 未完了: 初期20節のうち残り6節、run stateからBattleInputを作る経路、本編UI、save/reload、preview/replay、本編runtimeの切替、残り170節。
+- Stage 5e: ヒバナの鉤縄・双刃R / A1を登録。鉤縄の最短敵選択・1マス引きと塞がれた移動先での全hit +15、双刃の2hit攻撃と武器不問の全hit +10を共有engineで検証。
+- 未完了: 初期20節のうち残り4節、run stateからBattleInputを作る経路、本編UI、save/reload、preview/replay、本編runtimeの切替、残り170節。
 
 ## 基準スナップショット
 
