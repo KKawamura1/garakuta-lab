@@ -483,11 +483,11 @@ export const BATTLE_REASONS = freeze([
   "stalemate",
 ]);
 
-// Per-action ceiling from the current skill catalog: 千客万来 reaches 2 base hits +
-// at most 6 setup hits. Per-hit rules get one indexed rule per legal hit because a
-// rule may fire only once in a chain. This is a content/event-model limit, not an
-// animation or fixed-memory limit.
-export const MAX_ACTION_HIT_COUNT = 8;
+// Per-action ceiling leaves headroom above the current catalog maximum of 8 hits
+// (千客万来: 2 base hits + at most 6 setup hits). Per-hit rules use one indexed rule
+// per legal hit because each rule may fire only once in a chain. This is a content
+// and event-model guardrail, not an animation or fixed-memory limit.
+export const MAX_ACTION_HIT_COUNT = 30;
 
 // §5.3, §5.5, §5.7 — structural limits that content may not exceed.
 export const LIMITS = freeze({
