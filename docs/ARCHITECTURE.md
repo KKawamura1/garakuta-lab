@@ -28,7 +28,7 @@
 | `app.js` | UI（タイトル画面を含む）、local save、進行、送信 payload |
 | `engine.mjs` | 決定的な戦闘解決 |
 | `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
-| `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
+| `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順。damage proposalへ盤面のrow/column距離を記録する |
 | `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁、必殺印の勘定 |
 | `weapon-loadout.mjs` | Stage 3 の移行用ロードアウト契約。190節のカタログ位置から一つの主軸とリアクティブ／ターゲット優先列を検証する。現在のruntimeからはまだ参照しない |
@@ -38,6 +38,7 @@
 | `weapon-skill-runtime.mjs` | Stage 5a のruntime registry境界。190節のnode keyからengine IDを可逆に導くが、登録できるのは初期20のR/A1だけ。skill定義は共通content validatorで検査し、Manifestとregistryの積集合を返す。本編の取得・loadout・BattleInputにはまだ未接続 |
 | `weapon-skill-runtime-warden.mjs` / `weapon-skill-runtime-warden.test.mjs` | Stage 5b のゴウ初期4節。戦槌・格闘具のactive / passive定義を新runtime IDで登録し、共通engineへ投影してhit番号ごとの補正eventを検証する |
 | `weapon-skill-runtime-tsugumi.mjs` / `weapon-skill-runtime-tsugumi.test.mjs` | Stage 5c のツグミ初期4節。射出器・医療具のactive / passive / reactive定義を新runtime IDで登録し、遠隔初撃、低HP割合選択、防壁、被弾後回復の実挙動を検証する |
+| `weapon-skill-runtime-nagi-spear.mjs` / `weapon-skill-runtime-nagi-spear.test.mjs` | Stage 5d のナギ長槍R/A1。長射程の貫き突きと、距離2以上で各hitを強化する遠間の読みを新runtime IDで登録し、盤面距離イベントを共通engineで検証する |
 | `weapon-skill-prototype.html` / `weapon-skill-prototype.js` / `weapon-skill-prototype.mjs` / `weapon-skill-prototype.css` | Stage 4 の独立UIプレビュー。190節をPR #289の地図／一覧・役割丸記号・効果バッジ・効果のみの詳細盤で表示し、固定loadout fixtureとStage 3 APIを使う予約デモも示す。予測値はengine未接続中はnullとし、内部位置名を画面へ出さず、本編の取得・保存・報酬・戦闘には接続しない |
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
