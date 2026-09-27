@@ -1374,8 +1374,8 @@ export const WEAPON_SKILL_SPECIFICATIONS = Object.freeze([
     "position": "R",
     "kind": "active",
     "displayName": "号令",
-    "implementationContract": "APが最も少ない自分以外の生存味方1人へAP1。同率は準備中、さらに固定の人物順。自分は選べず、号旗のAP付与主軸は同じ人物がラウンド1回だけ使用できる。",
-    "displayEffect": "自分以外のAPが最も少ない味方1人にAP1。号旗のAP付与主軸は各人物ラウンド1回。",
+    "implementationContract": "準備中の自分以外の生存味方がいれば、その中でAPが最も少ない1人へAP1。準備中がいなければ、自分以外でAP最少の生存味方1人へAP1。同率は安定した人物ID順。号旗のAP付与主軸は同じ人物がラウンド1回だけ使用できる。",
+    "displayEffect": "準備中の味方を優先し、いなければAP最少の味方1人にAP1。",
     "flavorText": "声が届く限り、次の一歩は止まらない。"
   },
   {
