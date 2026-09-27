@@ -4406,6 +4406,7 @@ function stage5BattleOptions(composed, { formationByCharacter } = {}) {
 // 予測は毎 render で戦闘を1回まわす。**入力が変わっていなければ前回の答えを使う。**
 // 決定的 engine なので、同じ入力なら同じ結果になる（この cache は結果を変えない）。
 let forecastCache = { key: null, value: null };
+let forecastErrorLogged = false;
 
 // **鍵は、戦闘が読む入力を全部数える。**数え落とした欄は「変えたのに予測が動かない」
 // になり、予測が壊れているのか変わらないのかを画面から区別できなくなる。
@@ -4465,7 +4466,11 @@ function battleForecast() {
         };
       }),
     };
-  } catch {
+  } catch (error) {
+    if (!forecastErrorLogged) {
+      forecastErrorLogged = true;
+      console.error("battleForecast failed:", error?.stack ?? String(error));
+    }
     value = null;
   }
   forecastCache = { key, value };
