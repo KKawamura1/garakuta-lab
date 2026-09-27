@@ -484,20 +484,32 @@ try {
   await page.waitForTimeout(200);
   note("手動セーブからCampへ戻れる", await page.locator(".camp-top .forecast-bar").count() === 1);
 
-  // Stage 5 h — 390px 幅で人物ごとの武器技能一覧を確認する。
-  // 旧skill tree / level / pack UIはすでに切り替え済みなので、今の武器Run操作と
-  // 初期20節の表示境界、そしてStage 0で必殺を見せないことを実際のDOMで確かめる。
+  // Stage 5 h — 390px 幅で人物ごとの武器技能地図を確認する。
+  // 初期20節は武器ごとのタブに分け、Stage 4由来の地図／階層一覧で見せる。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillHelp = page.locator('details[data-help="stage5-skill-rules"]');
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
   const stage5Nodes = page.locator(".stage5-skill-card");
-  note("初期20節だけが技能一覧に出る", await stage5Nodes.count() === 20,
-    `節 ${await stage5Nodes.count()}`);
-  note("Stage 5の主軸・反応・常時の区分が出る",
-    await page.locator(".stage5-kind.kind-active").count() > 0
-      && await page.locator(".stage5-kind.kind-reactive").count() > 0
-      && await page.locator(".stage5-kind.kind-passive").count() > 0);
+  const weaponTabs = page.locator('.weapon-tree-tabs [role="tab"]');
+  const tabCount = await weaponTabs.count();
+  let allWeaponNodeCount = 0;
+  const observedKinds = new Set();
+  for (let index = 0; index < tabCount; index += 1) {
+    await weaponTabs.nth(index).click();
+    const cards = page.locator(".stage5-skill-card");
+    allWeaponNodeCount += await cards.count();
+    for (const kind of await page.locator(".weapon-kind-icon").evaluateAll((icons) =>
+      icons.map((icon) => [...icon.classList].find((name) => name.startsWith("kind-"))))) {
+      observedKinds.add(kind);
+    }
+  }
+  await page.locator('.weapon-tree-tabs [role="tab"]').first().click();
+  note("10武器タブで初期20節を二節ずつ表示する",
+    tabCount === 10 && allWeaponNodeCount === 20 && await stage5Nodes.count() === 2,
+    `${tabCount}タブ・計${allWeaponNodeCount}節・選択中${await stage5Nodes.count()}節`);
+  note("Stage 5の主軸・反応・常時の役割記号が出る",
+    observedKinds.has("kind-active") && observedKinds.has("kind-reactive") && observedKinds.has("kind-passive"));
   note("人物ごとの主軸・反応優先列・常時技能が読める",
     /主軸/.test(skillText) && /反応優先列/.test(skillText) && /常時/.test(skillText));
   note("技能一覧に旧skill treeとskill levelの操作が無い",
@@ -508,12 +520,9 @@ try {
     await page.locator(".camp-top .party-ultimate").count() === 0
       && await page.locator('details[data-help="ultimate-rules"]').count() === 0
       && !/必殺/.test(skillText));
-  note("取得・予約・主軸・反応優先順位の操作がある",
-    await page.locator('[data-action="acquire-weapon-skill"]').count() > 0
-      && await page.locator('[data-action="reserve-weapon-skill"]').count() > 0
-      && await page.locator('[data-action="select-weapon-primary"]').count() > 0
-      && await page.locator('[data-action="move-weapon-priority"]').count() > 0);
-  const stage5Shape = await page.locator(".stage5-skill-catalog").evaluate((catalog) => ({
+  note("現在の武器で技能を予約できる",
+    await page.locator('[data-action="reserve-weapon-skill"]').count() > 0);
+  const stage5Shape = await page.locator(".stage5-skill-tree-card").evaluate((catalog) => ({
     overflow: catalog.scrollWidth - catalog.clientWidth,
     cards: [...catalog.querySelectorAll(".stage5-skill-card")].filter((card) => {
       const box = card.getBoundingClientRect();
@@ -547,7 +556,7 @@ try {
   await page.waitForTimeout(200);
   note("技能タブで対象人物を盤面から切り替えられる",
     Boolean(otherSkillName)
-      && (await page.locator(".member-context .character-panel-name").innerText()).includes(otherSkillName)
+      && (await page.locator(".stage5-member-line b").innerText()).includes(otherSkillName)
       && (await page.locator('.camp-top .party-cell.selected').getAttribute("aria-label") ?? "")
         .startsWith(otherSkillName));
   note("技能タブで押しても隊列は動かない",
@@ -718,6 +727,8 @@ try {
           && await skillSpot().count() === 1
           && await skillSpot().first().getAttribute("data-action") === "acquire-weapon-skill"
           && await skillSpot().first().getAttribute("data-node") === unlockKey);
+      note("手順が進んだら節選択の古い光は消える",
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-skill-select.tutorial-spot`).count() === 0);
       const pointsBefore = /未使用 1点/.test(await pointsReadout());
       await page.setViewportSize({ width: 390, height: SAFARI_VISIBLE_HEIGHT });
       await page.waitForTimeout(200);
@@ -731,8 +742,8 @@ try {
       const pointsAfter = /未使用 0点/.test(await pointsReadout());
       note("取得で人物の技能点が1点減る", pointsBefore && pointsAfter);
       note("取得した主軸技能がその場で使用中になる",
-        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
-          === "主軸に設定中");
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .weapon-node-action .weapon-node-state`)
+          .getAttribute("aria-label") === "主軸に設定中");
       note("手順5は次に予約する節だけが光る",
         /手順 5\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
@@ -767,29 +778,34 @@ try {
       await page.locator(
         '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
       await page.waitForTimeout(200);
+      await page.locator('nav.tabs [data-tab="skills"]').click();
+      await page.waitForTimeout(150);
       note("最後は光らせず自分で選ばせる",
         await skillSpot().count() === 0
           && /自分で決める|あなたが決める/.test(await skillCard.innerText()));
       note("ゴウにも人物別技能点が残る",
         /未使用 1点/.test(await pointsReadout()));
+      await page.locator(".weapon-skill-map").evaluate((map) => { window.__stage5MapBeforeSelection = map; });
       await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] [data-action="select-weapon-node"]`).click();
       await page.waitForTimeout(200);
       note("Stage 5の技能節を選択して詳細を開ける",
         await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"].selected`).count() === 1);
+      note("節の選択では技能地図を作り直さない",
+        await page.locator(".weapon-skill-map").evaluate((map) => map === window.__stage5MapBeforeSelection));
       await page.locator('.camp-top [data-action="select-character"][data-character="mender"]').click();
       await page.waitForTimeout(200);
       note("終わったあとにツグミを選び直しても錠は戻らない",
         await page.locator("#app .tutorial-blocked").count() === 0
           && await skillSpot().count() === 0);
       note("取得した主軸技能と予約先が保存されている",
-        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
-          === "主軸に設定中"
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .weapon-node-action .weapon-node-state`)
+          .getAttribute("aria-label") === "主軸に設定中"
           && await page.locator(".stage5-reservation").count() === 1);
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
       note("リロード後も主軸・予約と済んだ段が残る",
-        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .stage5-state`).innerText()
-          === "主軸に設定中"
+        await page.locator(`.stage5-skill-card[data-node-key="${unlockKey}"] .weapon-node-action .weapon-node-state`)
+          .getAttribute("aria-label") === "主軸に設定中"
           && await page.locator(".stage5-reservation").count() === 1
           && await page.locator("#app .tutorial-blocked").count() === 0);
       await page.locator('nav.tabs [data-tab="equipment"]').click();
@@ -1262,7 +1278,9 @@ try {
       && await lessonRow.first().evaluate((row) => row.classList.contains("tutorial-spot")));
     note("必殺にできるカードは長押し可能", await page.locator(
       `.stage5-skill-card[data-node-key="${lessonKey}"] .stage5-skill-select[data-longpress="toggle-stage5-ultimate"]`).count() === 1);
-    note("Stage 1の技能一覧に初期20節を保つ", await page.locator(".stage5-skill-card").count() === 20);
+    note("Stage 1の技能地図は対象武器の二節と全武器タブを保つ",
+      await page.locator(".stage5-skill-card").count() === 2
+        && await page.locator('.weapon-tree-tabs [role="tab"]').count() === 10);
     if (await lessonRow.count()) {
       await pressDown(lessonRow.first());
       // CSSの進行値は幅で測る。帯はJSの450msと揃い、タップを長押しと誤判定しない。
@@ -1353,8 +1371,8 @@ try {
           seen: saved.profile.storyFlags.includes("ultimate_lesson_seen"),
         } : null;
       });
-      note("勝利時だけ必殺をStage 5のRunへ記録し、チュートリアルを完了する",
-        spentState?.selected === lessonKey && spentState?.armed === true
+      note("勝利で必殺を使用済みにし、構えを解除してチュートリアルを完了する",
+        spentState?.selected === lessonKey && spentState?.armed === false
           && spentState?.spent === true && spentState?.seen === true);
       const clearedNodes = page.locator('.encounter-archive .map-node.done');
       await clearedNodes.last().click();
@@ -1393,6 +1411,12 @@ try {
       if (!saved?.run?.roster?.length || !saved.run.currentHp) return null;
       const restore = { currentHp: { ...saved.run.currentHp }, supplies: saved.run.supplies };
       const downed = saved.run.roster[saved.run.roster.length - 1];
+      // 前段のチュートリアル戦闘で全員が戦闘不能の状態もあり得る。
+      // この検査は「一人だけ戦闘不能」の盤面を確かめるので、他の仲間を生存させる。
+      saved.run.currentHp = Object.fromEntries(saved.run.roster.map((id) => [
+        id,
+        Math.max(1, saved.run.currentHp[id] ?? 1),
+      ]));
       saved.run.currentHp = { ...saved.run.currentHp, [downed]: 0 };
       saved.run.supplies = 3;
       localStorage.setItem(key, JSON.stringify(saved));
@@ -1409,10 +1433,19 @@ try {
       await page.locator('[data-action="treat"][data-treatment="revive"]:not([disabled])').click();
       await page.waitForTimeout(250);
       const pickable = page.locator('.camp-top .party-cell.pickable');
+      const targetState = await page.evaluate(() => ({
+        cells: [...document.querySelectorAll('.camp-top .party-cell')].map((cell) => ({
+          className: cell.className,
+          character: cell.getAttribute('data-character'),
+          disabled: cell.matches(':disabled'),
+        })),
+        note: document.querySelector('.camp-top .party-note.picking')?.innerText ?? '',
+      }));
       note("蘇生を選ぶと盤面が対象選択になる",
         await pickable.count() === 1
           && await page.locator('.camp-top .party-cell.unpickable').count() === 2
-          && /蘇生/.test(await page.locator(".camp-top .party-note.picking").innerText()));
+          && /蘇生/.test(await page.locator(".camp-top .party-note.picking").innerText()),
+        JSON.stringify(targetState));
       note("対象選択中はやめる手段が出ている",
         await page.locator('.camp-top [data-action="cancel-treatment-target"]').count() === 1);
       const suppliesBeforeRevive = Number(

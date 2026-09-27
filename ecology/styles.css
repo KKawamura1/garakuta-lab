@@ -1447,6 +1447,105 @@ button.party-cell { cursor: pointer; }
 .stage5-skill-controls .tiny-button { min-height: 34px; }
 .stage5-state { color: var(--good); font-size: 10px; }
 .stage5-prerequisite { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+.stage5-skill-tree-card { --weapon-tree-col-width: 134px; padding-bottom: calc(15px + var(--skill-detail-space, 0px)); }
+.stage5-skill-tree-card .weapon-tree-title { display: flex; align-items: baseline; gap: 7px; padding: 0 2px; }
+.stage5-skill-tree-card .weapon-tree-title b { font-size: 12px; }
+.stage5-skill-tree-card .weapon-tree-title small { color: var(--muted); font-size: 9px; }
+.stage5-skill-tree-card .weapon-tree-tabs { display: flex; gap: 5px; overflow-x: auto; margin: 7px 0 5px; padding-bottom: 2px; overscroll-behavior-x: contain; scrollbar-width: none; }
+.stage5-skill-tree-card .weapon-tree-tabs::-webkit-scrollbar { display: none; }
+.stage5-skill-tree-card .weapon-tab { position: relative; flex: 0 0 auto; min-height: 36px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.stage5-skill-tree-card .weapon-tab.active { border-color: var(--gold); background: var(--gold-dark); box-shadow: inset 0 0 0 1px rgba(229,184,105,.24); color: var(--gold); }
+.stage5-skill-tree-card .weapon-tab small { display: block; color: inherit; font-size: 8px; font-weight: 500; line-height: 1.1; opacity: .8; }
+.stage5-skill-tree-card .tab-ready { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; padding: 0 3px; border: 1px solid var(--panel); border-radius: 99px; background: var(--good); color: #152019; font-size: 9px; font-style: normal; font-weight: 850; line-height: 14px; text-align: center; }
+.stage5-skill-tree-card .weapon-tree-controls { display: flex; min-height: 34px; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 6px; }
+.stage5-view-switch { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #141e20; }
+.stage5-skill-tree-card .stage5-view-tab { min-width: 50px; min-height: 30px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 750; }
+.stage5-skill-tree-card .stage5-view-tab.on { background: #293638; color: var(--ink); box-shadow: inset 0 0 0 1px rgba(229,184,105,.35); }
+.stage5-skill-tree-card .count-badge { min-width: 44px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 7px; background: #293638; color: var(--blue); font-size: 10px; font-weight: 750; text-align: center; }
+.stage5-skill-tree-card .skill-tree { display: grid; gap: 5px; min-width: 0; }
+.stage5-skill-tree-card .weapon-tree-scroll { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: 4px 1px 10px; overscroll-behavior-x: contain; }
+.stage5-skill-tree-card .weapon-skill-map { position: relative; isolation: isolate; display: grid; width: max-content; min-width: 100%; grid-template-columns: repeat(var(--weapon-tree-columns, 7), var(--weapon-tree-col-width)); grid-template-rows: repeat(var(--weapon-tree-rows, 7), 48px); gap: 7px 16px; padding: 4px 5px; }
+.stage5-skill-tree-card .weapon-tree-cell.map { z-index: 1; min-width: 0; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-node-main { min-height: 48px; padding: 3px; }
+.stage5-skill-tree-card .weapon-tree-lines { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.stage5-skill-tree-card .weapon-tree-line { fill: none; stroke: #52615d; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.stage5-skill-tree-card .weapon-tree-line.selected { stroke: var(--gold); stroke-width: 2.25; }
+.stage5-skill-tree-card .weapon-skill-list { display: grid; gap: 2px; padding: 3px 0 8px; }
+.stage5-skill-tree-card .weapon-tree-cell.list { display: flex; min-width: 0; min-height: 54px; align-items: stretch; }
+.stage5-skill-tree-card .weapon-tree-cell.list .weapon-skill-node { flex: 1 1 auto; min-width: 0; }
+.stage5-skill-tree-card .weapon-skill-node { position: relative; min-width: 0; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 9px; background: rgba(24,33,36,.92); }
+.stage5-skill-tree-card .weapon-skill-node.acquired { border-color: rgba(142,184,137,.65); }
+.stage5-skill-tree-card .weapon-skill-node.reserved { border-color: var(--gold); }
+.stage5-skill-tree-card .weapon-skill-node.selected { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(229,184,105,.27); }
+.stage5-skill-tree-card .weapon-node-main { display: flex; width: 100%; min-height: 47px; align-items: center; padding: 4px 5px; border: 0; border-radius: inherit; background: transparent; color: inherit; text-align: left; }
+.stage5-skill-tree-card .weapon-node-copy { display: grid; width: 100%; min-width: 0; gap: 2px; }
+.stage5-skill-tree-card .weapon-node-name { display: flex; min-width: 0; align-items: flex-start; gap: 5px; padding-right: 54px; }
+.stage5-skill-tree-card .weapon-node-name b { display: -webkit-box; flex: 1 1 auto; min-width: 0; overflow: hidden; font-size: 13px; line-height: 1.2; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+.stage5-skill-tree-card .weapon-kind-icon { display: inline-grid; flex: none; width: 19px; height: 19px; place-items: center; border: 1px solid currentColor; border-radius: 50%; background: rgba(10,16,18,.38); color: var(--muted); font-size: 10px; font-weight: 850; line-height: 1; }
+.stage5-skill-tree-card .weapon-kind-icon.kind-active { color: var(--gold); background: rgba(10,16,18,.38); }
+.stage5-skill-tree-card .weapon-kind-icon.kind-reactive { color: var(--violet); background: rgba(10,16,18,.38); }
+.stage5-skill-tree-card .weapon-kind-icon.kind-target { color: var(--blue); background: rgba(10,16,18,.38); }
+.stage5-skill-tree-card .weapon-kind-icon.kind-passive { color: var(--good); background: rgba(10,16,18,.38); }
+.stage5-skill-tree-card .weapon-node-signals { display: flex; width: 100%; min-width: 0; align-items: center; gap: 4px; overflow: hidden; }
+.stage5-skill-tree-card .weapon-node-inputs { display: flex; flex: 0 1 auto; min-width: 0; align-items: center; gap: 2px; overflow: hidden; }
+.stage5-skill-tree-card .weapon-signal-divider { flex: none; width: 1px; height: 12px; background: rgba(145,203,213,.48); }
+.stage5-skill-tree-card .weapon-effect-badges { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; gap: 3px; overflow: hidden; }
+.stage5-skill-tree-card .effect-chip { flex: 0 0 auto; max-width: 100%; padding: 1px 4px; overflow: hidden; border: 1px solid rgba(145,203,213,.42); border-radius: 4px; color: var(--blue); font-size: 9px; font-style: normal; font-weight: 800; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.stage5-skill-tree-card .effect-chip.scaled { color: var(--gold); }
+.stage5-skill-tree-card .effect-chip.scope { color: var(--ink); }
+.stage5-skill-tree-card .effect-chip.up, .stage5-skill-tree-card .effect-chip.status { color: var(--good); }
+.stage5-skill-tree-card .effect-chip.down { color: var(--bad); }
+.stage5-skill-tree-card .effect-chip.condition { border-color: rgba(192,167,229,.38); color: var(--violet); }
+.stage5-skill-tree-card .effect-chip.ap { color: var(--gold); }
+.stage5-skill-tree-card .effect-chip.rp { color: var(--violet); }
+.stage5-skill-tree-card .effect-chip.hp { color: var(--bad); }
+.stage5-skill-tree-card .effect-chip.cost { background: rgba(10,16,18,.4); }
+.stage5-skill-tree-card .weapon-node-action { position: absolute; top: 3px; right: 3px; z-index: 2; display: flex; align-items: center; }
+.stage5-skill-tree-card .weapon-node-action-button { min-height: 24px; padding: 2px 5px; border: 1px solid var(--line); border-radius: 7px; background: #1b2528; color: var(--muted); font-size: 9px; font-weight: 800; white-space: nowrap; }
+.stage5-skill-tree-card .weapon-node-action-button.primary { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+.stage5-skill-tree-card .weapon-node-action-button.quiet { opacity: .8; }
+.stage5-skill-tree-card .weapon-node-state { display: inline-flex; min-width: 23px; min-height: 23px; align-items: center; justify-content: center; gap: 2px; padding: 0 4px; border: 1px solid currentColor; border-radius: 7px; color: var(--muted); font-size: 9px; font-weight: 800; white-space: nowrap; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-node-name { gap: 3px; padding-right: 42px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-node-name b { font-size: 11.5px; line-height: 1.12; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-kind-icon { width: 17px; height: 17px; font-size: 9px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-node-signals { gap: 2px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-effect-badges { gap: 2px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .effect-chip { padding: 0 2px; font-size: 8px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .weapon-node-state { min-width: 16px; min-height: 16px; padding: 0 3px; font-size: 7px; }
+.stage5-skill-tree-card .weapon-list-guide { flex: 0 0 calc(var(--weapon-depth,0) * 9px + 12px); display: flex; align-items: stretch; color: #596862; }
+.stage5-skill-tree-card .weapon-list-guide i { position: relative; flex: 0 0 9px; }
+.stage5-skill-tree-card .weapon-list-guide .rail.open::before, .stage5-skill-tree-card .weapon-list-guide .elbow::before { position: absolute; top: calc(-50% - 2px); bottom: calc(-50% - 2px); left: 4px; border-left: 1px solid currentColor; content: ""; }
+.stage5-skill-tree-card .weapon-list-guide .elbow.last:not(.has-children)::before { bottom: 50%; }
+.stage5-skill-tree-card .weapon-list-guide .elbow::after { position: absolute; top: 50%; right: -13px; left: 4px; border-top: 1px solid currentColor; content: ""; }
+.stage5-skill-tree-card .weapon-list-guide.root { position: relative; flex-basis: 12px; }
+.stage5-skill-tree-card .weapon-list-guide.root i::after { position: absolute; top: calc(50% - 2px); left: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--gold); content: ""; }
+.stage5-skill-tree-card .weapon-list-guide.root i::before { position: absolute; top: 50%; right: -3px; left: 8px; border-top: 1px solid var(--gold); content: ""; }
+.stage5-skill-tree-card .weapon-skill-sheet { position: fixed; left: max(14px,calc(50% - 346px)); right: max(14px,calc(50% - 346px)); bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 20; max-height: 42vh; max-height: min(42vh,360px); margin: 0; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--gold); border-radius: 12px; background: rgba(20,29,31,.98); box-shadow: 0 -8px 20px rgba(0,0,0,.42); }
+.stage5-skill-tree-card .weapon-sheet-head { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 22px minmax(0,1fr) auto 26px; align-items: center; gap: 6px; padding: 5px 7px; border-bottom: 1px solid rgba(224,195,116,.2); background: rgba(20,29,31,.98); }
+.stage5-skill-tree-card .weapon-sheet-head .weapon-kind-icon { width: 21px; height: 21px; font-size: 11px; }
+.stage5-skill-tree-card .weapon-sheet-title { display: grid; min-width: 0; }
+.stage5-skill-tree-card .weapon-sheet-title b { overflow: hidden; font-size: 16px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.stage5-skill-tree-card .weapon-sheet-state { color: var(--orange); font-size: 9px; font-weight: 800; white-space: nowrap; }
+.stage5-skill-tree-card .stage5-detail-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.stage5-skill-tree-card .stage5-detail-actions .tiny-button { min-height: 30px; padding: 3px 6px; font-size: 9px; }
+.stage5-skill-tree-card .weapon-sheet-close { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 8px; background: #1b2528; color: var(--muted); }
+.stage5-skill-tree-card .weapon-sheet-body { display: flex; flex-direction: column; align-items: stretch; padding: 8px 10px 10px; }
+.stage5-skill-tree-card .weapon-detail-effect { width: 100%; margin: 0; color: var(--ink); font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+.stage5-skill-tree-card .stage5-prerequisite { color: var(--muted); font-size: 10px; }
+.stage5-skill-tree-card .stage5-ultimate-traits { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: 4px; margin-top: 5px; }
+.stage5-skill-tree-card .stage5-ultimate-traits i { padding: 2px 5px; border: 1px solid rgba(229,184,105,.4); border-radius: 20px; color: var(--gold); font-size: 9px; font-style: normal; }
+.stage5-skill-tree-card .stage5-ultimate-traits .stage5-ultimate-status { border-color: var(--line); color: var(--muted); }
+.stage5-skill-tree-card .stage5-ultimate-prompt { color: var(--gold) !important; font-size: 9px; }
+.stage5-skill-tree-card .weapon-tree-cell.map .stage5-ultimate-prompt { display: none; }
+.stage5-skill-tree-card .weapon-tree-cell.map .stage5-skill-card.ultimate-firing { animation: ultimate-card-pulse 1.6s ease-in-out infinite; }
+@media (max-width: 430px) {
+  .stage5-skill-tree-card { --weapon-tree-col-width: 126px; }
+  .stage5-skill-tree-card .weapon-tree-title small { font-size: 8px; }
+  .stage5-skill-tree-card .weapon-skill-map { column-gap: 12px; }
+  .stage5-skill-tree-card .stage5-view-tab { min-width: 45px; }
+  .stage5-skill-tree-card .weapon-sheet-head { grid-template-columns: 22px minmax(0,1fr) auto 24px; gap: 4px; }
+  .stage5-skill-tree-card .weapon-sheet-title b { font-size: 14px; }
+}
 .stage5-priority-row { display: grid; grid-template-columns: 24px 1fr auto auto; align-items: center; gap: 6px; min-height: 40px; border-top: 1px solid var(--line); }
 .stage5-priority-row > span { color: var(--muted); font-size: 10px; }
 .stage5-priority-row > b { font-size: 11px; }

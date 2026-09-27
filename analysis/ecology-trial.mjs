@@ -376,8 +376,14 @@ try {
       ? await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1
       : new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
-      note("技能ツリーを折りたためる",
-        await page.locator("details.skill-tree-details").count() === 1);
+      note("技能の地図と武器タブが出る",
+        await page.locator(".weapon-skill-map").count() === 1
+          && await page.locator('.weapon-tree-tabs [role="tab"]').count() === 10);
+      await page.locator('[data-action="select-stage5-skill-view"][data-view="list"]').click();
+      note("技能を前提つきの階層一覧に切り替えられる",
+        await page.locator(".weapon-skill-list .weapon-tree-cell").count() >= 2);
+      await page.locator('[data-action="select-stage5-skill-view"][data-view="map"]').click();
+      note("技能の地図へ戻れる", await page.locator(".weapon-skill-map").count() === 1);
     }
     if (tab === "equipment") {
       note("装備一覧を折りたためる",
@@ -568,9 +574,10 @@ try {
   const pointFixture = await page.evaluate(() => {
     const key = "exp18-r10-auto-v04";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
-    if (!saved?.run) return null;
-    const before = { ...saved.run.runSkillPoints };
-    saved.run.runSkillPoints = Object.fromEntries(saved.run.roster.map((id) => [id, 9]));
+    const progression = saved?.run?.weaponRun?.skillProgression;
+    if (!progression) return null;
+    const before = { ...progression.skillPointsByCharacter };
+    progression.skillPointsByCharacter = Object.fromEntries(saved.run.roster.map((id) => [id, 9]));
     localStorage.setItem(key, JSON.stringify(saved));
     return { before };
   });
@@ -579,105 +586,71 @@ try {
     await page.waitForTimeout(300);
     await page.locator('nav.tabs [data-tab="skills"]').click();
     await page.waitForTimeout(200);
-    const node = page.locator(".skill-node.available").first();
-    note("技能点があれば取得できる節が出る", await node.count() > 0);
-
-    // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。**点が入った回に、
-    // 使い道を探し歩かせない。**「いま取れる」で、取れる節だけが残る。
-    const readyChip = page.locator(".ready-chip");
-    note("技能点があると「いま取れる」が出る", await readyChip.count() === 1);
-    if (await readyChip.count()) {
-      const listed = await page.locator(".tree-cell.list-row").count();
-      const declared = Number((await readyChip.innerText()).replace(/[^0-9]/g, ""));
-      await readyChip.click();
-      await page.waitForTimeout(200);
-      const narrowed = await page.locator(".tree-cell.list-row").count();
-      note("「いま取れる」で取れる節だけが残る",
-        declared > 0 && narrowed === declared
-          && narrowed === await page.locator(".tree-cell.list-row.ready").count()
-          && narrowed < listed,
-        `${listed} 節 → ${narrowed} 節`);
-      await readyChip.click();
-      await page.waitForTimeout(200);
-      note("もう一度押すと全部へ戻る", await page.locator(".tree-cell.list-row").count() === listed);
+    const weaponTabs = page.locator('.weapon-tree-tabs [data-action="select-stage5-skill-weapon"]');
+    const node = page.locator('.weapon-tree-cell:has([data-action="acquire-weapon-skill"])').first();
+    for (let index = 0; index < await weaponTabs.count() && !(await node.count()); index += 1) {
+      await weaponTabs.nth(index).click();
+      await page.waitForTimeout(80);
     }
+    note("技能点があれば取得可能な節に操作が出る", await node.count() > 0,
+      (await page.locator(".skill-build-card").innerText()).replace(/\n/g, " / "));
     if (await node.count()) {
-      const unlockingName = (await node.locator(".node-copy b").innerText()).trim();
-      await node.click();
+      const nodeKey = await node.getAttribute("data-skill-key");
+      const characterId = await node.locator(".stage5-skill-select").getAttribute("data-character");
+      const unlockingName = (await node.locator(".weapon-node-name b").innerText()).trim();
+      await node.locator(".stage5-skill-select").click();
       await page.waitForTimeout(150);
-      const unlock = page.locator('[data-action="unlock-skill"]').first();
-      note("取得の釦が出る", await unlock.count() > 0);
+      const unlock = page.locator('.stage5-skill-detail [data-action="acquire-weapon-skill"]');
+      note("節を選ぶと詳細に取得操作が出る", await unlock.count() === 1, unlockingName);
       if (await unlock.count()) {
         await unlock.click();
         await page.waitForTimeout(250);
-        // **「装着する」という二手目は無い。**取った瞬間に装着行へ並び、オンで回り始める。
-        note("取得と装着が一つの手である",
-          await page.locator('[data-action="equip-skill"]').count() === 0);
-        note("取得した技能がその場で装着行に並ぶ",
-          await page.locator(".installed-row", { hasText: unlockingName }).count() > 0, unlockingName);
-        note("取得した節は取得済みの印になる",
-          await page.locator(".skill-node.equipped", { hasText: unlockingName }).count() > 0);
-        // issue #237 — 取った一手は、地図の節と装着行の**両方**が返事をする。
-        note("取得した技能が地図と装着行の両方で光る",
-          await page.locator(".tree-cell.fx-gain").count() === 1
-            && await page.locator(".installed-row.fx-gain").count() === 1);
-        note("払った技能点が減って光る",
-          await page.locator("[data-fx-watch='skill-points'].fx-down").count() === 1);
+        const savedSkill = await page.evaluate(({ key, characterId }) => {
+          const saved = JSON.parse(localStorage.getItem("exp18-r10-auto-v04") || "null");
+          const progression = saved?.run?.weaponRun?.skillProgression;
+          return characterId ? {
+            acquired: progression?.unlockedSkillKeysByCharacter[characterId]?.includes(key) === true,
+            points: progression.skillPointsByCharacter[characterId],
+          } : null;
+        }, { key: nodeKey, characterId });
+        note("取得した節が地図と保存の両方へ反映される",
+          await page.locator('.weapon-skill-node.acquired[data-node-key="' + nodeKey + '"]').count() === 1
+            && savedSkill?.acquired === true, unlockingName);
+        note("取得時に技能点を1点使う", savedSkill?.points === 8, String(savedSkill?.points));
       }
     }
     // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
     await page.evaluate((fixture) => {
       const key = "exp18-r10-auto-v04";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
-      if (!saved?.run) return;
-      saved.run.runSkillPoints = fixture.before;
+      const progression = saved?.run?.weaponRun?.skillProgression;
+      if (!progression) return;
+      progression.skillPointsByCharacter = fixture.before;
       localStorage.setItem(key, JSON.stringify(saved));
     }, pointFixture);
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(300);
   }
-  note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
+  note("スキルツリーのノードを選べる", await page.locator(".weapon-skill-node").count() > 0);
 
-  // issue #238 / 作者指摘 2026-09-12 — 必殺技。**装着行の長押し一回で、この一戦の
-  // 必殺になる。**釦を押す二手目は無くなったので、行そのものが押せることと、
-  // もう一度の長押しで元へ戻ることを画面から踏む。
+  // Stage 1 からは、主軸または反応技能のカードを長押しして必殺を構えられる。
   const longPress = async (locator) => {
-    const box = await locator.boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await locator.scrollIntoViewIfNeeded();
+    await locator.hover();
     await page.mouse.down();
     await page.waitForTimeout(700);
     await page.mouse.up();
     await page.waitForTimeout(250);
   };
-  const ultimateRow = page.locator(".installed-row[data-longpress]").first();
-  note("装着行が長押しできる", await ultimateRow.count() === 1);
-  if (await ultimateRow.count()) {
-    note("必殺技の専用枠は画面に無い", await page.locator("section.ultimate-card").count() === 0);
-    // 作者指摘 2026-09-13 — 残りは**人物ごと**に盤面のセルへ出す（隊の合計はやめた）。
-    note("誰が必殺を残しているかが盤面に出る",
-      await page.locator(".camp-top .party-ultimate.ready").count() > 0
-        && await page.locator(".skill-points-badge").count() === 0);
-    await longPress(ultimateRow);
-    note("長押しだけでこの一戦の必殺になる",
-      await page.locator(".installed-row.ultimate.armed").count() === 1);
-    note("行に構えの印（✹）が出て、釦は無い",
-      await page.locator(".installed-row.ultimate .ultimate-seal").count() === 1
-        && await page.locator('[data-action="toggle-ultimate-armed"]').count() === 0);
-    // 盤面の印は全員ぶん出ている（誰が残していて誰が使い終えたか）。構えた一人だけが
-    // `armed` か `firing` になる。
-    note("構えると盤面の印がその一人だけ変わる",
-      await page.locator(".party-cell .party-ultimate.armed, .party-cell .party-ultimate.firing").count() === 1
-        && await page.locator(".party-cell .party-ultimate").count() === 3);
-    // 序盤の一戦では傷の条件が揃わないので、**予測が「出ない」と先に言う。**
-    const armedTitle = await page.locator(".installed-row.ultimate").first().getAttribute("title");
-    note("構えた時点で、この一戦で出るかどうかが読める",
-      /この一戦で出る|条件が揃わない/.test(armedTitle ?? ""), armedTitle ?? "");
-    await longPress(page.locator(".installed-row.ultimate").first());
-    note("もう一度の長押しで構えが解ける", await page.locator(".installed-row.ultimate").count() === 0);
-    // **構えたまま12戦へ入る。**放つ拍（カットイン、issue #242）は、条件が揃う一戦で
-    // 画面から踏む。
-    await longPress(page.locator(".installed-row[data-longpress]").first());
-    note("構えたまま遠征へ入れる", await page.locator(".installed-row.ultimate.armed").count() === 1);
+  const ultimateSkill = page.locator('.stage5-skill-select[data-longpress="toggle-stage5-ultimate"]').first();
+  note("装着中の技能から必殺を長押しできる", await ultimateSkill.count() > 0);
+  if (await ultimateSkill.count()) {
+    await longPress(ultimateSkill);
+    note("長押しで必殺を構え、技能と盤面に印が出る",
+      await page.locator(".stage5-skill-card.ultimate-armed").count() === 1
+        && await page.locator(".camp-top .party-ultimate.armed").count() === 1,
+      JSON.stringify({ card: await page.locator(".stage5-skill-card").first().getAttribute("class"),
+        error: await page.locator('[role="alert"]').allInnerTexts() }));
   }
 
   let ultimateSpentSeen = false;
@@ -1399,8 +1372,13 @@ try {
   note("profile と run が分かれて保存されている",
     saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-5");
   note("活動資金が profile に残る", typeof saved?.profile?.activityFunds === "string");
-  note("遠征内の技能点は run にだけある",
-    Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));
+  const runSkillPoints = saved?.run?.weaponRun?.skillProgression?.skillPointsByCharacter;
+  note("遠征内の技能点はRun内だけに保存する",
+    Boolean(runSkillPoints && Object.keys(runSkillPoints).length)
+      && !Object.hasOwn(saved?.run ?? {}, "runSkillPoints")
+      && !("skillPoints" in (saved?.profile ?? {})),
+    JSON.stringify({ runKeys: Object.keys(saved?.run ?? {}), points: runSkillPoints,
+      profileSkillPoints: saved?.profile?.skillPoints ?? null }));
   note("控えに主要行動列が残る", (saved?.runEvents || []).some((e) => e.type === "battle_completed"));
 
   // ---- R13 / R11 §2.4 / R8 §3.2 — 精算の次の一枚（根城）と、図鑑。
@@ -1448,6 +1426,7 @@ try {
   if (saved?.runId) console.log(`RUN_ID=${saved.runId}`);
 } catch (error) {
   note("通しが最後まで走った", false, String(error).split("\n")[0]);
+  if (error?.stack) console.log("  stack:", String(error.stack).split("\n").slice(0, 5).join("\n"));
   // **落ちた場所の画面を出す。**「時間切れ」だけでは、どの経路で詰まったか分からない。
   if (errs.length) console.log("  ブラウザエラー:", errs.slice(0, 8).join(" / "));
   try {
