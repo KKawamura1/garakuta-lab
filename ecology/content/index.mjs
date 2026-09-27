@@ -107,7 +107,8 @@ import {
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
 // PR #292 / R26 — enemy active/reactive/passiveを専用registryへ分離し、敵action・reactionと
 // actor参照へ `foe_*` namespaceを付けた。schema節とevent上のskill/rule IDが変わるため上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-29";
+// PR #327 / Stage 5d — 誘引状態と敵の単体攻撃 redirect を公開。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-30";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -211,13 +212,14 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // R24 の無料反応・条件付き常設と基礎能力Lvで 0.19、敵技能registry分離で0.20へ上げる。
   // 0.19は公開技能の対象選択を変えた。0.20は敵専用技能を分けてIDをnamespace化し、
   // battle eventのskillId/ruleIdを変えるが、敵の戦闘結果は保つ。
+  // PR #327 / Stage 5d で誘引状態の規則と盾のR/A1を追加し、0.21へ上げる。
   //
   // 0.19で変わったこと: 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
   //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
   // 以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.19以前のreplay・Blueprint・遠征記録は、このbuildでは技能参照を読み替えない。
-  contentVersion: "ecology-playable-full-0.20",
+  contentVersion: "ecology-playable-full-0.21",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
