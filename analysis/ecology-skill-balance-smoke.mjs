@@ -5,7 +5,7 @@
 
 import assert from "node:assert/strict";
 import { simulateBattle, validateBattleInput } from "../ecology/engine.mjs";
-import { BATTLE_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "../ecology/schema.mjs";
+import { BATTLE_SCHEMA_VERSION, MAX_ACTION_HIT_COUNT, SKILL_LEVEL_STEP_BPS } from "../ecology/schema.mjs";
 import {
   CAMPAIGN_STAGES,
   PLAYABLE_CONTENT,
@@ -518,8 +518,8 @@ check(!cover.events.some((event) => event.type === "resource_spent"
   && event.values.resource === "reaction_points" && event.sourceActorId === "a"),
 "身代わりの空振りでRPを消費しない");
 
-// status rule は最大6hitまでを明示的に覆う。実技能の最大5hitと追加hit affixの
-// 1hitぶんを含み、エンジンの「同ruleはchain 1回」を緩めていない。
+// 状態ruleは、共有上限までの全hit slotを明示的に覆う。各ruleは単一hitに対応し、
+// エンジンの「同ruleはchain 1回」を緩めていない。
 for (const statusId of ["exposed", "staggered", "warded"]) {
   const hitIndexes = PLAYABLE_CONTENT.statuses[statusId].rules
     .filter((rule) => rule.predicates.some((predicate) => (
@@ -529,7 +529,11 @@ for (const statusId of ["exposed", "staggered", "warded"]) {
       predicate.type === "event_value" && predicate.key === "hitIndex"
     ))?.value)
     .sort((a, b) => a - b);
-  assert.deepEqual(hitIndexes, [0, 1, 2, 3, 4, 5], `${statusId} は6hitまで有限規則で覆う`);
+  assert.deepEqual(
+    hitIndexes,
+    Array.from({ length: MAX_ACTION_HIT_COUNT }, (_, index) => index),
+    `${statusId} は共有hit上限まで有限規則で覆う`,
+  );
   checks += 1;
 }
 

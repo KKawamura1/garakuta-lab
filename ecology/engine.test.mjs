@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import { MAX_ACTION_HIT_COUNT, RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
 import { BPS, roundHalfUpDiv } from "./values.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { resolveTargets } from "./selectors.mjs";
@@ -944,9 +944,9 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
-  // Added-hit candidates run before damage planning. An over-cap first
-  // candidate leaves priority open, while the next candidate snapshots its
-  // amount before paying RP. Each recipient keeps its own fixed hit slots.
+  // Added-hit candidates run before damage planning. A candidate that would
+  // exceed the shared ceiling leaves priority open, while the next candidate
+  // snapshots its amount before paying RP. Each recipient keeps fixed hit slots.
   const bundle = structuredClone(FIXTURE_CONTENT);
   bundle.characters.warden.baseReactionPoints = 2;
   bundle.activeSkills.strike.targetQuery = {
@@ -985,7 +985,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   bundle.reactiveSkills.over_cap_hit = addedHitRule(
     "over_cap_hit",
     200,
-    8,
+    MAX_ACTION_HIT_COUNT,
     { type: "constant", value: 9 },
   );
   bundle.reactiveSkills.add_hit = addedHitRule(

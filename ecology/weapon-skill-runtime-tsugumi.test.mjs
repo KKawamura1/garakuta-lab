@@ -97,14 +97,14 @@ function ally(instanceId, characterId, position, options = {}) {
   };
 }
 
-function battle(battleId, allies) {
+function battle(battleId, allies, enemies) {
   return {
     ...structuredClone(CORE_BATTLE),
     battleId,
     maxRounds: 1,
     objective: { type: "survive_rounds", rounds: 1 },
     allies,
-    enemies: [{
+    enemies: enemies ?? [{
       ...CORE_BATTLE.enemies[0],
       instanceId: "e_stage5c",
       position: "front_left",
@@ -117,16 +117,18 @@ function runSolo(activeSkillId, {
   reactiveSkillIds = [],
   passiveSkillIds = [],
   extraActiveSkills = {},
+  ownerPosition = "front_left",
+  enemies,
 } = {}) {
   const input = battle("stage5c_" + (activeSkillId ?? "reaction") + "_" + hp, [
-    ally("a_stage5c", "mender", "front_left", {
+    ally("a_stage5c", "mender", ownerPosition, {
       hp,
       tactics: activeSkillId ? [{ activeSkillId, useWhen: [] }] : [],
       reactiveSkillIds,
       passiveSkillIds,
       stats: { might: 100, focus: 100 },
     }),
-  ]);
+  ], enemies);
   return simulateBattle(input, contentFor(extraActiveSkills));
 }
 
@@ -139,6 +141,18 @@ function passiveModifications(result, skillId) {
   return result.events.filter((event) =>
     event.type === "pending_amount_modified" && event.sourceDefinitionId === skillId);
 }
+
+const nearestLauncher = runSolo(LAUNCHER_R, {
+  ownerPosition: "front_right",
+  enemies: [
+    { ...CORE_BATTLE.enemies[0], instanceId: "e_far", position: "front_left" },
+    { ...CORE_BATTLE.enemies[0], instanceId: "e_near", position: "front_center" },
+  ],
+});
+const nearestLauncherSelection = nearestLauncher.events.find((event) =>
+  event.type === "target_selected" && event.skillId === LAUNCHER_R);
+assert.deepEqual(nearestLauncherSelection?.targetActorIds, ["e_near"],
+  "射出 selects the nearest enemy, not the first position");
 
 const baseLauncher = runSolo(LAUNCHER_R);
 const boostedLauncher = runSolo(LAUNCHER_R, { passiveSkillIds: [LAUNCHER_A1] });

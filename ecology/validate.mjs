@@ -455,7 +455,7 @@ function validateEffect(bag, path, effect, ctx) {
       bag.add(path, "no_action_hit_expansion_frame", "add_action_hit needs action_hits_expanding");
       return;
     }
-    requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+    requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: LIMITS.maxActionHitCount });
     validateValue(bag, `${path}.amount`, effect.amount, ctx);
     if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
     if (effect.guardPierceBps !== undefined) {
@@ -500,7 +500,7 @@ function validateEffect(bag, path, effect, ctx) {
       // R6 §6.7 — PHASE A. 省略時は hit 1・貫通0・single・unrestricted で、
       // それは v1 の挙動そのもの。**既存定義は書き換えなくてよい。**
       if (effect.hitCount !== undefined) {
-        requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+        requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: LIMITS.maxActionHitCount });
       }
       if (effect.guardPierceBps !== undefined) {
         requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
