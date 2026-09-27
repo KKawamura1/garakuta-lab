@@ -194,6 +194,7 @@ const positionRows = {
   rear_center: "後列",
   rear_right: "後列",
 };
+const ROW_WORDS = { front: "前列", rear: "後列" };
 const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };
 const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
