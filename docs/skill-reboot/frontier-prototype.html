@@ -55,6 +55,7 @@
   <h2>一度だけ仕込む</h2>
   <p class="muted">各人のA/Bを選び、最初に強化する人物を選ぶ。残りは五人順に第2・4・6・8隊の突破時、自動で強化される。設定後は途中で止まらず第12隊まで進める。</p>
   <div id="choices"></div>
+  <p><label><input id="vary" type="checkbox" checked> 次の遠征では、首領の位置を固定したまま通常隊の順番を変える</label></p>
   <button id="start">十二隊へ出発</button>
 </section>
 
@@ -108,12 +109,13 @@ const $=id=>document.getElementById(id);
 let game=null,timer=null;
 const markup=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 class Engine {
- constructor(c) {
+ constructor(c,route=null) {
   this.choice=Object.fromEntries(HEROES.map(h=>[h,c[h]]));
   const pos=HEROES.indexOf(c.first);
   this.order=[...HEROES.slice(pos),...HEROES.slice(0,pos)];
   this.unlocked=new Set([c.first]);
-  this.queue=PACKS.flatMap((p,i)=>p.map(([kind,hp,atk])=>({pack:i,kind,hp:Math.round(hp*1.2),max:Math.round(hp*1.2),atk,born:-1})));
+  const path=route||Array.from({length:12},(_,i)=>i);
+  this.queue=path.flatMap((original,i)=>PACKS[original].map(([kind,hp,atk])=>({pack:i,kind,hp:Math.round(hp*1.2),max:Math.round(hp*1.2),atk,born:-1})));
   this.board=[];this.hp={...HP};this.shield=Object.fromEntries(HEROES.map(h=>[h,0]));
   this.volley=0;this.actions=0;this.fire=0;this.lastHit=0;this.healed=0;this.enemyActions=0;
   this.rested=new Set();this.done=false;this.won=false;this.events=[];
@@ -233,6 +235,16 @@ class Engine {
  }
 }
 window.Engine=Engine;
+function variedRoute(){
+ const indices=Array.from({length:12},(_,i)=>i);
+ for(const start of [0,4,8]){
+  for(let i=start+2;i>start;i--){
+   const j=start+Math.floor(Math.random()*(i-start+1));
+   [indices[i],indices[j]]=[indices[j],indices[i]];
+  }
+ }
+ return indices;
+}
 function stop(){if(timer){clearInterval(timer);timer=null;}render();}
 function setupRender(){
  $("choices").innerHTML=HEROES.map(h=>`<div class="heroChoice">
@@ -263,7 +275,7 @@ function render(){
  for(const id of ["step","round","play","fast"])$(id).disabled=game.done||!!timer;
  $("stop").disabled=!timer;
 }
-$("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine(config);render();};
+$("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine(config,$("vary").checked?variedRoute():null);render();};
 $("step").onclick=()=>{game.step();render();};
 $("round").onclick=()=>{for(let i=0;i<5&&!game.done;i++)game.step();render();};
 $("play").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},360);render();};
