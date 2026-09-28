@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>灰の遠征：押し寄せる前線 試作</title>
+<style>
+  :root { color-scheme:dark; font-family:system-ui,sans-serif; background:#161c21; color:#f3eee4 }
+  * { box-sizing:border-box }
+  body { max-width:690px; margin:0 auto; padding:12px 12px 28px; line-height:1.4 }
+  h1 { font-size:1.25rem; margin:6px 0 4px }
+  h2 { font-size:1rem; margin:14px 0 6px }
+  small,.muted { color:#bac3c6 }
+  p { margin:6px 0 }
+  .panel { background:#222b31; border:1px solid #41515a; border-radius:12px; padding:10px; margin-top:10px }
+  .row { display:flex; align-items:center; gap:7px; flex-wrap:wrap }
+  .between { justify-content:space-between }
+  button { color:#fff5e6; background:#33434c; border:1px solid #64818a; border-radius:8px; padding:8px 10px; font:inherit; cursor:pointer }
+  button.selected { border-color:#ffc65b; background:#70502c }
+  button:disabled { opacity:.4; cursor:default }
+  .heroChoice { border-top:1px solid #44535b; padding:9px 0 }
+  .heroChoice:first-of-type { border-top:0 }
+  .heroChoice strong { min-width:74px }
+  .description { min-height:2.4em; font-size:.86rem; color:#d7dcdb; margin:5px 0 0 0 }
+  .choiceBtn { font-size:.82rem; padding:5px 8px }
+  .priority { font-size:.78rem }
+  .foes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px }
+  .foe { min-height:94px; border:1px solid #ba8068; background:#443831; border-radius:9px; padding:8px 5px; text-align:center }
+  .foe.new { border-color:#93aeb2; background:#34424a }
+  .foe.empty { border-style:dashed; border-color:#54616a; background:transparent }
+  .foe strong { display:block; font-size:.94rem }
+  .big { font-size:1.18rem; font-weight:bold }
+  .party { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px }
+  .portrait { border:1px solid #677f85; border-radius:9px; text-align:center; padding:5px 1px; font-size:.77rem; min-height:70px }
+  .portrait.active { border:2px solid #f5c66d; background:#57482c }
+  .portrait.locked { opacity:.65 }
+  .portrait.dead { opacity:.35 }
+  .portrait b { display:block; font-size:.84rem }
+  .fire { color:#ffb45c; font-size:1.07rem; letter-spacing:2px }
+  .counter { color:#ffca73; font-weight:bold }
+  #log { list-style:none; margin:0; padding:0; max-height:200px; overflow:auto; font-size:.82rem }
+  #log li { border-top:1px solid #35454b; padding:5px 1px }
+  #log li:first-child { border-top:0 }
+  #controls { position:sticky; bottom:0; background:#192127; border:1px solid #60727a; border-radius:11px; padding:7px; z-index:2 }
+  #controls button { font-size:.83rem; padding:7px 8px }
+  .status { font-weight:bold; color:#ffce85 }
+  @media (max-width:390px) { .portrait {font-size:.69rem} #controls button {font-size:.76rem;padding:6px} }
+</style>
+</head>
+<body>
+<h1>灰の遠征：押し寄せる前線</h1>
+<p class="muted">未採用の実験。敵は倒すたび後ろから補充される。五人は決まった順に動き、反撃は一巡の終わり。防いだ・治した実量は次の一撃の「返り火」になる。</p>
+
+<section id="setup" class="panel">
+  <h2>一度だけ仕込む</h2>
+  <p class="muted">各人のA/Bを選び、最初に強化する人物を選ぶ。残りは五人順に第2・4・6・8隊の突破時、自動で強化される。設定後は途中で止まらず第12隊まで進める。</p>
+  <div id="choices"></div>
+  <button id="start">十二隊へ出発</button>
+</section>
+
+<main id="battle" hidden>
+  <section class="panel">
+    <div class="row between"><strong id="progress">十二隊</strong><span id="result" class="status"></span></div>
+    <div class="row between"><span>返り火 <b id="fire" class="fire"></b></span><span id="next"></span></div>
+    <p id="foresight" class="muted"></p>
+  </section>
+  <section class="panel">
+    <h2>敵の前線 <small>新入りはこの巡だけ攻撃しない</small></h2>
+    <div id="foes" class="foes"></div>
+  </section>
+  <section class="panel">
+    <h2>味方の一巡</h2>
+    <div id="party" class="party"></div>
+  </section>
+  <section class="panel"><h2>いま起きたこと</h2><ol id="log"></ol></section>
+  <div id="controls" class="row">
+    <button id="step">一人進める</button>
+    <button id="round">一巡進める</button>
+    <button id="play">再生</button>
+    <button id="fast">高速</button>
+    <button id="stop">停止</button>
+    <button id="reset">構築に戻る</button>
+  </div>
+</main>
+<script>
+"use strict";
+const HEROES=["H","G","Z","T","N"];
+const INFO={
+ H:{name:"ヒバナ",base:"先頭へ2",A:"継ぎ矢：先頭へ1×3。各矢で狙い直す",B:"奥射：最後尾へ4"},
+ G:{name:"ゴウ",base:"先頭へ5",A:"大槌：先頭へ8。余りは捨てる",B:"打ち抜き：先頭へ6。倒せば余りを貫通"},
+ Z:{name:"ゲンゾウ",base:"先頭へ2",A:"写し弩：直前の一撃の表示威力を写す",B:"二連弩：先頭へ2×3。各矢で狙い直す"},
+ T:{name:"ツグミ",base:"先頭へ1＋実治療1",A:"手当て射：先頭へ2＋実治療1",B:"治療優先：攻撃せず実治療3"},
+ N:{name:"ナギ",base:"防壁2",A:"堅守：防壁3",B:"押し盾：防壁1＋先頭へ2"}
+};
+const HP={H:7,G:12,Z:8,T:8,N:14};
+const PACKS=[
+ [["m",3,2],["m",3,2]], [["m",5,3]],
+ [["m",4,2],["m",4,2]], [["boss",20,6]],
+ [["m",3,2],["m",3,2],["m",3,2]],
+ [["m",8,3],["heal",4,2]], [["m",9,3],["m",6,2]],
+ [["boss",26,7]], [["m",4,2],["m",4,2],["m",4,2]],
+ [["m",10,3],["heal",4,2]], [["m",10,3],["m",9,3]],
+ [["boss",35,9],["heal",5,2]]
+];
+const kindName={m:"敵兵",boss:"首領",heal:"縫い手"};
+const config={H:"A",G:"A",Z:"A",T:"A",N:"A",first:"G"};
+const $=id=>document.getElementById(id);
+let game=null,timer=null;
+const markup=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+class Engine {
+ constructor(c) {
+  this.choice=Object.fromEntries(HEROES.map(h=>[h,c[h]]));
+  const pos=HEROES.indexOf(c.first);
+  this.order=[...HEROES.slice(pos),...HEROES.slice(0,pos)];
+  this.unlocked=new Set([c.first]);
+  this.queue=PACKS.flatMap((p,i)=>p.map(([kind,hp,atk])=>({pack:i,kind,hp:Math.round(hp*1.2),max:Math.round(hp*1.2),atk,born:-1})));
+  this.board=[];this.hp={...HP};this.shield=Object.fromEntries(HEROES.map(h=>[h,0]));
+  this.volley=0;this.actions=0;this.fire=0;this.lastHit=0;this.healed=0;this.enemyActions=0;
+  this.rested=new Set();this.done=false;this.won=false;this.events=[];
+  for(let i=0;i<3;i++) this.refill(-1);
+  this.say("最初の三体が現れた。十二隊を一息に突破する。");
+ }
+ say(message){this.events.unshift(message);this.events.length=Math.min(this.events.length,60);}
+ refill(born){if(this.queue.length){let e=this.queue.shift();e.born=born;this.board.push(e);this.say("次の敵が後ろへ入る："+kindName[e.kind]+"（第"+(e.pack+1)+"隊）");}}
+ milestone(){
+  const remaining=[...this.board,...this.queue].map(e=>e.pack);
+  const first=remaining.length?Math.min(...remaining):12;
+  for(const [i,boundary] of [2,4,6,8].entries()){
+   if(first>=boundary&&!this.unlocked.has(this.order[i+1])){
+    const who=this.order[i+1];this.unlocked.add(who);
+    this.say(INFO[who].name+"の"+this.choice[who]+"が解禁。");
+   }
+  }
+  for(const boundary of [4,8]){
+   if(first>=boundary&&!this.rested.has(boundary)){
+    this.rested.add(boundary);
+    for(const h of HEROES) this.hp[h]=this.hp[h]===0?2:this.hp[h]+Math.ceil((HP[h]-this.hp[h])/2);
+    this.say("第"+boundary+"隊を突破。休息で全員の傷が和らいだ。");
+   }
+  }
+ }
+ charge(actual,source){
+  if(!actual)return;
+  const before=this.fire;
+  this.fire=Math.min(4,this.fire+Math.ceil(actual/2));
+  if(this.fire>before)this.say(source+"が返り火を"+(this.fire-before)+"ためた（"+this.fire+"/4）。");
+ }
+ strike(who,base,target=0,pierce=false){
+  if(!this.board.length||base<=0)return;
+  const boost=this.fire;
+  this.fire=0;
+  let power=base+boost;
+  this.lastHit=power;
+  if(boost)this.say(INFO[who].name+"の一撃に返り火"+boost+"！");
+  let index=Math.min(target,this.board.length-1);
+  while(power>0&&this.board.length){
+   const enemy=this.board[index];
+   const before=enemy.hp;
+   enemy.hp-=power;
+   this.say(INFO[who].name+" → "+kindName[enemy.kind]+"（第"+(enemy.pack+1)+"隊） "+power);
+   if(enemy.hp>0)return;
+   this.say(kindName[enemy.kind]+"を撃破！");
+   this.board.splice(index,1);
+   this.refill(this.volley);
+   this.milestone();
+   if(!pierce||power<=before)return;
+   power-=before;
+   index=Math.min(index,this.board.length-1);
+  }
+ }
+ heal(amount){
+  const alive=HEROES.filter(h=>this.hp[h]>0);
+  if(!alive.length)return;
+  const who=alive.reduce((a,h)=>HP[h]-this.hp[h]>HP[a]-this.hp[a]?h:a);
+  const actual=Math.min(amount,HP[who]-this.hp[who]);
+  this.hp[who]+=actual;
+  this.healed+=actual;
+  if(actual)this.say("ツグミが"+INFO[who].name+"を"+actual+"治療。");
+  this.charge(actual,"実治療");
+ }
+ enemyPhase(){
+  this.lastHit=0;
+  this.say("五人の一巡が終わる。残った古参の敵が反撃。");
+  for(const enemy of [...this.board]){
+   if(enemy.born===this.volley)continue;
+   if(enemy.kind==="heal"){
+    if(this.board.length){const a=this.board[0];const d=Math.min(2,a.max-a.hp);a.hp+=d;if(d)this.say("縫い手が先頭の敵を"+d+"治療。");}
+    continue;
+   }
+   const target=["N","G","H","Z","T"].find(h=>this.hp[h]>0);
+   if(!target)break;
+   const blocked=Math.min(enemy.atk,this.shield[target]);
+   this.shield[target]-=blocked;
+   const loss=enemy.atk-blocked;
+   this.hp[target]=Math.max(0,this.hp[target]-loss);
+   this.enemyActions++;
+   this.say(kindName[enemy.kind]+" → "+INFO[target].name+" 防御"+blocked+"／損失"+loss);
+   this.charge(blocked,"実防御");
+  }
+  this.volley++;
+  if(HEROES.every(h=>this.hp[h]===0)){this.done=true;this.say("遠征失敗。どこで誰の連鎖が切れたか、直前の一巡を確認できる。");}
+ }
+ step(){
+  if(this.done)return;
+  const who=HEROES[this.actions%5];
+  const branch=this.unlocked.has(who)?this.choice[who]:"base";
+  if(this.hp[who]===0)this.say(INFO[who].name+"は倒れていて行動できない。");
+  else {
+   this.say("— "+INFO[who].name+" ["+branch+"] —");
+   if(who==="H"){
+    if(branch==="A")for(let i=0;i<3;i++)this.strike(who,1);
+    else this.strike(who,branch==="B"?4:2,branch==="B"?this.board.length-1:0);
+   } else if(who==="G")this.strike(who,branch==="A"?8:branch==="B"?6:5,0,branch==="B");
+   else if(who==="Z"){
+    if(branch==="A")this.strike(who,this.lastHit||1);
+    else if(branch==="B")for(let i=0;i<3;i++)this.strike(who,2);
+    else this.strike(who,2);
+   } else if(who==="T"){
+    if(branch==="A"){this.strike(who,2);this.heal(1);}
+    else if(branch==="B")this.heal(3);
+    else {this.strike(who,1);this.heal(1);}
+   } else {
+    this.shield.N=Math.min(3,this.shield.N+(branch==="A"?3:branch==="B"?1:2));
+    this.say("ナギの防壁 "+this.shield.N+"/3。");
+    if(branch==="B")this.strike(who,2);
+   }
+  }
+  this.actions++;
+  if(!this.board.length&&!this.queue.length){
+   this.done=true;this.won=true;
+   this.say("十二隊を突破！ "+this.actions+"行動、敵の反撃"+this.enemyActions+"回。");
+  } else if(this.actions%5===0)this.enemyPhase();
+ }
+}
+window.Engine=Engine;
+function stop(){if(timer){clearInterval(timer);timer=null;}render();}
+function setupRender(){
+ $("choices").innerHTML=HEROES.map(h=>`<div class="heroChoice">
+ <div class="row between"><strong>${INFO[h].name}</strong><button class="choiceBtn priority ${config.first===h?"selected":""}" data-first="${h}">${config.first===h?"最初に強化":"最初の人にする"}</button></div>
+ <div class="row"><small>基礎：${INFO[h].base}</small></div>
+ <div class="row"><button class="choiceBtn ${config[h]==="A"?"selected":""}" data-hero="${h}" data-mode="A">A</button>
+ <button class="choiceBtn ${config[h]==="B"?"selected":""}" data-hero="${h}" data-mode="B">B</button></div>
+ <p class="description">A ${INFO[h].A}<br>B ${INFO[h].B}</p></div>`).join("");
+ $("choices").querySelectorAll("[data-hero]").forEach(btn=>btn.onclick=()=>{config[btn.dataset.hero]=btn.dataset.mode;setupRender();});
+ $("choices").querySelectorAll("[data-first]").forEach(btn=>btn.onclick=()=>{config.first=btn.dataset.first;setupRender();});
+}
+function render(){
+ if(!game)return;
+ const cleared=12-Math.max(0,...[...game.board,...game.queue].map(e=>12-e.pack));
+ $("progress").textContent="第"+Math.min(12,cleared+1)+"隊へ／12　通常行動"+game.actions+"回";
+ $("result").textContent=game.done?(game.won?"突破":"全滅"):"一巡目の"+(game.actions%5+1)+"人目";
+ $("fire").textContent="●".repeat(game.fire)+"○".repeat(4-game.fire);
+ $("next").textContent="第"+(game.volley+1)+"巡";
+ const next=game.queue[0];
+ $("foresight").textContent=next?"少し先に見える敵：第"+(next.pack+1)+"隊の"+kindName[next.kind]+" HP"+next.hp:"先見：待機列は残っていない";
+ $("foes").innerHTML=Array.from({length:3},(_,i)=>{
+  const e=game.board[i];
+  return e?`<div class="foe ${e.born===game.volley?"new":""}"><small>第${e.pack+1}隊 ${i===0?"先頭":i===2?"最後尾":""}</small><strong>${kindName[e.kind]}</strong><span class="big">HP ${e.hp}</span><br><small>${e.born===game.volley?"今巡は待機":"反撃 "+e.atk}</small></div>`:
+   '<div class="foe empty">空き枠</div>';
+ }).join("");
+ $("party").innerHTML=HEROES.map((h,i)=>`<div class="portrait ${game.actions%5===i&&!game.done?"active":""} ${game.unlocked.has(h)?"":"locked"} ${game.hp[h]?"":"dead"}"><b>${INFO[h].name}</b><span>HP ${game.hp[h]}</span><br><span>壁 ${game.shield[h]}</span><br><small>${game.unlocked.has(h)?game.choice[h]:"基礎"}</small></div>`).join("");
+ $("log").innerHTML=game.events.slice(0,30).map(x=>"<li>"+markup(x)+"</li>").join("");
+ for(const id of ["step","round","play","fast"])$(id).disabled=game.done||!!timer;
+ $("stop").disabled=!timer;
+}
+$("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine(config);render();};
+$("step").onclick=()=>{game.step();render();};
+$("round").onclick=()=>{for(let i=0;i<5&&!game.done;i++)game.step();render();};
+$("play").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},360);render();};
+$("fast").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},75);render();};
+$("stop").onclick=stop;
+$("reset").onclick=()=>{stop();game=null;$("battle").hidden=true;$("setup").hidden=false;setupRender();};
+setupRender();
+</script>
+</body>
+</html>
