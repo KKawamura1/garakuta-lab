@@ -83,7 +83,7 @@ def run(order,branch,trace=False):
    clock-=5
    enemy_phase()
    if not any(hp.values()):break
- return wi==12 and not enemies,wi,slot+1,enemy_phases,heals,reflections,sum(hp.values())
+ return wi==12 and not enemies and any(hp.values()),wi,slot+1,enemy_phases,heals,reflections,sum(hp.values())
 
 if __name__=='__main__':
  rows=[]
