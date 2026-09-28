@@ -33,7 +33,7 @@ def run(order, branch, trace=False):
                 enemies.pop(i)
                 if not enemies:enter()
                 if not spill:break
-                if first:val+=2;first=False
+                if first:val+=4;first=False
                 else:break
             else:break
         return total
@@ -91,7 +91,7 @@ def run(order, branch, trace=False):
                         enemies.remove(e)
                         if not enemies:enter()
         if not any(hp.values()):break
-    return wi==12 and not enemies,wi,slot+1,actions,reflected,heals,sum(hp.values()),enemy_phases
+    return wi==12 and not enemies and any(hp.values()),wi,slot+1,actions,reflected,heals,sum(hp.values()),enemy_phases
 
 if __name__=='__main__':
     rows=[]
