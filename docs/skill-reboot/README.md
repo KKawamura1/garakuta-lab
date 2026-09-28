@@ -2,7 +2,7 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
-> **2026-09-28の未採用の新主案:** [カードゲームから技能を設計し直す](./24-card-grammar-and-action-defense.md)と[五人の護送アクション試作・反証](./25-five-hero-action-defense-slice.md)。五人の人物、寝る前に考える育成、少し先の未来視だけを必須として、手番・AP/RP・完全オートを含む現行制約を比較検討する。[18–19の巡航案](./18-expedition-engine-hypothesis.md)、[20–21の敵を焚く案](./20-ignite-the-enemy.md)、[22–23の五人の一巡案](./22-five-action-fun-thesis.md)と[その試験](./23-five-action-playtest.md)は比較・批判履歴。以下の仕様、`GAME.md`、190節カタログ、実装をまだ置き換えていない。
+> **2026-09-28の未採用の再検討:** [操舵案の撤回と三列防衛の契約](./26-stationary-defense-contract.md)、[十技能の紙上検算](./27-stationary-defense-combo-audit.md)。四人は配置を守り、ヒバナだけ決まった二列を巡回し、敵が門へ進む。操作・HP・勝敗・各拍の順序・介入頻度を定義したが、コンボの広がりはまだ証明できていない。[18–19の巡航案](./18-expedition-engine-hypothesis.md)、[20–21の敵を焚く案](./20-ignite-the-enemy.md)、[22–23の五人の一巡案](./22-five-action-fun-thesis.md)、[24–25の一指操舵案](./24-card-grammar-and-action-defense.md)は批判・比較履歴。以下の仕様、`GAME.md`、190節カタログ、実装を置き換えていない。
 
 ## 現在の判断（2026-09-23 レビュー更新）
 
