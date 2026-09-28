@@ -2,7 +2,7 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
-> **2026-09-28の未採用の主案:** [「敵を焚く」――十二戦を走る破壊的試案](./20-ignite-the-enemy.md)と[その反証試験](./21-ignite-prototype.md)。三幕で自ら敵の危険と変換規則を選び、敵の行動をコンボの燃料にする。交互手番と、必要なら戦闘中に一度割り込む別案まで比較する。[先行する巡航案](./18-expedition-engine-hypothesis.md)と[旧試験](./19-expedition-prototype-protocol.md)は比較履歴。以下の現行仕様をまだ置き換えていない。
+> **2026-09-28の未採用の主案:** [五人の一巡を育てる――楽しさから再出発](./22-five-action-fun-thesis.md)と[十二戦の反証手順](./23-five-action-playtest.md)。味方が連続して動く予測可能性、数戦先の技能予約、開通後の長い見返りを核にする。[巡航案](./18-expedition-engine-hypothesis.md)と[旧試験](./19-expedition-prototype-protocol.md)、[敵を焚く案](./20-ignite-the-enemy.md)と[その旧試験](./21-ignite-prototype.md)は撤回・比較履歴。以下の現行仕様をまだ置き換えていない。
 
 ## 現在の判断（2026-09-23 レビュー更新）
 
