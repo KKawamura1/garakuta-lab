@@ -2,7 +2,7 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
-> **2026-09-28の未採用の主案:** [五人の一巡を育てる――楽しさから再出発](./22-five-action-fun-thesis.md)と[十二戦の反証手順](./23-five-action-playtest.md)。味方が連続して動く予測可能性、数戦先の技能予約、開通後の長い見返りを核にする。[巡航案](./18-expedition-engine-hypothesis.md)と[旧試験](./19-expedition-prototype-protocol.md)、[敵を焚く案](./20-ignite-the-enemy.md)と[その旧試験](./21-ignite-prototype.md)は撤回・比較履歴。以下の現行仕様をまだ置き換えていない。
+> **2026-09-28の未採用の新主案:** [カードゲームから技能を設計し直す](./24-card-grammar-and-action-defense.md)と[五人の護送アクション試作・反証](./25-five-hero-action-defense-slice.md)。五人の人物、寝る前に考える育成、少し先の未来視だけを必須として、手番・AP/RP・完全オートを含む現行制約を比較検討する。[18–19の巡航案](./18-expedition-engine-hypothesis.md)、[20–21の敵を焚く案](./20-ignite-the-enemy.md)、[22–23の五人の一巡案](./22-five-action-fun-thesis.md)と[その試験](./23-five-action-playtest.md)は比較・批判履歴。以下の仕様、`GAME.md`、190節カタログ、実装をまだ置き換えていない。
 
 ## 現在の判断（2026-09-23 レビュー更新）
 
