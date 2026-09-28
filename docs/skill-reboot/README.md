@@ -2,7 +2,7 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
-> **2026-09-29の未採用の再検討:** [28からの棄却記録](./28-discard-log-fun-first.md)。[30の五拍時計](./30-five-beat-clock.md)と[試作](./five-beat-prototype.html)は[33の時計閾値試験](./33-clock-threshold-stress.md)で保留。[34の撃破バトン](./34-kill-baton-rejected.md)は棄却。現在は[35の三枠補充前線](./35-replenishing-frontier.md)と[36の実防御・実治療からの返り火](./36-actual-care-counterfire.md)を[一画面試作](./frontier-prototype.html)で試す段階。敵が倒れると次が後ろに入り、五人は固定順のまま十二隊を走る。**勝率の小試算とJS/Pythonの一致は面白さの証拠ではない。** 本編の`GAME.md`・190技能は変更していない。人間のiPhone試遊・安全構成の反復退屈・理由の説明可能性が未検証。
+> **2026-09-29の未採用の再検討:** [28からの棄却記録](./28-discard-log-fun-first.md)。[30の五拍時計](./30-five-beat-clock.md)と[試作](./five-beat-prototype.html)は[33の時計閾値試験](./33-clock-threshold-stress.md)で保留。[34の撃破バトン](./34-kill-baton-rejected.md)は棄却。現在は[35の三枠補充前線](./35-replenishing-frontier.md)と[36の実防御・実治療からの返り火](./36-actual-care-counterfire.md)と[37の同一敵列での技能反転監査](./37-how-to-author-useful-skills.md)を[一画面試作](./frontier-prototype.html)で試す段階。敵が倒れると次が後ろに入り、五人は固定順のまま十二隊を走る。**勝率の小試算とJS/Pythonの一致は面白さの証拠ではない。** 本編の`GAME.md`・190技能は変更していない。人間のiPhone試遊・安全構成の反復退屈・理由の説明可能性が未検証。
 
 ## 現在の判断（2026-09-23 レビュー更新）
 
