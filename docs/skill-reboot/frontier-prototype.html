@@ -260,7 +260,7 @@ function render(){
  if(!game)return;
  const cleared=12-Math.max(0,...[...game.board,...game.queue].map(e=>12-e.pack));
  $("progress").textContent="第"+Math.min(12,cleared+1)+"隊へ／12　通常行動"+game.actions+"回";
- $("result").textContent=game.done?(game.won?"突破":"全滅"):"一巡目の"+(game.actions%5+1)+"人目";
+ $("result").textContent=game.done?(game.won?"突破":"全滅"):"第"+(game.volley+1)+"巡の"+(game.actions%5+1)+"人目";
  $("fire").textContent="●".repeat(game.fire)+"○".repeat(4-game.fire);
  $("next").textContent="第"+(game.volley+1)+"巡";
  const next=game.queue[0];
@@ -271,13 +271,14 @@ function render(){
    '<div class="foe empty">空き枠</div>';
  }).join("");
  $("party").innerHTML=HEROES.map((h,i)=>`<div class="portrait ${game.actions%5===i&&!game.done?"active":""} ${game.unlocked.has(h)?"":"locked"} ${game.hp[h]?"":"dead"}"><b>${INFO[h].name}</b><span>HP ${game.hp[h]}</span><br><span>壁 ${game.shield[h]}</span><br><small>${game.unlocked.has(h)?game.choice[h]:"基礎"}</small></div>`).join("");
- $("log").innerHTML=game.events.slice(0,30).map(x=>"<li>"+markup(x)+"</li>").join("");
+ $("log").innerHTML=game.events.slice(0,30).reverse().map(x=>"<li>"+markup(x)+"</li>").join("");
+ $("log").scrollTop=$("log").scrollHeight;
  for(const id of ["step","round","play","fast"])$(id).disabled=game.done||!!timer;
  $("stop").disabled=!timer;
 }
 $("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine(config,$("vary").checked?variedRoute():null);render();};
 $("step").onclick=()=>{game.step();render();};
-$("round").onclick=()=>{for(let i=0;i<5&&!game.done;i++)game.step();render();};
+$("round").onclick=()=>{const remaining=5-game.actions%5;for(let i=0;i<remaining&&!game.done;i++)game.step();render();};
 $("play").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},360);render();};
 $("fast").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},75);render();};
 $("stop").onclick=stop;
