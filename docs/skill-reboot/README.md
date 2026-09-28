@@ -2,7 +2,7 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
-> **2026-09-28の未採用の再検討:** [操舵案の撤回と三列防衛の契約](./26-stationary-defense-contract.md)、[十技能の紙上検算](./27-stationary-defense-combo-audit.md)。四人は配置を守り、ヒバナだけ決まった二列を巡回し、敵が門へ進む。操作・HP・勝敗・各拍の順序・介入頻度を定義したが、コンボの広がりはまだ証明できていない。[18–19の巡航案](./18-expedition-engine-hypothesis.md)、[20–21の敵を焚く案](./20-ignite-the-enemy.md)、[22–23の五人の一巡案](./22-five-action-fun-thesis.md)、[24–25の一指操舵案](./24-card-grammar-and-action-defense.md)は批判・比較履歴。以下の仕様、`GAME.md`、190節カタログ、実装を置き換えていない。
+> **2026-09-28の未採用の再検討:** [28の棄却記録](./28-discard-log-fun-first.md)から、[30の五拍時計](./30-five-beat-clock.md)と[31の厳しい検算](./31-five-beat-adversarial-audit.md)を現在の**独立試作候補**として比較している。[32の余り拍持越し](./32-time-carry-rejected.md)は撤回。[26–27の三列防衛](./26-stationary-defense-contract.md)と[29の連破初案](./29-unbroken-expedition.md)は失敗した比較履歴。以下の実装済み仕様、`GAME.md`、190節カタログを置き換えていない。人間のプレイで「五拍目へ間に合わせる」場面が楽しいか未検証。
 
 ## 現在の判断（2026-09-23 レビュー更新）
 
