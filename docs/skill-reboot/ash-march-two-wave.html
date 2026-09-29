@@ -41,7 +41,7 @@
   function reset(){
     s={x:195,y:310,hp:12,hero:{H:2,G:2,Z:2,T:2,N:2},cool:{H:0,G:0,Z:0,T:0,N:0},
       shield:0,time:0,wave:0,waveTime:0,clearAt:null,fastAt:null,fast:false,kill:0,
-      combo:document.querySelector('#combo').checked,enemies:[],shots:[],notes:[],end:null};
+      combo:document.querySelector('#combo').checked,enemies:[],shots:[],notes:[],fx:[],end:null};
     pointer=null;last=performance.now();rushButton.disabled=false;rushButton.textContent='先駆け OFF';
     spawn();note('最初の撃破から、次の敵へ届くか観察する。');
   }
@@ -69,12 +69,14 @@
     if(e.hp<=0)return;
     e.hp-=amount;
     if(e.hp>0)return;
+    s.fx.push({x:e.x,y:e.y,kind:'kill',age:0});
     s.kill++; const route=origin.length?origin.join(' → '):'通常攻撃';
     note(`${route} → ${s.kill}体目を撃破`);
     if(s.combo){
       if(s.kill%6===0&&s.hp<12){s.hp++;note(`${route} → ツグミの戦地回収、灰火+1`)}
       if(s.kill%3===0){
         note(`${route} → ゴウの震脚`);
+        s.fx.push({x:pos('G').x,y:pos('G').y,kind:'shock',age:0});
         for(const other of [...living()])if(Math.hypot(other.x-s.x+28,other.y-s.y+12)<76)hurt(other,2,[...origin,'震脚']);
       }
       // Each real enemy dies once; embers that kill another real enemy can continue the chain.
@@ -127,6 +129,7 @@
         const N=pos('N');
         if(s.hero.N>0&&s.shield<=0&&Math.hypot(N.x-p.x,N.y-p.y)<19){
           p.ttl=0;s.shield=2;note('ナギが敵弾を受けた');
+          s.fx.push({x:N.x,y:N.y,kind:'shield',age:0});
           if(s.combo&&p.source.hp>0)fire(N.x,N.y,p.source,2,245,colors.N,['ナギ盾','返し盾']);
           continue;
         }
@@ -146,6 +149,8 @@
       s.y=Math.max(58,Math.min(510,s.y+pointer.dy/n*105*dt*scale));
     }}
     heroActions(dt);enemyActions(dt);shots(dt);
+    for(const effect of s.fx)effect.age+=dt;
+    s.fx=s.fx.filter(effect=>effect.age<.55);
     if(s.hp<=0){s.hp=0;s.end='敗北';note('灰火が消えた');return}
     if(!living().length){
       if(s.wave===2){s.end='二波を突破';note('二波を突破。十二波の面白さは未検証');return}
@@ -169,6 +174,12 @@
     for(const e of living()){
       g.fillStyle=e.shooter?'#b178c4':'#a6ab9b';g.beginPath();g.arc(e.x,e.y,e.r,0,7);g.fill();
       g.fillStyle='#191b20';g.font='bold 11px system-ui';g.textAlign='center';g.fillText(e.hp,e.x,e.y+4);
+    }
+    for(const effect of s.fx){
+      const t=effect.age/.55;g.globalAlpha=1-t;
+      g.strokeStyle=effect.kind==='shield'?colors.N:effect.kind==='shock'?colors.G:colors.H;
+      g.lineWidth=effect.kind==='shock'?5:3;g.beginPath();
+      g.arc(effect.x,effect.y,effect.kind==='shock'?12+65*t:5+24*t,0,7);g.stroke();g.globalAlpha=1;
     }
     for(const p of s.shots){g.fillStyle=p.side==='enemy'?'#ffb0a4':p.color;g.beginPath();g.arc(p.x,p.y,p.side==='enemy'?4:3,0,7);g.fill()}
     if(s.end){g.fillStyle='#10141dc9';g.fillRect(0,220,390,110);g.fillStyle='#fff0ce';g.textAlign='center';g.font='bold 25px system-ui';g.fillText(s.end,195,280)}
