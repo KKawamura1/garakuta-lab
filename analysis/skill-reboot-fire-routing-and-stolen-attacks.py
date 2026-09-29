@@ -22,7 +22,7 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
         unlock_order=None, rests=True, return_fire=False, fire_cap=4,
         gou_pierce=5, genzo_repeat=2, fire_mode="next_hit",
         stolen_attack=False, foresight_shot=False, future_power=4,
-        foresight_front=0, visible_slots=3):
+        foresight_front=0, visible_slots=3, action_order=NAMES):
     choice = dict(zip(NAMES, branch))
     queue = [{"pack":i, "kind":k, "hp":v, "maxhp":v, "atk":a, "born":-1}
              for i,p in enumerate(packs) for k,v,a in p]
@@ -184,7 +184,7 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
                              old_hp,newest["hp"]))
         if not board:
             break
-        who = NAMES[slot % 5]
+        who = action_order[slot % 5]
         main_actions += 1
         if hp[who]:
             if who not in unlocked:
