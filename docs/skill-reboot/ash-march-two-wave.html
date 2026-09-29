@@ -22,8 +22,9 @@
 <canvas id="field" width="390" height="560" aria-label="灰火と五人と敵の戦場"></canvas>
 <div id="below"><button id="start">出発／最初から</button><button id="rush" disabled>先駆け OFF</button></div>
 <label><input type="checkbox" id="combo" checked> 予約技能を使う（火種・返し盾・震脚・戦地回収）</label>
+<label><input type="checkbox" id="relay"> 継ぎ印を試す（火種・震脚を五人の受け技へ置換）</label>
 <div id="trace">防御 → 反射 → 撃破 → 火種 → 震脚が本当に起きるか試す。</div>
-<details><summary>二波だけの仮ルールと限界</summary>初期5人の自動攻撃。予約ONで4つの追加技能を最初から付ける（本案の段階解禁を省略）。敵が残っていても、先駆けONなら5秒後に次波を呼ぶ。OFFでは全滅か25秒。灰火HPが0で敗北、二波全滅で勝利。図形・数値・敵出現は観察用の仮置き。iPhoneの操作感・面白さ・全十二波のバランスは未検証。</details>
+<details><summary>二波だけの仮ルールと限界</summary>初期5人の自動攻撃。予約ONで4つの追加技能を最初から付ける（本案の段階解禁を省略）。継ぎ印ONは火種・震脚・戦地回収を継ぎ印の受け技へ置換し、ツグミへ3秒ごとの薬矢を追加。敵が残っていても、先駆けONなら5秒後に次波を呼ぶ。OFFでは全滅か25秒。灰火HPが0で敗北、二波全滅で勝利。図形・数値・敵出現は観察用の仮置き。iPhoneの操作感・面白さ・全十二波のバランスは未検証。</details>
 </main>
 <script>
 (() => {
@@ -39,11 +40,12 @@
   const living=()=>s.enemies.filter(e=>e.hp>0);
   const note=t=>{trace.textContent=t;s.notes.unshift({t,time:s.time});s.notes=s.notes.slice(0,4)};
   function reset(){
-    s={x:195,y:310,hp:12,hero:{H:2,G:2,Z:2,T:2,N:2},cool:{H:0,G:0,Z:0,T:0,N:0},
+    s={x:195,y:310,hp:12,hero:{H:2,G:2,Z:2,T:2,N:2},cool:{H:0,G:0,Z:0,T:0,N:0,D:0},
       shield:0,time:0,wave:0,waveTime:0,clearAt:null,fastAt:null,fast:false,kill:0,
-      combo:document.querySelector('#combo').checked,enemies:[],shots:[],notes:[],fx:[],end:null};
+      combo:document.querySelector('#combo').checked,relay:document.querySelector('#combo').checked&&document.querySelector('#relay').checked,
+      barrier:0,enemies:[],shots:[],notes:[],fx:[],end:null};
     pointer=null;last=performance.now();rushButton.disabled=false;rushButton.textContent='先駆け OFF';
-    spawn();note('最初の撃破から、次の敵へ届くか観察する。');
+    spawn();note(s.relay?'別人が同じ敵を撃つと継ぎ印が発火する。':'最初の撃破から、次の敵へ届くか観察する。');
   }
   function spawn(){
     if(s.wave>=2)return;
@@ -56,23 +58,46 @@
       const y=north?24+(i%3)*12:70+(i*69)%400;
       const shooter=(s.wave===1?i===0:i===0||i===5);
       s.enemies.push({id:id++,x,y,hp:shooter?2:3,max:shooter?2:3,r:shooter?11:9,
-        shooter,shotAt:s.time+1.4+i*.19,speed:shooter?23:31});
+        shooter,shotAt:s.time+1.4+i*.19,speed:shooter?23:31,mark:null,markUntil:0});
     }
     note(`第${s.wave}波：${s.wave===1?'小敵6・射手1':'小敵8・射手2'}が到着`);
   }
-  function fire(x,y,target,damage,speed,color,origin,cap=1){
+  function fire(x,y,target,damage,speed,color,origin,cap=1,owner=null){
     const n=Math.max(.001,Math.hypot(target.x-x,target.y-y));
-    s.shots.push({x,y,vx:(target.x-x)/n*speed,vy:(target.y-y)/n*speed,damage,color,origin,
+    s.shots.push({x,y,vx:(target.x-x)/n*speed,vy:(target.y-y)/n*speed,damage,color,origin,owner,
       ttl:2.8,side:'ally',left:cap,seen:new Set()});
   }
-  function hurt(e,amount,origin){
+  function relayEffect(owner,e,origin){
+    if(owner==='H'){
+      const targets=living().filter(t=>t!==e&&dist(t,e)<145).sort((a,b)=>dist(a,e)-dist(b,e));
+      for(const t of targets.slice(0,2))fire(e.x,e.y,t,1,205,colors.H,[...origin,'ヒバナの受け火'],1,'H');
+    }else if(owner==='G'){
+      s.fx.push({x:e.x,y:e.y,kind:'shock',age:0});
+      for(const other of [...living()])if(other!==e&&dist(other,e)<53)hurt(other,1,[...origin,'ゴウの受け波'],'G');
+    }else if(owner==='Z'){
+      const target=living().filter(t=>t!==e).sort((a,b)=>dist(a,e)-dist(b,e))[0];
+      if(target)fire(e.x,e.y,target,1,245,colors.Z,[...origin,'ゲンゾウの継ぎ矢'],1,'Z');
+    }else if(owner==='T'){
+      const low=Object.keys(s.hero).find(k=>s.hero[k]<2);
+      if(low)s.hero[low]++;else if(s.hp<12)s.hp++;
+    }else if(owner==='N')s.barrier=Math.min(2,s.barrier+1);
+  }
+  function hurt(e,amount,origin,owner=null){
     if(e.hp<=0)return;
     e.hp-=amount;
+    let route=origin.length?origin.join(' → '):'通常攻撃';
+    if(s.relay&&owner&&e.mark&&e.mark!==owner&&e.markUntil>s.time){
+      route=`${e.mark} → ${owner} 継ぎ印`;
+      e.mark=null;s.fx.push({x:e.x,y:e.y,kind:'relay',age:0});
+      note(`${route}が発火`);
+      relayEffect(owner,e,origin);
+    }
+    if(e.hp>0&&s.relay&&owner){e.mark=owner;e.markUntil=s.time+2}
     if(e.hp>0)return;
     s.fx.push({x:e.x,y:e.y,kind:'kill',age:0});
-    s.kill++; const route=origin.length?origin.join(' → '):'通常攻撃';
+    s.kill++;
     note(`${route} → ${s.kill}体目を撃破`);
-    if(s.combo){
+    if(s.combo&&!s.relay){
       if(s.kill%6===0&&s.hp<12){s.hp++;note(`${route} → ツグミの戦地回収、灰火+1`)}
       if(s.kill%3===0){
         note(`${route} → ゴウの震脚`);
@@ -82,7 +107,7 @@
       // Each real enemy dies once; embers that kill another real enemy can continue the chain.
       for(let i=0;i<2;i++){
         const targets=living().filter(t=>Math.hypot(t.x-e.x,t.y-e.y)<145).sort((a,b)=>dist(a,e)-dist(b,e));
-        if(targets.length)fire(e.x,e.y,targets[i%targets.length],1,205,colors.H,[...origin,'火種']);
+        if(targets.length)fire(e.x,e.y,targets[i%targets.length],1,205,colors.H,[...origin,'火種'],1,'H');
       }
     }
   }
@@ -93,12 +118,13 @@
   function heroActions(dt){
     for(const k of Object.keys(s.cool))s.cool[k]-=dt;
     s.shield-=dt;
-    const H=aim('H',230);if(H&&s.hero.H>0&&s.cool.H<=0){fire(pos('H').x,pos('H').y,H,1,230,colors.H,['ヒバナ']);s.cool.H=1.2}
-    const Z=aim('Z',260,true);if(Z&&s.hero.Z>0&&s.cool.Z<=0){fire(pos('Z').x,pos('Z').y,Z,2,260,colors.Z,['ゲンゾウ'],2);s.cool.Z=2}
+    const H=aim('H',230);if(H&&s.hero.H>0&&s.cool.H<=0){fire(pos('H').x,pos('H').y,H,1,230,colors.H,['ヒバナ'],1,'H');s.cool.H=1.2}
+    const Z=aim('Z',260,true);if(Z&&s.hero.Z>0&&s.cool.Z<=0){fire(pos('Z').x,pos('Z').y,Z,2,260,colors.Z,['ゲンゾウ'],2,'Z');s.cool.Z=2}
     const G=aim('G',64);if(G&&s.hero.G>0&&s.cool.G<=0){
-      hurt(G,2,['ゴウ']);const n=Math.max(1,dist(G,pos('G')));G.x+=(G.x-pos('G').x)/n*16;G.y+=(G.y-pos('G').y)/n*16;s.cool.G=1.8;
+      hurt(G,2,['ゴウ'],'G');const n=Math.max(1,dist(G,pos('G')));G.x+=(G.x-pos('G').x)/n*16;G.y+=(G.y-pos('G').y)/n*16;s.cool.G=1.8;
     }
-    const N=aim('N',51);if(N&&s.hero.N>0&&s.cool.N<=0){hurt(N,1,['ナギ']);s.cool.N=2.5}
+    const N=aim('N',51);if(N&&s.hero.N>0&&s.cool.N<=0){hurt(N,1,['ナギ'],'N');s.cool.N=2.5}
+    const D=aim('T',210);if(s.relay&&D&&s.hero.T>0&&s.cool.D<=0){fire(pos('T').x,pos('T').y,D,1,185,colors.T,['ツグミ'],1,'T');s.cool.D=3}
     if(s.hero.T>0&&s.cool.T<=0){
       const low=Object.keys(s.hero).find(k=>s.hero[k]<2);
       if(low){s.hero[low]++;note(`ツグミが${low}を治療`)}
@@ -114,15 +140,19 @@
         e.shotAt=s.time+2.7;const speed=140;
         s.shots.push({x:e.x,y:e.y,vx:dx/n*speed,vy:dy/n*speed,ttl:3.5,side:'enemy',source:e});
       }
-      if(!e.shooter&&n<16){e.hp=0;s.hp--;note('小敵が灰火に接触：HP−1')}
+      if(!e.shooter&&n<16){e.hp=0;damageCore('小敵が灰火に接触')}
     }
+  }
+  function damageCore(label){
+    if(s.barrier>0){s.barrier--;note(`${label}をナギの継ぎ盾が防ぐ`)}
+    else{s.hp--;note(`${label}：HP−1`)}
   }
   function shots(dt){
     for(const p of s.shots){
       p.ttl-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
       if(p.side==='ally'){
         for(const e of living())if(!p.seen.has(e.id)&&Math.hypot(e.x-p.x,e.y-p.y)<e.r+4){
-          p.seen.add(e.id);hurt(e,p.damage,p.origin);p.left--;if(p.left<=0){p.ttl=0;break}
+          p.seen.add(e.id);hurt(e,p.damage,p.origin,p.owner);p.left--;if(p.left<=0){p.ttl=0;break}
         }
       }else{
         // Nagi intercepts only a bullet that visibly crosses the front shield.
@@ -130,13 +160,13 @@
         if(s.hero.N>0&&s.shield<=0&&Math.hypot(N.x-p.x,N.y-p.y)<19){
           p.ttl=0;s.shield=2;note('ナギが敵弾を受けた');
           s.fx.push({x:N.x,y:N.y,kind:'shield',age:0});
-          if(s.combo&&p.source.hp>0)fire(N.x,N.y,p.source,2,245,colors.N,['ナギ盾','返し盾']);
+          if(s.combo&&p.source.hp>0)fire(N.x,N.y,p.source,2,245,colors.N,['ナギ盾','返し盾'],1,'N');
           continue;
         }
         for(const k of Object.keys(s.hero))if(s.hero[k]>0&&Math.hypot(pos(k).x-p.x,pos(k).y-p.y)<9){
           s.hero[k]--;p.ttl=0;note(`${k}が被弾${s.hero[k]===0?'、この波は倒れる':''}`);break;
         }
-        if(p.ttl>0&&Math.hypot(s.x-p.x,s.y-p.y)<10){s.hp--;p.ttl=0;note('敵弾が灰火へ：HP−1')}
+        if(p.ttl>0&&Math.hypot(s.x-p.x,s.y-p.y)<10){p.ttl=0;damageCore('敵弾が灰火へ')}
       }
     }
     s.shots=s.shots.filter(p=>p.ttl>0&&p.x>-20&&p.x<410&&p.y>-20&&p.y<580);
@@ -157,7 +187,7 @@
       if(s.clearAt===null)s.clearAt=s.time+1;
     }else s.clearAt=null;
     if(s.wave<2&&((s.clearAt!==null&&s.time>=s.clearAt)||(s.fast&&s.fastAt!==null&&s.time>=s.fastAt)||s.time-s.waveTime>=25))spawn();
-    status.textContent=`第${s.wave}/2波　灰火 ${s.hp}/12　討伐 ${s.kill}`;
+    status.textContent=`第${s.wave}/2波　灰火 ${s.hp}/12　討伐 ${s.kill}${s.barrier?'　継ぎ盾 '+s.barrier:''}`;
     next.textContent=s.wave===1?`次波：北の群れ・射手 ${s.fast?`残り${Math.max(0,s.fastAt-s.time).toFixed(1)}秒`:''}`:'最後の波';
   }
   function draw(){
@@ -174,12 +204,13 @@
     for(const e of living()){
       g.fillStyle=e.shooter?'#b178c4':'#a6ab9b';g.beginPath();g.arc(e.x,e.y,e.r,0,7);g.fill();
       g.fillStyle='#191b20';g.font='bold 11px system-ui';g.textAlign='center';g.fillText(e.hp,e.x,e.y+4);
+      if(s.relay&&e.mark&&e.markUntil>s.time){g.strokeStyle=colors[e.mark];g.lineWidth=3;g.beginPath();g.arc(e.x,e.y,e.r+5,0,7);g.stroke()}
     }
     for(const effect of s.fx){
       const t=effect.age/.55;g.globalAlpha=1-t;
-      g.strokeStyle=effect.kind==='shield'?colors.N:effect.kind==='shock'?colors.G:colors.H;
+      g.strokeStyle=effect.kind==='shield'?colors.N:effect.kind==='shock'?colors.G:effect.kind==='relay'?'#f9efb5':colors.H;
       g.lineWidth=effect.kind==='shock'?5:3;g.beginPath();
-      g.arc(effect.x,effect.y,effect.kind==='shock'?12+65*t:5+24*t,0,7);g.stroke();g.globalAlpha=1;
+      g.arc(effect.x,effect.y,effect.kind==='shock'?12+65*t:effect.kind==='relay'?8+30*t:5+24*t,0,7);g.stroke();g.globalAlpha=1;
     }
     for(const p of s.shots){g.fillStyle=p.side==='enemy'?'#ffb0a4':p.color;g.beginPath();g.arc(p.x,p.y,p.side==='enemy'?4:3,0,7);g.fill()}
     if(s.end){g.fillStyle='#10141dc9';g.fillRect(0,220,390,110);g.fillStyle='#fff0ce';g.textAlign='center';g.font='bold 25px system-ui';g.fillText(s.end,195,280)}
