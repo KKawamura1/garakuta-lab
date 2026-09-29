@@ -55,8 +55,9 @@
 
 <section id="setup" class="panel">
   <h2>一度だけ仕込む</h2>
-  <p class="muted">各人のA/Bを選び、最初に強化する人物を選ぶ。残りは五人順に第2・4・6・8隊の突破時、自動で強化される。設定後は途中で止まらず第12隊まで進める。</p>
+  <p class="muted">各人のA/Bと最初に強化する人物を選ぶ。残りは五人順に予約。比較実験ONなら討伐3・6・11・14体、OFFなら第2・4・6・8隊の突破時に自動で強化される。十二隊まで途中入力なしで進める。</p>
   <div id="choices"></div>
+  <p><label><input id="killUnlock" type="checkbox" checked> 比較実験：討伐3・6・11・14体で次の予約技能を解禁（先見の敵も数える）</label></p>
   <p><label><input id="vary" type="checkbox" checked> 次の遠征では、首領の位置を固定したまま通常隊の順番を変える</label></p>
   <button id="start">十二隊へ出発</button>
 </section>
@@ -65,6 +66,7 @@
   <section class="panel">
     <div class="row between"><strong id="progress">十二隊</strong><span id="result" class="status"></span></div>
     <div class="row between"><span>返り火 <b id="fire" class="fire"></b></span><span id="next"></span></div>
+    <p id="reserve" class="muted"></p>
     <p id="foresight" class="muted"></p>
   </section>
   <section class="panel">
@@ -116,6 +118,7 @@ class Engine {
   const pos=HEROES.indexOf(c.first);
   this.order=[...HEROES.slice(pos),...HEROES.slice(0,pos)];
   this.unlocked=new Set([c.first]);
+  this.unlockByKills=!!c.killUnlock;this.kills=0;
   const path=route||Array.from({length:12},(_,i)=>i);
   this.queue=path.flatMap((original,i)=>PACKS[original].map(([kind,hp,atk])=>({pack:i,kind,hp:Math.round(hp*1.2),max:Math.round(hp*1.2),atk,born:-1})));
   this.board=[];this.hp={...HP};this.shield=Object.fromEntries(HEROES.map(h=>[h,0]));
@@ -129,10 +132,12 @@ class Engine {
  milestone(){
   const remaining=[...this.board,...this.queue].map(e=>e.pack);
   const first=remaining.length?Math.min(...remaining):12;
-  for(const [i,boundary] of [2,4,6,8].entries()){
-   if(first>=boundary&&!this.unlocked.has(this.order[i+1])){
-    const who=this.order[i+1];this.unlocked.add(who);
-    this.say(INFO[who].name+"の"+this.choice[who]+"が解禁。");
+  if(!this.unlockByKills){
+   for(const [i,boundary] of [2,4,6,8].entries()){
+    if(first>=boundary&&!this.unlocked.has(this.order[i+1])){
+     const who=this.order[i+1];this.unlocked.add(who);
+     this.say(INFO[who].name+"の"+this.choice[who]+"が解禁。");
+    }
    }
   }
   for(const boundary of [4,8]){
@@ -140,6 +145,16 @@ class Engine {
     this.rested.add(boundary);
     for(const h of HEROES) this.hp[h]=this.hp[h]===0?2:this.hp[h]+Math.ceil((HP[h]-this.hp[h])/2);
     this.say("第"+boundary+"隊を突破。休息で全員の傷が和らいだ。");
+   }
+  }
+ }
+ earnedKill(){
+  this.kills++;
+  if(!this.unlockByKills)return;
+  for(const [i,threshold] of [3,6,11,14].entries()){
+   if(this.kills>=threshold&&!this.unlocked.has(this.order[i+1])){
+    const who=this.order[i+1];this.unlocked.add(who);
+    this.say("討伐"+this.kills+"体。"+INFO[who].name+"の"+this.choice[who]+"が今、解禁！");
    }
   }
  }
@@ -165,6 +180,7 @@ class Engine {
    if(enemy.hp>0)return;
    this.say(kindName[enemy.kind]+"を撃破！");
    this.board.splice(index,1);
+   this.earnedKill();
    this.refill(this.volley);
    this.milestone();
    if(!pierce||power<=before)return;
@@ -179,7 +195,7 @@ class Engine {
   this.fire=0;this.lastHit=power;
   const enemy=this.queue[0];enemy.hp-=power;enemy.foreseen=true;
   this.say(INFO[who].name+"が次の敵を予射：第"+(enemy.pack+1)+"隊 "+power+"（残りHP"+Math.max(0,enemy.hp)+"）。");
-  if(enemy.hp<=0){this.queue.shift();this.futureKills++;this.say("まだ来ていない敵を撃破！ 待機列から消えた。");this.milestone();}
+  if(enemy.hp<=0){this.queue.shift();this.futureKills++;this.say("まだ来ていない敵を撃破！ 待機列から消えた。");this.earnedKill();this.milestone();}
  }
  heal(amount){
   const alive=HEROES.filter(h=>this.hp[h]>0);
@@ -271,10 +287,14 @@ function setupRender(){
 function render(){
  if(!game)return;
  const cleared=12-Math.max(0,...[...game.board,...game.queue].map(e=>12-e.pack));
- $("progress").textContent="第"+Math.min(12,cleared+1)+"隊へ／12　通常行動"+game.actions+"回";
+ $("progress").textContent="第"+Math.min(12,cleared+1)+"隊へ／12　討伐"+game.kills+"体　通常行動"+game.actions+"回";
  $("result").textContent=game.done?(game.won?"突破":"全滅"):"第"+(game.volley+1)+"巡の"+(game.actions%5+1)+"人目";
  $("fire").textContent="●".repeat(game.fire)+"○".repeat(4-game.fire);
  $("next").textContent="第"+(game.volley+1)+"巡";
+ const pending=[2,4,6,8].findIndex((_,i)=>!game.unlocked.has(game.order[i+1]));
+ $("reserve").textContent=pending<0?"五人の予約技能がすべて有効":
+  "次の予約："+INFO[game.order[pending+1]].name+" "+game.choice[game.order[pending+1]]+"　"+
+  (game.unlockByKills?"討伐"+[3,6,11,14][pending]+"体で解禁":"第"+[2,4,6,8][pending]+"隊突破で解禁");
  const next=game.queue[0];
  $("foresight").textContent=next?"先見の影 → 第"+(next.pack+1)+"隊の"+kindName[next.kind]+"　HP "+next.hp+" / "+next.max+"　ヒバナBの予射はここへ届く":"先見：待機列は残っていない";
  $("foes").innerHTML=Array.from({length:3},(_,i)=>{
@@ -288,7 +308,7 @@ function render(){
  for(const id of ["step","round","play","fast"])$(id).disabled=game.done||!!timer;
  $("stop").disabled=!timer;
 }
-$("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine(config,$("vary").checked?variedRoute():null);render();};
+$("start").onclick=()=>{$("setup").hidden=true;$("battle").hidden=false;game=new Engine({...config,killUnlock:$("killUnlock").checked},$("vary").checked?variedRoute():null);render();};
 $("step").onclick=()=>{game.step();render();};
 $("round").onclick=()=>{const remaining=5-game.actions%5;for(let i=0;i<remaining&&!game.done;i++)game.step();render();};
 $("play").onclick=()=>{timer=setInterval(()=>{game.step();if(game.done)stop();else render();},360);render();};
