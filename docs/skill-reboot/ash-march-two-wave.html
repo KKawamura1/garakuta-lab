@@ -17,7 +17,7 @@
 </style>
 <main>
 <h1>灰火の行軍　<span style="font-size:12px;color:#e9b873">二波・図形試作</span></h1>
-<p>画面をドラッグして灰火と五人を動かす。指を離すと停止。攻撃は自動。次波を早く呼ぶ「先駆け」は任意。</p>
+<p>画面をドラッグして灰火と五人を動かす。指を離すと停止。攻撃は自動。次波を早く呼ぶ「先駆け」は任意。下の技能設定は次の出発から反映。</p>
 <div id="top"><span id="status">準備中</span><span id="next">次波：北の群れ・射手</span></div>
 <canvas id="field" width="390" height="560" aria-label="灰火と五人と敵の戦場"></canvas>
 <div id="below"><button id="start">出発／最初から</button><button id="rush" disabled>先駆け OFF</button></div>
@@ -221,6 +221,8 @@
   const release=e=>{if(pointer&&pointer.id===e.pointerId)pointer=null};c.addEventListener('pointerup',release);c.addEventListener('pointercancel',release);
   startButton.addEventListener('click',reset);
   rushButton.addEventListener('click',()=>{if(!s||s.end||s.wave>=2)return;s.fast=!s.fast;s.fastAt=s.fast?s.time+5:null;rushButton.textContent=`先駆け ${s.fast?'ON':'OFF'}`;note(s.fast?'五秒後、次波を早く呼ぶ':'先駆けを止めた')});
+  document.querySelector('#relay').addEventListener('change',e=>{if(e.target.checked)document.querySelector('#combo').checked=true});
+  document.querySelector('#combo').addEventListener('change',e=>{if(!e.target.checked)document.querySelector('#relay').checked=false});
   last=performance.now();requestAnimationFrame(loop);
 })();
 </script>
