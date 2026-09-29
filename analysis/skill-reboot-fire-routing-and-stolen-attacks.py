@@ -22,7 +22,8 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
         unlock_order=None, rests=True, return_fire=False, fire_cap=4,
         gou_pierce=5, genzo_repeat=2, fire_mode="next_hit",
         stolen_attack=False, foresight_shot=False, future_power=4,
-        foresight_front=0, visible_slots=3, action_order=NAMES):
+        foresight_front=0, visible_slots=3, action_order=NAMES,
+        unlock_by_kills=False, kill_thresholds=(3,6,11,14)):
     choice = dict(zip(NAMES, branch))
     queue = [{"pack":i, "kind":k, "hp":v, "maxhp":v, "atk":a, "born":-1}
              for i,p in enumerate(packs) for k,v,a in p]
@@ -39,6 +40,7 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
     portal_kills = 0
     stolen_kills = 0
     future_kills = 0
+    total_kills = 0
     enemy_actions = 0
     max_seen_pack = 0
     rest_awarded = set()
@@ -70,7 +72,7 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
         remaining = [e["pack"] for e in board+queue]
         first = min(remaining) if remaining else len(packs)
         max_seen_pack = max(max_seen_pack, first)
-        if unlock_order:
+        if unlock_order and not unlock_by_kills:
             for index,boundary in enumerate((2,4,6,8),start=1):
                 if first >= boundary:
                     unlocked.add(unlock_order[index])
@@ -82,7 +84,7 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
                                hp[who]+(MAXHP[who]-hp[who]+1)//2)
 
     def strike(power, target=0, overflow=False):
-        nonlocal last_hit, fire, fire_spent, stolen_kills
+        nonlocal last_hit, fire, fire_spent, stolen_kills, total_kills
         if return_fire and fire_mode=="next_hit" and board and power > 0:
             power += fire
             fire_spent += fire
@@ -99,6 +101,8 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
                 return
             leftover = max(0, power-old)
             board.pop(pos)
+            total_kills += 1
+            unlock_if_kills()
             if refill:
                 refill_slot(len(board), volley)
             rest_if_due()
@@ -115,6 +119,8 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
                     if nxt["hp"] > 0:
                         break
                     stolen_kills += 1
+                    total_kills += 1
+                    unlock_if_kills()
                     enemy = board.pop(0)
                     if refill:
                         refill_slot(len(board),volley)
@@ -141,8 +147,15 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
                 fire = min(fire_cap, fire+(actual+1)//2)
                 fire_gained += fire-old
 
+    def unlock_if_kills():
+        if not unlock_by_kills or not unlock_order:return
+        for index,threshold in enumerate(kill_thresholds,start=1):
+            if total_kills>=threshold and unlock_order[index] not in unlocked:
+                unlocked.add(unlock_order[index])
+                if trace:logs.append(("unlock",volley+1,total_kills,unlock_order[index]))
+
     def future_shot(power):
-        nonlocal last_hit, fire, fire_spent, future_kills
+        nonlocal last_hit, fire, fire_spent, future_kills, total_kills
         if not queue:
             strike(power, len(board)-1)
             return
@@ -159,6 +172,8 @@ def run(branch="AAAAA", packs=PACKS, refill=True, trace=False,
         if future["hp"] <= 0:
             queue.pop(0)
             future_kills += 1
+            total_kills += 1
+            unlock_if_kills()
             rest_if_due()
 
     for slot in range(750):
