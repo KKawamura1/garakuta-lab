@@ -2,6 +2,12 @@
 
 親Issue: #165 / PR #287。状態: **PR #288で基盤実装済み。ここでは実装で確定した境界と、まだプレイテストが必要な設計を分けて管理する。**
 
+> **2026-09-29追記 — ドラッグなしを検証:** [56: 既存作の操作負担](./56-control-budget-research.md)でBrotato、SNKRX、Loop Hero、Backpack Battles、Super Auto Pets、Ballionaire、Heretic's Forkを比較。[57: 買い物だけの灰火の工房](./57-shop-only-action-candidate.md)と[58: 先回りの反論](./58-shop-only-adversarial-round.md)を、[四波のブラウザ試作](./ash-shop-only.html)に落とし、[59: 実測と次の仮説](./59-shop-only-first-contact-and-continuity.md)に保存した。**無購入も各購入もすべて勝利**、余火一つで六反応。現行の四波は面白さを立証せず、波をまたぐ連鎖と他者の撃破を要する火種を次の未実装仮説とする。ここまでのどの案も本編に採用していない。
+
+> **新しい入口（2026-09-29）:** [45: 面白さと二つの極端](./45-two-extremes-and-the-fun-contract.md)で高い抽象度のカード案Aと、多数の空間的連鎖を持つアクション案Bを比較する。[46: 五人の手役](./46-five-hand-card-game.md)は[十二枚のブラウザ試作](./ash-five-hand-card.html)を作り、固定敵列では全480成長予約が先取りなしで勝つと確認。[47: 灰火の行軍](./47-ash-march-action-game.md)は[二波の操作試作](./ash-march-two-wave.html)で無移動でも突破した。[48: 両案への反論](./48-two-extremes-adversarial-review.md)、[50〜51: アクション試作で起きたこと](./50-action-prototype-first-contact.md)、**[55: 二方向へ戻した判断とカードの実測](./55-return-to-two-extremes.md)**を先に読む。途中の[52〜54: 二本道の配置案](./52-if-moving-is-not-needed.md)は第三案として保留し、元の二方向より優先しない。**どちらも本編へ採用していない。** 次は人間がカードを一周して暗算化を記録し、アクションで意図した連鎖を操作で起こせるか調べる。
+
+> **2026-09-29の未採用の再検討:** [28からの棄却記録](./28-discard-log-fun-first.md)。[30の五拍時計](./30-five-beat-clock.md)は[33の閾値試験](./33-clock-threshold-stress.md)で保留。[34の撃破バトン](./34-kill-baton-rejected.md)は棄却。[35の三枠補充前線](./35-replenishing-frontier.md)と[36の返り火](./36-actual-care-counterfire.md)を[一画面試作](./frontier-prototype.html)で触れる。[37の技能監査](./37-how-to-author-useful-skills.md)と[38の反証](./38-why-paired-wins-are-not-enough.md)、[39の画面観察](./39-preview-observation-and-next-kill-gate.md)を先に読む。[40は火の行き先と敵技奪取を棄却](./40-fire-routing-and-stolen-attacks.md)。[41は次の敵を先に撃つ技能を実験](./41-foresight-as-target-not-oracle.md)し、三枠では五人の即時連鎖にならないと記録。[42では五人で一発を作る十技能を試算して棄却](./42-one-salvo-five-makers-rejected.md)。[43の一箇所だけの行動順交換](./43-order-swap-is-a-tool-not-a-core.md)は設定項目として保留。[44は先見での討伐を予約技能の解禁へつなぐ比較案](./44-future-kills-awaken-reservations.md)。**本編の`GAME.md`・190技能は未変更。勝率もJS/Python一致も面白さの証拠ではなく、人間のiPhone試遊、同じ構成の反復退屈、因果の説明可能性は未検証。**
+
 ## 現在の判断（2026-09-23 レビュー更新）
 
 `10-weapon-tree-reboot.md` と `11-weapon-catalog.md` を、次の実装候補を考える現在の入口とする。

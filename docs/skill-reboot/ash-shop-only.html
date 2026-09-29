@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>灰火の工房 — 移動なし・買い物だけの四波試作</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}*{box-sizing:border-box}
+  body{background:#151923;color:#f6f0e7;margin:0}main{max-width:480px;margin:auto;padding:8px 10px 24px}
+  h1{font-size:19px;margin:4px 0}p,small{font-size:12px;line-height:1.5;color:#d0c4b7}
+  p{margin:4px 0 8px}.panel{background:#2b2d35;border:1px solid #6a5d50;border-radius:8px;padding:7px;margin:6px 0}
+  #status{font-size:13px;min-height:24px}#forecast{font-size:12px;color:#e9ca9d;min-height:25px}
+  canvas{display:block;width:100%;height:auto;aspect-ratio:390/500;border:1px solid #777269;border-radius:8px;background:#242936}
+  button,select{background:#554235;border:1px solid #a17d60;color:#fff0df;border-radius:8px;padding:10px;font-size:14px;min-height:44px}
+  button:disabled{opacity:.4}select{width:100%;font-size:13px;padding:8px;margin:3px 0}label{font-size:12px;display:block;margin:4px 0}
+  #controls{display:flex;gap:7px;margin-top:7px}#controls button{flex:1}
+  #shop{border:1px solid #b18553;background:#362f30;border-radius:9px;padding:8px;margin-top:8px}
+  #shop[hidden]{display:none}#shelf{display:grid;gap:6px}#shelf button{text-align:left;line-height:1.4}
+  #notes{font-size:12px;min-height:62px;line-height:1.55;white-space:pre-line}
+  details{font-size:12px;line-height:1.5;color:#d1c4b5;margin-top:9px}
+</style>
+<main>
+  <h1>灰火の工房 <small>買い物だけ・四波</small></h1>
+  <p>五人は灰火を守る定位置から自動で攻撃し、敵は進む。指で隊を動かさない。戦闘中の操作は「停止して一品買う／再開」だけ。灰火HP0で敗北、四波を倒せば勝利。</p>
+  <div class="panel" id="status">準備中</div><div id="forecast"></div>
+  <canvas id="field" width="390" height="500" aria-label="五人と灰火の自動戦闘"></canvas>
+  <div id="controls"><button id="start">出発／やり直す</button><button id="pause" disabled>停止して店へ</button></div>
+  <div id="shop" hidden><b>補給所</b><p>現商品はこの補給回で一つだけ買える。買わずに再開してもよい。</p><div id="shelf"></div><button id="resume" style="width:100%;margin-top:7px">買わずに／買ったので再開</button></div>
+  <details><summary>出発前の任意予約（止まらずに走るため）</summary>
+    <label><input type="checkbox" id="auto"> 選んだ品が棚にあり、灰片が足りたら自動購入</label>
+    <label>第1波からの棚 <select id="first"><option value="G">ゴウ：衝突槌2</option><option value="H">ヒバナ：余火5</option><option value="Z">ゲンゾウ：縫い弩2</option><option value="">何も買わない</option></select></label>
+    <label>第3波からの棚（四波試作のため補給を前倒し） <select id="second"><option value="H">ヒバナ：余火5</option><option value="N">ナギ：返し盾2</option><option value="T">ツグミ：回収薬2</option><option value="">何も買わない</option></select></label>
+    <label><input type="checkbox" id="fast"> 検証用：再生速度を3倍にする（戦闘の規則は同じ）</label>
+  </details>
+  <div class="panel" id="notes">まだ出発していない。</div>
+  <details><summary>この四波試作の限界</summary>ゴウの押し込みと他敵の接触、ヒバナの燃焼死亡からの火弾、ゲンゾウの貫通、ナギの反射、ツグミの実治療からの薬矢を実装。四波・商品五つ・一つの固定敵列であり、十二波の面白さや端末操作の証明ではない。五人の個別HPはない。購入時の即時攻撃はない。商品の在庫は第1波G/H/Z、第3波H/N/Tへ固定して比較できるようにした。商品を変えた周回の敵順は同じだが、敵と味方の攻撃時刻は変わる。</details>
+</main>
+<script src="./ash-shop-only-core.js"></script>
+<script>
+(()=>{
+  'use strict';const A=globalThis.AshShop,$=q=>document.querySelector(q),c=$('#field'),g=c.getContext('2d');
+  const color={G:'#dbb676',H:'#ee7b60',Z:'#9dbdea',N:'#c6b2e9',T:'#90d1a0'};
+  const people=[['N',195,188,'ナギ'],['G',155,218,'ゴウ'],['H',236,214,'ヒバナ'],['T',155,289,'ツグミ'],['Z',235,290,'ゲンゾウ']];
+  let s=null,paused=false,last=0;
+  function circle(x,y,r,col){g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fillStyle=col;g.fill();}
+  function line(a,b,col,width=2){g.strokeStyle=col;g.lineWidth=width;g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();}
+  function draw(){
+    g.clearRect(0,0,390,500);g.fillStyle='#252b36';g.fillRect(0,0,390,500);
+    g.strokeStyle='#646b79';g.lineWidth=1;g.beginPath();g.arc(195,250,170,0,Math.PI*2);g.stroke();
+    g.beginPath();g.arc(195,250,65,0,Math.PI*2);g.stroke();
+    circle(195,250,17,'#e6a965');circle(195,250,10,'#fbe3ab');
+    if(!s)return;
+    for(const [key,x,y,label] of people){circle(x,y,11,color[key]);g.font='10px system-ui';g.fillStyle='#101821';g.textAlign='center';g.fillText(label.slice(0,1),x,y+3);}
+    for(const e of A.alive(s)){
+      circle(e.x,e.y,e.type==='heavy'?13:e.type==='shooter'?10:8,e.type==='shooter'?'#bf87bf':e.type==='heavy'?'#aa8a75':'#b9a99b');
+      if(e.burn>s.time){g.strokeStyle='#ff704c';g.lineWidth=2;g.beginPath();g.arc(e.x,e.y,15,0,Math.PI*2);g.stroke();}
+      g.fillStyle='#fff3e7';g.font='10px system-ui';g.textAlign='center';g.fillText(e.hp,e.x,e.y+3);
+    }
+    for(const b of s.bullets)circle(b.x,b.y,4,'#ed90d8');
+    for(const f of s.fx){const col={G:color.G,H:color.H,Z:color.Z,N:color.N,T:color.T,
+      shield:'#c6b2e9',reflect:'#d5bdff',collision:'#f0cc86',ember:'#ff7449',kill:'#f6e1ae',heal:'#8fdca5',enemy:'#e79adb',hit:'#ffe5c7',fire:'#ff824f'}[f.kind]||'#fff';
+      if(f.b)line(f.a,f.b,col,f.kind==='ember'?4:2);else{g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc(f.a.x,f.a.y,20+(s.time+.35-f.until)*10,0,Math.PI*2);g.stroke();}
+    }
+    g.fillStyle='#fff0dc';g.textAlign='left';g.font='13px system-ui';
+    if(paused)g.fillText('停止中 — 店で購入か再開',10,25);
+    if(s.done)g.fillText(s.done==='win'?'四波突破':'灰火が尽きた',10,25);
+  }
+  function update(){
+    if(!s)return;
+    $('#status').textContent=`第${s.wave}/4波　灰火HP ${s.hp}/12　灰片${s.coin}　購入${s.bought.map(k=>A.names[k]).join('・')||'なし'}　${s.done==='win'?'突破':s.done==='lose'?'敗北':''}`;
+    const next=A.waves[s.wave];
+    $('#forecast').textContent=next?`一波先：${next.filter(x=>x[0]==='small').length}小兵・${next.filter(x=>x[0]==='heavy').length}重兵・${next.filter(x=>x[0]==='shooter').length}射手（出現辺の正確な座標は伏せる）`:'一波先：これが最後の波';
+    $('#notes').textContent=`余火${s.proc.ember}／衝突${s.proc.collision}／貫通${s.proc.pierce}／反射${s.proc.reflect}／薬矢${s.proc.healDart}\n${s.log.slice(0,3).join('　\n')}`;
+    $('#pause').disabled=!!s.done;
+    $('#pause').textContent=paused?'店を開いている':'停止して店へ';
+    if(paused){$('#shelf').innerHTML=A.shelves[s.shelf].map(k=>`<button data-buy="${k}" ${s.shelfUsed||s.bought.includes(k)||s.coin<A.price[k]?'disabled':''}>${k}　${A.names[k]}　灰片${A.price[k]} ${s.bought.includes(k)?'取得済み':''}</button>`).join('');}
+  }
+  function start(){const plan=$('#auto').checked?[$('#first').value,$('#second').value].filter(Boolean):[];
+    s=A.make({autoPlan:plan});paused=false;last=performance.now();$('#shop').hidden=true;$('#pause').disabled=false;update();draw();}
+  $('#start').onclick=start;
+  $('#pause').onclick=()=>{if(!s||s.done)return;paused=true;$('#shop').hidden=false;update();draw();};
+  $('#resume').onclick=()=>{paused=false;$('#shop').hidden=true;last=performance.now();update();draw();};
+  $('#shelf').onclick=e=>{const k=e.target.closest('button[data-buy]')?.dataset.buy;
+    if(k&&s&&A.buy(s,k)){update();draw();}
+  };
+  function frame(t){
+    if(s&&!paused&&!s.done){let dt=Math.min(.045,(t-last)/1000||0);for(let i=0;i<($('#fast').checked?3:1);i++)A.step(s,dt);update();}
+    last=t;draw();requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</html>
