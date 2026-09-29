@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>五人の手役 — 十二枚の小試作</title>
+<style>
+  :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}
+  *{box-sizing:border-box}body{margin:0;background:#151a21;color:#f7f0e7}
+  main{max-width:480px;margin:auto;padding:10px 11px 28px}
+  h1{font-size:20px;margin:5px 0}p,small{font-size:12px;line-height:1.5;color:#cabfb3}
+  p{margin:4px 0 10px}h2{font-size:14px;color:#f1ce8b;margin:14px 0 6px}
+  .row{display:flex;gap:7px;justify-content:space-between;align-items:stretch}
+  .panel{background:#252b34;border:1px solid #6a5d52;border-radius:10px;padding:9px;margin:8px 0}
+  .enemy{width:50%;min-height:88px}.enemy b{display:block;font-size:16px;margin:4px 0}
+  .forecast{opacity:.74}.stats{font-size:13px;display:flex;justify-content:space-between}
+  .cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+  .card{background:#343944;border:1px solid #9b7f6c;border-radius:8px;text-align:center;padding:9px 1px;min-height:70px}
+  .card b{font-size:12px}.card span{display:block;font-size:16px;margin-top:5px;font-weight:bold}
+  .fire{color:#fa8e71}.iron{color:#e7bd71}.water{color:#7dcbe1}.shield{color:#cbb7fa}
+  select,button{background:#483a35;color:white;border:1px solid #b69275;border-radius:8px;font-size:13px;padding:8px}
+  select{width:100%;margin:3px 0}button{min-height:48px;flex:1;font-size:14px;font-weight:600}
+  button:disabled{opacity:.42}.primary{background:#795044}.minor{background:#3e424e}
+  .score{font-size:14px;line-height:1.6}.events{min-height:100px;font-size:13px;line-height:1.5;white-space:pre-line}
+  details{font-size:12px;line-height:1.55;color:#cabfb3;margin-top:12px}
+  .claim{color:#f1ce8b;font-size:12px}
+</style>
+<main>
+  <h1>五人の手役 <small>抽象カード案の反例試作</small></h1>
+  <p>五人の札は自動で並ぶ。次の敵一枚だけ見える。「先取り」は次敵を今の一撃に加え、倒せなければ反撃を受ける。十二枚突破か灰火HP0で終了。</p>
+  <div id="status" class="panel stats">準備中</div>
+  <div class="row">
+    <div id="current" class="panel enemy"></div><div id="next" class="panel enemy forecast"></div>
+  </div>
+  <h2>五人の札</h2><div class="cards" id="cards"></div>
+  <div id="score" class="panel score"></div>
+  <h2>出発前に予約（3・6・9体撃破で起動）</h2>
+  <div id="plans"></div>
+  <div class="row" style="margin:9px 0"><button id="start" class="minor">この予約で出発</button><button id="auto" class="minor" disabled>自動で十二枚へ</button></div>
+  <div class="row"><button id="plain" class="primary" disabled>一巡進める</button><button id="pull" class="primary" disabled>次敵を先取りして進む</button></div>
+  <div id="trace" class="panel events">まず育成を三つ予約して出発。</div>
+  <div class="claim">この試作は「手役が気持ちよいか」より、毎巡の選択が暗算に退化するかを見ます。</div>
+  <details><summary>正確なルールと省略</summary>初期点10。同じ印の隣接ペア+4、三枚の異なる印の並び+4。重なるペアは一組として左から数え、三枚の並びは重なってよい。五人は毎巡同じ順。倒れた敵は反撃せず、残った敵だけ反撃。ナギが1防御。予約した技能は撃破数3/6/9に達した巡の終了時に起動。先取りは一巡の手役より前に確定。乱数、個別HP、戦闘中の並べ替えなし。全十二枚は固定順。これはBalatroそのものではなく、札操作と抽選を削った極端な実験です。</details>
+</main>
+<script src="./ash-five-hand-core.js"></script>
+<script>
+(()=>{
+  'use strict';
+  const C=globalThis.AshFiveHand,$=s=>document.querySelector(s);
+  const options={
+    'G:A':'ゴウ｜鍛打：鉄の対を+8','G:B':'ゴウ｜独槌：対に入らなければ基礎8',
+    'H:A':'ヒバナ｜余火：二枚目へ+8','H:B':'ヒバナ｜燃え継ぎ：流れ+2、余りを持ち越す',
+    'Z:A':'ゲンゾウ｜右写し：右の水を写す','Z:B':'ゲンゾウ｜両写し：対の多い側を写す',
+    'T:A':'ツグミ｜手当て：流れの数だけ治す','T:B':'ツグミ｜調律：流れ二組で+6',
+    'N:A':'ナギ｜重盾：対があれば防御3','N:B':'ナギ｜門盾：先取り時防御4'
+  };
+  const defaultPlan=['G:A','H:A','T:A'];let state=null,timer=null;
+  $('#plans').innerHTML=[3,6,9].map((n,i)=>`<label style="display:block;font-size:12px;color:#cabfb3">${n}体目 <select data-plan="${i}">${Object.entries(options).map(([key,label])=>`<option value="${key}" ${defaultPlan[i]===key?'selected':''}>${label}</option>`).join('')}</select></label>`).join('');
+  function plan(){return [...document.querySelectorAll('[data-plan]')].map(el=>el.value);}
+  function skillText(x){return options[x]?.split('｜')[1].split('：')[0]||'';}
+  function stop(){if(timer){clearInterval(timer);timer=null;}$('#auto').textContent='自動で十二枚へ';}
+  function render(last){
+    if(!state)return;
+    const h=C.hand(state),done=state.done;
+    $('#status').textContent=`${state.defeated}/12枚　灰火HP ${state.hp}/12　${state.round}巡　${done==='win'?'突破！':done==='lose'?'敗北':''}`;
+    const enemyBox=(e,forecast=false)=>e?`<small>${forecast?'一枚先（確定）':'現在の敵'}</small><b>${e.name}</b><span>耐久 ${e.hp}/${e.max}　反撃 ${e.attack}</span>`:`<small>${forecast?'次の敵はない':'討伐済み'}</small>`;
+    $('#current').innerHTML=enemyBox(state.current);$('#next').innerHTML=enemyBox(state.second||C.deck[state.next]&&{name:C.deck[state.next][0],hp:C.deck[state.next][1],max:C.deck[state.next][1],attack:C.deck[state.next][2]},true);
+    $('#cards').innerHTML=C.order.map((k,i)=>{const suit=h.suits[i],cl={'火':'fire','鉄':'iron','水':'water','盾':'shield'}[suit];return `<div class="card"><b>${C.names[k]}</b><span class="${cl}">${suit}</span><small>${state.active.find(x=>x[0]===k)?skillText(state.active.find(x=>x[0]===k)):'基礎'}</small></div>`;}).join('');
+    $('#score').textContent=`この巡：基礎${h.base} + 対${h.pairPoints}（${h.pairs.length}組） + 流れ${h.flowPoints}（${h.flows}組） + 調律${h.tuning} + 持越${h.carry} = ${h.score}点。防御${h.defense}。`;
+    $('#plain').disabled=!!done;$('#pull').disabled=!!done||!!state.second||state.next>=12;$('#auto').disabled=!!done;
+    document.querySelectorAll('[data-plan]').forEach(el=>el.disabled=!done);
+    if(last)$('#trace').textContent=`${last.round}巡目：${last.pull?'先取りした':'先取りなし'}、${last.score.score}点。${last.first} 残り${last.firstLeft}。\n${last.events.length?last.events.join('。'):'敵が残った'}。\n取得：${state.active.map(skillText).join('・')||'なし'}`;
+  }
+  $('#start').onclick=()=>{stop();const p=plan();if(new Set(p.map(x=>x[0])).size!==3){$('#trace').textContent='予約は異なる三人を選んでください。';return;}state=C.create(p);$('#trace').textContent='出発。予想した先取りだけ押すか、自動で結果を眺める。';render();};
+  $('#plain').onclick=()=>{if(state){render(C.turn(state,false));if(state.done)stop();}};
+  $('#pull').onclick=()=>{if(state){render(C.turn(state,true));if(state.done)stop();}};
+  $('#auto').onclick=()=>{if(timer){stop();return;}$('#auto').textContent='自動を止める';timer=setInterval(()=>{if(!state||state.done){stop();return;}render(C.turn(state,false));if(state.done)stop();},650);};
+  $('#plans').addEventListener('change',()=>{if(state)return;});
+})();
+</script>
+</html>
