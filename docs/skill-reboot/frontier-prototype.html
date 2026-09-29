@@ -49,7 +49,7 @@
 </head>
 <body>
 <h1>灰の遠征：押し寄せる前線</h1>
-<p class="muted">未採用の実験。敵は倒すたび後ろから補充される。五人は決まった順に動き、反撃は一巡の終わり。防いだ・治した実量は次の一撃の「返り火」になる。</p>
+<p class="muted">未採用の実験。敵は倒すたび後ろから補充される。五人は決まった順に動き、反撃は一巡の終わり。ヒバナは前線を撃つか、先見に見える次の敵を先に撃つ。</p>
 
 <section id="setup" class="panel">
   <h2>一度だけ仕込む</h2>
@@ -87,7 +87,7 @@
 "use strict";
 const HEROES=["H","G","Z","T","N"];
 const INFO={
- H:{name:"ヒバナ",base:"先頭へ2",A:"継ぎ矢：先頭へ1×3。各矢で狙い直す",B:"奥射：最後尾へ4"},
+ H:{name:"ヒバナ",base:"先頭へ2",A:"継ぎ矢：先頭へ1×3。各矢で狙い直す",B:"予射：先見に見える次の敵へ4。待機列が空なら最後尾"},
  G:{name:"ゴウ",base:"先頭へ5",A:"大槌：先頭へ8。余りは捨てる",B:"打ち抜き：先頭へ6。倒せば余りを貫通"},
  Z:{name:"ゲンゾウ",base:"先頭へ2",A:"写し弩：直前の一撃の表示威力を写す",B:"三連弩：先頭へ2×3。各矢で狙い直す"},
  T:{name:"ツグミ",base:"先頭へ1＋実治療1",A:"手当て射：先頭へ2＋実治療1",B:"治療優先：攻撃せず実治療3"},
@@ -117,7 +117,7 @@ class Engine {
   const path=route||Array.from({length:12},(_,i)=>i);
   this.queue=path.flatMap((original,i)=>PACKS[original].map(([kind,hp,atk])=>({pack:i,kind,hp:Math.round(hp*1.2),max:Math.round(hp*1.2),atk,born:-1})));
   this.board=[];this.hp={...HP};this.shield=Object.fromEntries(HEROES.map(h=>[h,0]));
-  this.volley=0;this.actions=0;this.fire=0;this.lastHit=0;this.healed=0;this.enemyActions=0;
+  this.volley=0;this.actions=0;this.fire=0;this.lastHit=0;this.healed=0;this.enemyActions=0;this.futureKills=0;
   this.rested=new Set();this.done=false;this.won=false;this.events=[];
   for(let i=0;i<3;i++) this.refill(-1);
   this.say("最初の三体が現れた。十二隊を一息に突破する。");
@@ -170,6 +170,15 @@ class Engine {
    index=Math.min(index,this.board.length-1);
   }
  }
+ futureStrike(who,base){
+  if(!this.queue.length){this.strike(who,base,this.board.length-1);return;}
+  const power=base+this.fire;
+  if(this.fire)this.say("返り火"+this.fire+"を先見の矢へ乗せた。");
+  this.fire=0;this.lastHit=power;
+  const enemy=this.queue[0];enemy.hp-=power;
+  this.say(INFO[who].name+"が次の敵を予射：第"+(enemy.pack+1)+"隊 "+power+"（残りHP"+Math.max(0,enemy.hp)+"）。");
+  if(enemy.hp<=0){this.queue.shift();this.futureKills++;this.say("まだ来ていない敵を撃破！ 待機列から消えた。");this.milestone();}
+ }
  heal(amount){
   const alive=HEROES.filter(h=>this.hp[h]>0);
   if(!alive.length)return;
@@ -211,7 +220,8 @@ class Engine {
    this.say("— "+INFO[who].name+" ["+branch+"] —");
    if(who==="H"){
     if(branch==="A")for(let i=0;i<3;i++)this.strike(who,1);
-    else this.strike(who,branch==="B"?4:2,branch==="B"?this.board.length-1:0);
+    else if(branch==="B")this.futureStrike(who,4);
+    else this.strike(who,2);
    } else if(who==="G")this.strike(who,branch==="A"?8:branch==="B"?6:5,0,branch==="B");
    else if(who==="Z"){
     if(branch==="A")this.strike(who,this.lastHit||1);
@@ -264,7 +274,7 @@ function render(){
  $("fire").textContent="●".repeat(game.fire)+"○".repeat(4-game.fire);
  $("next").textContent="第"+(game.volley+1)+"巡";
  const next=game.queue[0];
- $("foresight").textContent=next?"少し先に見える敵：第"+(next.pack+1)+"隊の"+kindName[next.kind]+" HP"+next.hp:"先見：待機列は残っていない";
+ $("foresight").textContent=next?"少し先に見える敵：第"+(next.pack+1)+"隊の"+kindName[next.kind]+" HP"+next.hp+"。ヒバナの予射はここへ届く":"先見：待機列は残っていない";
  $("foes").innerHTML=Array.from({length:3},(_,i)=>{
   const e=game.board[i];
   return e?`<div class="foe ${e.born===game.volley?"new":""}"><small>第${e.pack+1}隊 ${i===0?"先頭":i===2?"最後尾":""}</small><strong>${kindName[e.kind]}</strong><span class="big">HP ${e.hp}</span><br><small>${e.born===game.volley?"今巡は待機":"反撃 "+e.atk}</small></div>`:
