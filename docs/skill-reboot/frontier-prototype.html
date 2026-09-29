@@ -27,6 +27,7 @@
   .foes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px }
   .foe { min-height:94px; border:1px solid #ba8068; background:#443831; border-radius:9px; padding:8px 5px; text-align:center }
   .foe.new { border-color:#93aeb2; background:#34424a }
+  .foe.wounded { box-shadow:inset 0 0 0 2px #e5a761 }
   .foe.empty { border-style:dashed; border-color:#54616a; background:transparent }
   .foe strong { display:block; font-size:.94rem }
   .big { font-size:1.18rem; font-weight:bold }
@@ -37,6 +38,7 @@
   .portrait.dead { opacity:.35 }
   .portrait b { display:block; font-size:.84rem }
   .fire { color:#ffb45c; font-size:1.07rem; letter-spacing:2px }
+  #foresight { background:#302c36; border-left:3px solid #d0a0ed; border-radius:5px; padding:7px 9px; color:#e6d2f2 }
   .counter { color:#ffca73; font-weight:bold }
   #log { list-style:none; margin:0; padding:0; max-height:200px; overflow:auto; font-size:.82rem }
   #log li { border-top:1px solid #35454b; padding:5px 1px }
@@ -123,7 +125,7 @@ class Engine {
   this.say("最初の三体が現れた。十二隊を一息に突破する。");
  }
  say(message){this.events.unshift(message);this.events.length=Math.min(this.events.length,60);}
- refill(born){if(this.queue.length){let e=this.queue.shift();e.born=born;this.board.push(e);this.say("次の敵が後ろへ入る："+kindName[e.kind]+"（第"+(e.pack+1)+"隊）");}}
+ refill(born){if(this.queue.length){let e=this.queue.shift();e.born=born;this.board.push(e);this.say((e.foreseen?"先見で射た傷を残して入る：":"次の敵が後ろへ入る：")+kindName[e.kind]+"（第"+(e.pack+1)+"隊、HP"+e.hp+"）");}}
  milestone(){
   const remaining=[...this.board,...this.queue].map(e=>e.pack);
   const first=remaining.length?Math.min(...remaining):12;
@@ -175,7 +177,7 @@ class Engine {
   const power=base+this.fire;
   if(this.fire)this.say("返り火"+this.fire+"を先見の矢へ乗せた。");
   this.fire=0;this.lastHit=power;
-  const enemy=this.queue[0];enemy.hp-=power;
+  const enemy=this.queue[0];enemy.hp-=power;enemy.foreseen=true;
   this.say(INFO[who].name+"が次の敵を予射：第"+(enemy.pack+1)+"隊 "+power+"（残りHP"+Math.max(0,enemy.hp)+"）。");
   if(enemy.hp<=0){this.queue.shift();this.futureKills++;this.say("まだ来ていない敵を撃破！ 待機列から消えた。");this.milestone();}
  }
@@ -274,10 +276,10 @@ function render(){
  $("fire").textContent="●".repeat(game.fire)+"○".repeat(4-game.fire);
  $("next").textContent="第"+(game.volley+1)+"巡";
  const next=game.queue[0];
- $("foresight").textContent=next?"少し先に見える敵：第"+(next.pack+1)+"隊の"+kindName[next.kind]+" HP"+next.hp+"。ヒバナの予射はここへ届く":"先見：待機列は残っていない";
+ $("foresight").textContent=next?"先見の影 → 第"+(next.pack+1)+"隊の"+kindName[next.kind]+"　HP "+next.hp+" / "+next.max+"　ヒバナBの予射はここへ届く":"先見：待機列は残っていない";
  $("foes").innerHTML=Array.from({length:3},(_,i)=>{
   const e=game.board[i];
-  return e?`<div class="foe ${e.born===game.volley?"new":""}"><small>第${e.pack+1}隊 ${i===0?"先頭":i===2?"最後尾":""}</small><strong>${kindName[e.kind]}</strong><span class="big">HP ${e.hp}</span><br><small>${e.born===game.volley?"今巡は待機":"反撃 "+e.atk}</small></div>`:
+  return e?`<div class="foe ${e.born===game.volley?"new":""} ${e.foreseen?"wounded":""}"><small>第${e.pack+1}隊 ${i===0?"先頭":i===2?"最後尾":""}</small><strong>${kindName[e.kind]}</strong><span class="big">HP ${e.hp}</span><br><small>${e.born===game.volley?"今巡は待機":"反撃 "+e.atk}${e.foreseen?" / 予射済み":""}</small></div>`:
    '<div class="foe empty">空き枠</div>';
  }).join("");
  $("party").innerHTML=HEROES.map((h,i)=>`<div class="portrait ${game.actions%5===i&&!game.done?"active":""} ${game.unlocked.has(h)?"":"locked"} ${game.hp[h]?"":"dead"}"><b>${INFO[h].name}</b><span>HP ${game.hp[h]}</span><br><span>壁 ${game.shield[h]}</span><br><small>${game.unlocked.has(h)?game.choice[h]:"基礎"}</small></div>`).join("");
